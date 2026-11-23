@@ -126,6 +126,17 @@
   .status { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
   .status.aberta { background: var(--verde-claro); color: var(--verde-escuro); }
   .status.fechada { background: #eceff1; color: var(--suave); }
+  .status.vermelho { background: #fdecea; color: var(--erro); }
+  tr.com-erro td { background: #fdecea; }
+  tr.com-erro td:nth-child(2) { color: var(--erro); font-weight: 600; }
+  .motivo { display: block; font-size: 12.5px; font-weight: 400; color: var(--erro); margin-top: 3px; }
+  .motivo .botao { margin: 4px 6px 0 0; }
+  .caixa-erros { border: 1px solid #f3b8b2; background: #fdecea; border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; }
+  .caixa-erros h3 { color: var(--erro); margin: 0 0 8px; font-size: 15px; }
+  .caixa-erros .item { padding: 8px 0; border-top: 1px solid #f3b8b2; color: var(--erro); font-size: 14px; }
+  .caixa-erros .item:first-of-type { border-top: 0; }
+  .caixa-erros select { max-width: 320px; margin: 4px 6px 0 0; }
+  td.mult { text-align: center; }
   #tela-publica main { max-width: 1100px; }
 
   /* ---------- Impressão do carômetro ---------- */
@@ -631,11 +642,13 @@ function alertaNotas(msg) {
 }
 
 // Calcula a linha de um aluno: soma das questões, 2ª chamada, nota real e com multiplicador
-function calcularLinha(valores, segunda, nm) {
+// aplica = false quando a coordenação desmarcou o multiplicador daquele aluno. A nota final nunca passa de 10.
+function calcularLinha(valores, segunda, nm, aplica = true) {
   const presentes = valores.filter(v => v != null);
   const soma = presentes.length ? Math.round(presentes.reduce((a, b) => a + b, 0) * 100) / 100 : null;
   const real = segunda != null ? segunda : soma;
-  return { soma, real, final: real == null ? null : Math.round(real * MULT[nm] * 100) / 100 };
+  const final = real == null ? null : Math.min(10, Math.round(real * (aplica ? MULT[nm] : 1) * 100) / 100);
+  return { soma, real, final };
 }
 
 // ---------- Lista de ciclos ----------
@@ -674,16 +687,23 @@ async function paginaCiclo(cicloId) {
     db.from('notas_planilha').select('planilha_id, nota_real').eq('ciclo_id', cicloId),
   ]);
   if (e1 || e2 || e3) return erroNaTela(e1 || e2 || e3);
+  const { data: pends } = planilhas.length
+    ? await db.from('pendencias_notas').select('planilha_id').in('planilha_id', planilhas.map(p => p.id))
+    : { data: [] };
   const resumo = (pid) => {
     const l = linhas.filter(x => x.planilha_id === pid);
     return `${l.filter(x => x.nota_real != null).length} de ${l.length} com nota`;
+  };
+  const selo = (pid) => {
+    const np = (pends || []).filter(x => x.planilha_id === pid).length;
+    return np ? ` <span class="status vermelho">${np} ${np === 1 ? 'pendência' : 'pendências'}</span>` : '';
   };
   const celula = (nm, materia, turmaId) => {
     if (materia === 'Linguagens' && nm !== 'NM2') return '<td class="pendente">aguardando modelo (documento + redação)</td>';
     const doc = eDocumento(nm, materia);
     const p = planilhas.find(x => x.nm === nm && x.materia === materia && x.turma_id === turmaId);
     if (p) return `<td><button class="botao leve pequeno" data-planilha="${p.id}">${resumo(p.id)}</button>
-      ${doc ? '<span class="status fechada">PDF</span>' : `<span class="status ${p.aberta ? 'aberta' : 'fechada'}">${p.aberta ? 'aberta' : 'fechada'}</span>`}</td>`;
+      ${doc ? '<span class="status fechada">PDF</span>' : `<span class="status ${p.aberta ? 'aberta' : 'fechada'}">${p.aberta ? 'aberta' : 'fechada'}</span>`}${selo(p.id)}</td>`;
     if (!veTudo()) return '<td class="pendente">não criada</td>';
     return doc
       ? `<td><button class="botao leve pequeno" data-importar="${nm}|${materia}|${turmaId}">Importar PDF</button></td>`
@@ -775,19 +795,24 @@ async function paginaPlanilha(planilhaId) {
   $('#conteudo').innerHTML = '<div class="carregando">Carregando planilha…</div>';
   const { data: p, error } = await db.from('planilhas').select('*').eq('id', planilhaId).single();
   if (error) return erroNaTela(error);
-  const [{ data: ciclo }, { data: questoes }, { data: segundas }] = await Promise.all([
+  const [{ data: ciclo }, { data: questoes }, { data: segundas }, { data: pendencias }, { data: semMult }] = await Promise.all([
     db.from('ciclos').select('*').eq('id', p.ciclo_id).single(),
     db.from('questoes').select('*').eq('planilha_id', p.id).order('numero'),
     db.from('segunda_chamada').select('*').eq('planilha_id', p.id),
+    db.from('pendencias_notas').select('*').eq('planilha_id', p.id).order('id'),
+    db.from('sem_multiplicador').select('aluno_id').eq('planilha_id', p.id),
   ]);
   const { data: notas } = questoes.length
     ? await db.from('notas_questao').select('aluno_id, questao_id, nota').in('questao_id', questoes.map(q => q.id))
     : { data: [] };
   const valor = new Map((notas || []).map(n => [`${n.aluno_id}-${n.questao_id}`, Number(n.nota)]));
   const seg = new Map((segundas || []).map(s => [s.aluno_id, Number(s.nota)]));
+  const semM = new Set((semMult || []).map(x => x.aluno_id));
+  const pend = pendencias || [];
   const alunos = estado.matriculas.filter(m => m.turma_id === p.turma_id && m.situacao === 'ativo')
     .sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999)).map(m => estado.alunos.get(m.aluno_id)).filter(Boolean);
   const editar = veTudo();
+  const temMult = MULT[p.nm] !== 1;
   const cx = (v, attrs) => editar
     ? `<input class="nota" inputmode="decimal" ${attrs} value="${v == null ? '' : String(v).replace('.', ',')}">`
     : (v == null ? '—' : fmt(v));
@@ -795,14 +820,26 @@ async function paginaPlanilha(planilhaId) {
   const emails = questoes.map(q => q.professor_email).filter(Boolean);
   const titulo = `${p.materia} · ${p.nm} · ${nomeTurma(p.turma_id)} · ${ciclo.nome}`;
   const mensagem = `Olá! A planilha de notas de ${titulo} está aberta.\nLance as notas da sua questão neste link (salva automaticamente):\n${linkPublico(p.token)}`;
+  const linhaDe = (a) => calcularLinha(questoes.map(q => valor.get(`${a}-${q.id}`) ?? null), seg.get(a) ?? null, p.nm, !semM.has(a));
+
+  // Pendências ligadas a um aluno da turma (aparecem na linha dele) e as soltas (nome do documento que não está na turma)
+  const pendDoAluno = (id) => pend.filter(x => x.aluno_id === id);
+  const soltas = pend.filter(x => !x.aluno_id || !alunos.some(a => a.id === x.aluno_id));
+  const acoes = (x) => !editar ? '' : (x.aluno_id && x.nota != null && x.tipo !== 'fora_do_documento'
+    ? `<button class="botao pequeno" data-usar="${x.id}">${x.tipo === 'nome_diferente' ? 'É o mesmo aluno: lançar' : 'Lançar esta nota:'} ${fmt(x.nota)}</button>` : '')
+    + `<button class="botao leve pequeno" data-descartar="${x.id}">${x.tipo === 'fora_do_documento' ? 'Dispensar aviso' : 'Descartar'}</button>`;
+  const motivos = (id) => pendDoAluno(id).map(x => `<span class="motivo">⚠ ${esc(x.motivo)}${acoes(x) ? '<br>' + acoes(x) : ''}</span>`).join('');
+  const opcoesAlunos = `<option value="">Escolha o aluno da turma…</option>` + [...alunos].sort((a, b) => a.nome.localeCompare(b.nome))
+    .map(a => `<option value="${a.id}">${esc(a.nome)}</option>`).join('');
 
   $('#conteudo').innerHTML = `
     <div class="barra"><button class="botao leve" id="voltar">← ${esc(ciclo.nome)}</button>
       <div><h1>${esc(p.materia)} · ${p.nm} · ${esc(nomeTurma(p.turma_id))}</h1></div>
-      ${doc ? '<span class="status fechada">notas vindas de PDF</span>' : `<span class="status ${p.aberta ? 'aberta' : 'fechada'}">${p.aberta ? 'aberta para os professores' : 'fechada'}</span>`}</div>
+      ${doc ? '<span class="status fechada">notas vindas de PDF</span>' : `<span class="status ${p.aberta ? 'aberta' : 'fechada'}">${p.aberta ? 'aberta para os professores' : 'fechada'}</span>`}
+      ${pend.length ? `<span class="status vermelho">${pend.length} ${pend.length === 1 ? 'pendência' : 'pendências'}</span>` : ''}</div>
     ${doc ? `<div class="caixa-link"><strong>Notas importadas de PDF.</strong>
       ${editar ? '<button class="botao leve pequeno" id="reimportar">Importar PDF novamente</button>' : ''}
-      <span class="subtitulo" style="margin:0">Uma nova importação atualiza as notas dos alunos que estiverem no PDF.</span></div>` : `
+      <span class="subtitulo" style="margin:0">Uma nova importação atualiza as notas e refaz a lista de pendências.</span></div>` : `
     <div class="caixa-link">
       <strong>Link dos professores:</strong>
       <input type="text" readonly value="${esc(linkPublico(p.token))}" id="link-publico">
@@ -811,21 +848,29 @@ async function paginaPlanilha(planilhaId) {
       ${emails.length ? `<a class="botao leve pequeno" id="avisar" href="mailto:?bcc=${encodeURIComponent(emails.join(','))}&subject=${encodeURIComponent('Notas - ' + titulo)}&body=${encodeURIComponent(mensagem)}">Avisar por e-mail (${emails.length})</a>` : ''}
       ${editar ? `<button class="botao leve pequeno" id="abrir-fechar">${p.aberta ? 'Fechar lançamento' : 'Reabrir lançamento'}</button>` : ''}
     </div>`}
+    ${soltas.length ? `<div class="caixa-erros"><h3>No documento, mas fora desta turma (${soltas.length}) — nota NÃO lançada</h3>
+      ${soltas.map(x => `<div class="item"><strong>${esc(x.nome_documento || '')}</strong>${x.nota != null ? ` · nota ${fmt(x.nota)}` : ''}<br>${esc(x.motivo)}
+        ${editar ? `<br><select data-destino="${x.id}">${opcoesAlunos}</select><button class="botao pequeno" data-lancar="${x.id}">Lançar para este aluno</button>${acoes(x)}` : ''}</div>`).join('')}</div>` : ''}
     <div class="aviso erro escondido alerta-notas"></div>
     <div class="rolavel"><table id="tabela-notas">
       <thead><tr><th>Nº</th><th>Aluno</th>
         ${questoes.map(q => `<th class="num">Q${q.numero}<br><small>${esc(q.professor)}</small></th>`).join('')}
-        ${doc ? '' : '<th class="num">Soma</th>'}<th class="num">2ª chamada</th><th class="num">Nota real</th><th class="num">× ${fmt(MULT[p.nm])}</th></tr></thead>
+        ${doc ? '' : '<th class="num">Soma</th>'}<th class="num">2ª chamada</th><th class="num">Nota real</th>
+        ${temMult ? `<th class="mult">Usar × ${fmt(MULT[p.nm])}?</th>` : ''}<th class="num">Nota final<br><small>máx. 10</small></th></tr></thead>
       <tbody>${alunos.map((a, i) => {
-        const c = calcularLinha(questoes.map(q => valor.get(`${a.id}-${q.id}`) ?? null), seg.get(a.id) ?? null, p.nm);
-        return `<tr data-linha="${a.id}"><td>${i + 1}</td><td>${esc(a.nome)}</td>
+        const c = linhaDe(a.id);
+        return `<tr data-linha="${a.id}" class="${pendDoAluno(a.id).length ? 'com-erro' : ''}"><td>${i + 1}</td><td>${esc(a.nome)}${motivos(a.id)}</td>
           ${questoes.map(q => `<td class="num">${cx(valor.get(`${a.id}-${q.id}`), `data-aluno="${a.id}" data-questao="${q.id}"`)}</td>`).join('')}
           <td class="num ${c.soma > 10 ? 'acima' : ''} ${doc ? 'escondido' : ''}" data-soma>${fmt(c.soma)}</td>
           <td class="num">${cx(seg.get(a.id), `data-aluno="${a.id}" data-segunda="1"`)}</td>
-          <td class="num forte" data-real>${fmt(c.real)}</td><td class="num forte" data-final>${fmt(c.final)}</td></tr>`;
+          <td class="num forte" data-real>${fmt(c.real)}</td>
+          ${temMult ? `<td class="mult"><input type="checkbox" data-mult="${a.id}" ${semM.has(a.id) ? '' : 'checked'} ${editar ? '' : 'disabled'} title="Marcado = aplica o multiplicador"></td>` : ''}
+          <td class="num forte" data-final>${fmt(c.final)}</td></tr>`;
       }).join('')}</tbody></table></div>
-    ${editar && !doc ? `<p class="subtitulo" style="margin-top:14px">A coordenação também pode corrigir qualquer nota aqui. Soma em vermelho = passou de 10.
-      <button class="botao leve pequeno" id="mais-questao">+ Adicionar professor/questão</button></p>` : ''}`;
+    ${editar ? `<p class="subtitulo" style="margin-top:14px">${doc ? 'Linhas em vermelho têm pendência: corrija e a marca some. Digitar a nota do aluno também resolve a pendência dele.'
+      : 'A coordenação também pode corrigir qualquer nota aqui. Soma em vermelho = passou de 10.'}
+      ${temMult ? ' Desmarque "Usar ×" para o aluno ficar com a nota real. A nota final nunca passa de 10.' : ''}
+      ${doc ? '' : '<button class="botao leve pequeno" id="mais-questao">+ Adicionar professor/questão</button>'}</p>` : ''}`;
 
   $('#voltar').onclick = () => irPara('ciclo', p.ciclo_id);
   if ($('#reimportar')) $('#reimportar').onclick = () => importarPdf(ciclo, p.nm, p.materia, p.turma_id, p.id);
@@ -841,7 +886,57 @@ async function paginaPlanilha(planilhaId) {
     await db.from('questoes').insert({ planilha_id: p.id, numero: questoes.length + 1, professor: nome.trim() });
     paginaPlanilha(p.id);
   };
-  // salvar pela coordenação
+
+  // ----- Resolver pendências -----
+  const falhou = (e) => { alertaNotas('Não foi possível salvar: ' + e.message); };
+  const lancarNota = async (aluno_id, nota, pendId) => {
+    const q = questoes[0];
+    if (!q) return falhou({ message: 'planilha sem coluna de nota' });
+    const { error: e1 } = await db.from('notas_questao').upsert({ aluno_id, questao_id: q.id, nota, atualizado_em: new Date().toISOString() });
+    if (e1) return falhou(e1);
+    await db.from('pendencias_notas').delete().eq('planilha_id', p.id).eq('aluno_id', aluno_id);
+    if (pendId) await db.from('pendencias_notas').delete().eq('id', pendId);
+    paginaPlanilha(p.id);
+  };
+  document.querySelectorAll('[data-usar]').forEach(b => b.onclick = () => {
+    const x = pend.find(y => y.id === Number(b.dataset.usar));
+    lancarNota(x.aluno_id, Number(x.nota), x.id);
+  });
+  document.querySelectorAll('[data-lancar]').forEach(b => b.onclick = () => {
+    const x = pend.find(y => y.id === Number(b.dataset.lancar));
+    const destino = Number($(`[data-destino="${x.id}"]`).value);
+    if (!destino) return alertaNotas('Escolha primeiro o aluno da turma que deve receber esta nota.');
+    if (x.nota == null) return alertaNotas('Este item não tem nota válida no documento. Digite a nota direto na linha do aluno.');
+    lancarNota(destino, Number(x.nota), x.id);
+  });
+  document.querySelectorAll('[data-descartar]').forEach(b => b.onclick = async () => {
+    const { error: e } = await db.from('pendencias_notas').delete().eq('id', Number(b.dataset.descartar));
+    if (e) return falhou(e);
+    paginaPlanilha(p.id);
+  });
+
+  // ----- Multiplicador por aluno -----
+  const atualizarLinha = (aluno) => {
+    const c = linhaDe(aluno);
+    const tr = $('#tabela-notas').querySelector(`tr[data-linha="${aluno}"]`);
+    tr.querySelector('[data-soma]').textContent = fmt(c.soma);
+    tr.querySelector('[data-soma]').classList.toggle('acima', c.soma > 10);
+    tr.querySelector('[data-real]').textContent = fmt(c.real);
+    tr.querySelector('[data-final]').textContent = fmt(c.final);
+  };
+  document.querySelectorAll('[data-mult]').forEach(ch => ch.onchange = async () => {
+    const aluno_id = Number(ch.dataset.mult);
+    ch.disabled = true;
+    const { error: e } = ch.checked
+      ? await db.from('sem_multiplicador').delete().eq('planilha_id', p.id).eq('aluno_id', aluno_id)
+      : await db.from('sem_multiplicador').insert({ planilha_id: p.id, aluno_id });
+    ch.disabled = false;
+    if (e) { ch.checked = !ch.checked; return falhou(e); }
+    ch.checked ? semM.delete(aluno_id) : semM.add(aluno_id);
+    atualizarLinha(aluno_id);
+  });
+
+  // ----- Salvar nota digitada pela coordenação -----
   ligarNotas($('#tabela-notas'), (d, v) => {
     const aluno_id = Number(d.aluno);
     if (d.segunda) return v == null
@@ -851,15 +946,15 @@ async function paginaPlanilha(planilhaId) {
     return v == null
       ? db.from('notas_questao').delete().eq('aluno_id', aluno_id).eq('questao_id', questao_id)
       : db.from('notas_questao').upsert({ aluno_id, questao_id, nota: v, atualizado_em: new Date().toISOString() });
-  }, (d, v) => {
+  }, async (d, v) => {
     const aluno = Number(d.aluno);
     if (d.segunda) { v == null ? seg.delete(aluno) : seg.set(aluno, v); } else { valor.set(`${aluno}-${d.questao}`, v); }
-    const c = calcularLinha(questoes.map(q => valor.get(`${aluno}-${q.id}`) ?? null), seg.get(aluno) ?? null, p.nm);
-    const tr = $('#tabela-notas').querySelector(`tr[data-linha="${aluno}"]`);
-    tr.querySelector('[data-soma]').textContent = fmt(c.soma);
-    tr.querySelector('[data-soma]').classList.toggle('acima', c.soma > 10);
-    tr.querySelector('[data-real]').textContent = fmt(c.real);
-    tr.querySelector('[data-final]').textContent = fmt(c.final);
+    atualizarLinha(aluno);
+    // nota digitada para um aluno com pendência = pendência resolvida
+    if (v != null && pendDoAluno(aluno).length) {
+      await db.from('pendencias_notas').delete().eq('planilha_id', p.id).eq('aluno_id', aluno);
+      paginaPlanilha(p.id);
+    }
   });
 }
 
@@ -983,6 +1078,55 @@ function casarAluno(nomePdf, alunos) {
   return nota >= 0.88 ? { aluno: melhor, tipo: 'parecido' } : { aluno: null, tipo: 'nao' };
 }
 
+// Regras da importação (definidas pela coordenação):
+//  * a nota só entra sozinha quando o nome do documento é IGUAL ao do sistema (acentos e espaços não contam);
+//  * nome parecido, aluno fora da turma, aluno da turma que não está no documento e nota ilegível
+//    NÃO recebem nota: ficam marcados em vermelho na planilha, com o motivo, para a coordenação corrigir.
+function analisarImportacao(info, alunos, turmaId) {
+  const norm = (s) => semAcento(s).replace(/\s+/g, ' ').trim();
+  const linhas = info.alunos.map(l => ({ ...l, exato: alunos.find(a => norm(a.nome) === norm(l.nome)) || null }));
+  // aluno que aparece duas vezes com nome igual: nenhuma das duas entra
+  const contagem = new Map();
+  linhas.forEach(l => l.exato && contagem.set(l.exato.id, (contagem.get(l.exato.id) || 0) + 1));
+  const casados = new Set(linhas.filter(l => l.exato).map(l => l.exato.id));
+  const livres = alunos.filter(a => !casados.has(a.id));
+  const outraTurma = (nome) => {
+    const m = estado.matriculas.find(m => m.turma_id !== turmaId && m.situacao === 'ativo' && norm(estado.alunos.get(m.aluno_id)?.nome || '') === norm(nome));
+    return m ? nomeTurma(m.turma_id) : null;
+  };
+  const turma = nomeTurma(turmaId);
+  const lancar = [], pendencias = [];
+  for (const l of linhas) {
+    const notaOk = l.nota != null && !Number.isNaN(l.nota);
+    if (l.exato && contagem.get(l.exato.id) > 1) {
+      pendencias.push({ tipo: 'nota_invalida', aluno_id: l.exato.id, nome_documento: l.nome, nota: notaOk ? l.nota : null,
+        motivo: `Aparece mais de uma vez no documento (esta linha: nota ${notaOk ? fmt(l.nota) : 'ilegível'}). Confira qual nota é a certa e digite-a.` });
+    } else if (l.exato && !notaOk) {
+      pendencias.push({ tipo: 'nota_invalida', aluno_id: l.exato.id, nome_documento: l.nome, nota: null,
+        motivo: 'O nome bate, mas a nota do documento não pôde ser lida. Digite a nota manualmente.' });
+    } else if (l.exato) {
+      lancar.push({ aluno_id: l.exato.id, nota: l.nota, nome: l.nome });
+    } else {
+      const c = casarAluno(l.nome, livres);
+      if (c.aluno) {
+        pendencias.push({ tipo: 'nome_diferente', aluno_id: c.aluno.id, nome_documento: l.nome, nota: notaOk ? l.nota : null,
+          motivo: `Nome escrito diferente. No documento: "${l.nome}"${notaOk ? ` (nota ${fmt(l.nota)})` : ''}. No sistema: "${c.aluno.nome}". Corrija a grafia no cadastro ou confirme que é o mesmo aluno.` });
+      } else {
+        const outra = outraTurma(l.nome);
+        pendencias.push({ tipo: 'fora_da_turma', aluno_id: null, nome_documento: l.nome, nota: notaOk ? l.nota : null,
+          motivo: outra ? `Está no documento, mas no sistema está matriculado na ${outra}, não na ${turma}.`
+                        : `Está no documento, mas não está matriculado na ${turma} (nem foi encontrado em outra turma).` });
+      }
+    }
+  }
+  const comAviso = new Set(pendencias.filter(x => x.aluno_id).map(x => x.aluno_id));
+  for (const a of alunos) {
+    if (!casados.has(a.id) && !comAviso.has(a.id)) pendencias.push({ tipo: 'fora_do_documento', aluno_id: a.id, nome_documento: null, nota: null,
+      motivo: 'Está na turma, mas não aparece no documento. Confira o documento ou digite a nota.' });
+  }
+  return { linhas, lancar, pendencias };
+}
+
 async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null) {
   const alunos = estado.matriculas.filter(m => m.turma_id === turmaId && m.situacao === 'ativo')
     .map(m => estado.alunos.get(m.aluno_id)).filter(Boolean).sort((a, b) => a.nome.localeCompare(b.nome));
@@ -995,7 +1139,8 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null) {
     <div class="secao">
       <label for="arquivo-pdf">Escolha o PDF com o nome dos alunos e as notas</label>
       <input type="file" id="arquivo-pdf" accept="application/pdf,.pdf">
-      <p class="subtitulo" style="margin:8px 0 0">O arquivo é lido aqui no seu navegador. Nada é salvo até você conferir e clicar em "Salvar notas".</p>
+      <p class="subtitulo" style="margin:8px 0 0">O arquivo é lido aqui no seu navegador. Só entra nota de aluno com o nome <strong>igual</strong> ao do sistema;
+        os outros casos ficam em vermelho na planilha, com o motivo, para você corrigir.</p>
     </div>
     <div id="previa"></div>`;
   $('#ficha .fechar').onclick = fecharFicha;
@@ -1017,35 +1162,30 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null) {
     const nmPdf = /\bIME\b/.test(tituloSA) ? 'NM3' : /\bITA\b/.test(tituloSA) ? 'NM1' : null;
     if (nmPdf && nmPdf !== nm && nm !== 'NM2') avisos.push(`O título do PDF fala em <strong>${nmPdf === 'NM3' ? 'IME' : 'ITA'}</strong>, mas você está importando para ${nm}.`);
 
-    const linhas = info.alunos.map(l => ({ ...l, ...casarAluno(l.nome, alunos) }));
-    const usados = new Set(linhas.filter(l => l.aluno).map(l => l.aluno.id));
-    const semNota = alunos.filter(a => !usados.has(a.id));
-    const opcoes = (sel) => `<option value="">— ignorar —</option>` + alunos.map(a => `<option value="${a.id}" ${sel === a.id ? 'selected' : ''}>${esc(a.nome)}</option>`).join('');
-    const marca = { exato: '<span class="status aberta">nome igual</span>', parecido: '<span class="status" style="background:var(--alerta-fundo);color:var(--alerta)">confira</span>', nao: '<span class="status fechada">não encontrado</span>' };
-
+    const r = analisarImportacao(info, alunos, turmaId);
+    const vermelhas = r.pendencias;
     $('#previa').innerHTML = `
       <div class="secao">
         <h3>${esc(info.titulo)}</h3>
         ${avisos.map(a => `<div class="pendencia">${a}</div>`).join('')}
-        <p style="margin:6px 0 12px">${info.alunos.length} alunos no PDF · ${linhas.filter(l => l.tipo === 'exato').length} com nome igual ·
-          ${linhas.filter(l => l.tipo === 'parecido').length} para conferir · ${linhas.filter(l => l.tipo === 'nao').length} não encontrados nesta turma</p>
-        <div class="rolavel"><table id="tabela-importacao"><thead><tr><th>Nome no PDF</th><th>Aluno no sistema</th><th class="num">Nota</th><th></th></tr></thead>
-          <tbody>${linhas.map((l, i) => `<tr><td>${esc(l.nome)}</td>
-            <td><select data-linha="${i}">${opcoes(l.aluno?.id)}</select></td>
-            <td class="num ${Number.isNaN(l.nota) ? 'acima' : ''}">${Number.isNaN(l.nota) ? 'inválida' : fmt(l.nota)}</td><td>${marca[l.tipo]}</td></tr>`).join('')}</tbody></table></div>
-        ${semNota.length ? `<p class="subtitulo" style="margin-top:12px">Alunos da turma que não estão no PDF (ficam sem nota): ${semNota.map(a => esc(a.nome)).join(', ')}.</p>` : ''}
+        <p style="margin:6px 0 12px">${info.alunos.length} alunos no documento ·
+          <strong>${r.lancar.length} notas serão lançadas</strong> (nome igual) ·
+          <strong style="color:var(--erro)">${vermelhas.length} ${vermelhas.length === 1 ? 'pendência' : 'pendências'}</strong> (ficam sem nota, em vermelho)</p>
+        ${vermelhas.length ? `<div class="caixa-erros"><h3>Ficarão em vermelho para você corrigir</h3>
+          ${vermelhas.map(x => `<div class="item"><strong>${esc(x.aluno_id ? estado.alunos.get(x.aluno_id).nome : x.nome_documento)}</strong><br>${esc(x.motivo)}</div>`).join('')}</div>` : ''}
+        <div class="rolavel"><table id="tabela-importacao"><thead><tr><th>Nome no documento</th><th class="num">Nota</th><th>Situação</th></tr></thead>
+          <tbody>${r.linhas.map(l => {
+            const vai = r.lancar.some(x => x.nome === l.nome);
+            return `<tr class="${vai ? '' : 'com-erro'}"><td>${esc(l.nome)}</td>
+              <td class="num">${l.nota == null || Number.isNaN(l.nota) ? 'ilegível' : fmt(l.nota)}</td>
+              <td>${vai ? '<span class="status aberta">nome igual · será lançada</span>' : '<span class="status vermelho">não será lançada</span>'}</td></tr>`;
+          }).join('')}</tbody></table></div>
       </div>
-      <div class="secao"><button class="botao" id="salvar-importacao">Salvar notas</button>
+      <div class="secao"><button class="botao" id="salvar-importacao">Salvar ${r.lancar.length} notas${vermelhas.length ? ` e marcar ${vermelhas.length} pendências` : ''}</button>
         <div id="msg-importacao" class="aviso escondido"></div></div>`;
 
     $('#salvar-importacao').onclick = async () => {
       const msg = $('#msg-importacao');
-      const escolhas = [...document.querySelectorAll('#tabela-importacao select')]
-        .map(s => ({ aluno_id: Number(s.value), nota: linhas[Number(s.dataset.linha)].nota }))
-        .filter(x => x.aluno_id && !Number.isNaN(x.nota) && x.nota != null);
-      const repetidos = escolhas.map(x => x.aluno_id).filter((id, i, arr) => arr.indexOf(id) !== i);
-      if (repetidos.length) { msg.textContent = `O aluno ${estado.alunos.get(repetidos[0]).nome} foi escolhido em duas linhas. Corrija antes de salvar.`; msg.classList.add('erro'); msg.classList.remove('escondido'); return; }
-      if (!escolhas.length) { msg.textContent = 'Nenhuma nota para salvar.'; msg.classList.add('erro'); msg.classList.remove('escondido'); return; }
       $('#salvar-importacao').disabled = true;
       try {
         // cria a planilha deste documento na primeira importação (uma única coluna: "Documento")
@@ -1062,9 +1202,18 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null) {
           if (error) throw error;
           questaoId = q[0].id;
         }
-        const { error: e3 } = await db.from('notas_questao').upsert(
-          escolhas.map(x => ({ aluno_id: x.aluno_id, questao_id: questaoId, nota: x.nota, atualizado_em: new Date().toISOString() })));
-        if (e3) throw e3;
+        if (r.lancar.length) {
+          const { error: e3 } = await db.from('notas_questao').upsert(
+            r.lancar.map(x => ({ aluno_id: x.aluno_id, questao_id: questaoId, nota: x.nota, atualizado_em: new Date().toISOString() })));
+          if (e3) throw e3;
+        }
+        // a lista de pendências é refeita a cada importação
+        const { error: e4 } = await db.from('pendencias_notas').delete().eq('planilha_id', pid);
+        if (e4) throw e4;
+        if (vermelhas.length) {
+          const { error: e5 } = await db.from('pendencias_notas').insert(vermelhas.map(x => ({ planilha_id: pid, ...x })));
+          if (e5) throw e5;
+        }
         fecharFicha();
         irPara('planilha', pid);
       } catch (err) {
