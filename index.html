@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistema ITA-IME</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  /* ---------- Aparência geral ---------- */
+  :root {
+    --verde: #1f6b3a; --verde-escuro: #154d29; --verde-claro: #e8f3ec;
+    --texto: #1d2420; --suave: #5f6b64; --borda: #dfe5e1; --fundo: #f5f7f6;
+    --branco: #fff; --alerta: #b54708; --alerta-fundo: #fff4e5; --erro: #b42318;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Inter, system-ui, sans-serif; color: var(--texto); background: var(--fundo); font-size: 15px; }
+  button, input, select { font: inherit; }
+  button { cursor: pointer; }
+  .escondido { display: none !important; }
+
+  /* ---------- Tela de login ---------- */
+  #tela-login { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+  .cartao-login { background: var(--branco); border: 1px solid var(--borda); border-radius: 14px; padding: 32px; width: 100%; max-width: 380px; }
+  .marca { font-weight: 700; font-size: 22px; color: var(--verde); letter-spacing: -.3px; }
+  .marca small { display: block; font-weight: 500; font-size: 13px; color: var(--suave); letter-spacing: 0; margin-top: 2px; }
+  .abas { display: flex; gap: 4px; background: var(--fundo); border-radius: 8px; padding: 4px; margin: 24px 0 16px; }
+  .abas button { flex: 1; border: 0; background: transparent; padding: 8px; border-radius: 6px; color: var(--suave); font-weight: 500; }
+  .abas button.ativa { background: var(--branco); color: var(--texto); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  label { display: block; font-size: 13px; font-weight: 500; margin: 12px 0 6px; }
+  input[type=email], input[type=password], input[type=search] { width: 100%; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 8px; background: var(--branco); }
+  input:focus, select:focus { outline: 2px solid var(--verde); outline-offset: -1px; }
+  .botao { display: inline-flex; align-items: center; gap: 6px; border: 0; background: var(--verde); color: #fff; padding: 10px 16px; border-radius: 8px; font-weight: 600; }
+  .botao:hover { background: var(--verde-escuro); }
+  .botao.cheio { width: 100%; justify-content: center; margin-top: 20px; }
+  .botao.leve { background: var(--branco); color: var(--texto); border: 1px solid var(--borda); font-weight: 500; }
+  .botao.leve:hover { background: var(--fundo); }
+  .aviso { margin-top: 14px; font-size: 14px; padding: 10px 12px; border-radius: 8px; background: var(--verde-claro); color: var(--verde-escuro); }
+  .aviso.erro { background: #fdecea; color: var(--erro); }
+
+  /* ---------- Topo e navegação ---------- */
+  header { background: var(--branco); border-bottom: 1px solid var(--borda); position: sticky; top: 0; z-index: 5; }
+  .topo { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 24px; }
+  nav { display: flex; gap: 4px; flex: 1; }
+  nav button { border: 0; background: transparent; padding: 8px 12px; border-radius: 8px; color: var(--suave); font-weight: 500; }
+  nav button.ativa { background: var(--verde-claro); color: var(--verde-escuro); }
+  .usuario { font-size: 13px; color: var(--suave); text-align: right; }
+  .usuario strong { color: var(--texto); display: block; font-size: 14px; }
+  main { max-width: 1200px; margin: 0 auto; padding: 24px 20px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -.3px; }
+  .subtitulo { color: var(--suave); margin: 0 0 20px; }
+
+  /* ---------- Turmas ---------- */
+  .grade-turmas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  .turma { background: var(--branco); border: 1px solid var(--borda); border-radius: 12px; padding: 18px; text-align: left; transition: border-color .15s; }
+  .turma:hover { border-color: var(--verde); }
+  .turma .nome { font-weight: 600; font-size: 16px; }
+  .turma .qtd { font-size: 28px; font-weight: 700; color: var(--verde); margin-top: 10px; }
+  .turma .qtd span { font-size: 13px; font-weight: 500; color: var(--suave); margin-left: 4px; }
+  .turma.vazia .qtd { color: var(--suave); }
+
+  .barra { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
+  .barra .espaco { flex: 1; }
+  .barra input[type=search] { max-width: 280px; }
+  .alternar { display: flex; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; }
+  .alternar button { border: 0; background: var(--branco); padding: 8px 14px; color: var(--suave); }
+  .alternar button.ativa { background: var(--verde); color: #fff; }
+
+  /* ---------- Carômetro ---------- */
+  .carometro { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  .pessoa { background: var(--branco); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; text-align: left; padding: 0; }
+  .pessoa:hover { border-color: var(--verde); }
+  .foto { aspect-ratio: 1 / 1; width: 100%; object-fit: cover; display: block; background: var(--verde-claro); }
+  .sem-foto { aspect-ratio: 1 / 1; display: grid; place-items: center; background: var(--verde-claro); color: var(--verde); font-weight: 700; font-size: 34px; }
+  .pessoa .legenda { padding: 10px 12px; font-size: 13px; font-weight: 600; line-height: 1.3; }
+  .pessoa .legenda span { display: block; font-weight: 400; color: var(--suave); font-size: 12px; margin-top: 2px; }
+
+  /* ---------- Tabelas ---------- */
+  table { width: 100%; border-collapse: collapse; background: var(--branco); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--borda); font-size: 14px; }
+  th { background: var(--fundo); font-weight: 600; font-size: 13px; color: var(--suave); }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr.clicavel:hover { background: var(--verde-claro); cursor: pointer; }
+  select { padding: 6px 8px; border: 1px solid var(--borda); border-radius: 6px; background: var(--branco); }
+
+  /* ---------- Ficha do aluno ---------- */
+  .fundo-modal { position: fixed; inset: 0; background: rgba(16, 24, 20, .45); display: grid; place-items: center; padding: 20px; z-index: 20; }
+  .modal { background: var(--branco); border-radius: 14px; width: 100%; max-width: 720px; max-height: 90vh; overflow: auto; }
+  .modal-topo { display: flex; gap: 20px; padding: 24px; border-bottom: 1px solid var(--borda); align-items: center; }
+  .modal-topo .foto, .modal-topo .sem-foto { width: 120px; border-radius: 10px; flex-shrink: 0; }
+  .modal-topo h2 { margin: 0 0 4px; font-size: 20px; }
+  .fechar { margin-left: auto; align-self: flex-start; border: 0; background: transparent; font-size: 22px; color: var(--suave); }
+  .secao { padding: 20px 24px; border-bottom: 1px solid var(--borda); }
+  .secao:last-child { border-bottom: 0; }
+  .secao h3 { margin: 0 0 12px; font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: var(--suave); }
+  .campos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 20px; }
+  .campo small { display: block; font-size: 12px; color: var(--suave); }
+  .campo div { font-weight: 500; word-break: break-word; }
+  .vazio { color: var(--suave); font-weight: 400 !important; font-style: italic; }
+  .pendencia { background: var(--alerta-fundo); color: var(--alerta); border-radius: 8px; padding: 8px 12px; font-size: 14px; margin-bottom: 6px; }
+  .etiqueta { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--verde-claro); color: var(--verde-escuro); font-weight: 600; }
+  .carregando { color: var(--suave); padding: 40px 0; text-align: center; }
+
+  .link { background: none; border: 0; color: var(--verde); padding: 0; margin-top: 14px; font-size: 14px; text-decoration: underline; }
+
+  /* ---------- Impressão do carômetro ---------- */
+  #impressao { display: none; }
+  @media print {
+    @page { size: A4 portrait; margin: 12mm; }
+    body { background: #fff; }
+    #tela-sistema, #tela-login, #fundo-ficha { display: none !important; }
+    #impressao { display: block; font-family: Inter, Arial, sans-serif; color: #000; }
+    .imp-topo { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--verde); padding-bottom: 6px; margin-bottom: 10px; }
+    .imp-topo h1 { font-size: 16pt; margin: 0; color: var(--verde); }
+    .imp-topo span { font-size: 9pt; color: #444; }
+    .imp-grade { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .imp-aluno { border: 1px solid #bbb; border-radius: 6px; overflow: hidden; break-inside: avoid; }
+    .imp-aluno .foto, .imp-aluno .sem-foto { aspect-ratio: 1 / 1; width: 100%; font-size: 22pt; }
+    .imp-dados { padding: 5px 6px; font-size: 7.5pt; line-height: 1.35; }
+    .imp-dados strong { display: block; font-size: 8pt; margin-bottom: 2px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<section id="tela-login" class="escondido">
+  <form class="cartao-login" id="form-login">
+    <div class="marca">Sistema ITA-IME<small>Turmas ITA-IME · uso interno da equipe</small></div>
+    <div class="abas">
+      <button type="button" class="ativa" data-aba="entrar">Entrar</button>
+      <button type="button" data-aba="criar">Primeiro acesso</button>
+    </div>
+    <label for="email">E-mail</label>
+    <input id="email" type="email" autocomplete="username" required>
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" autocomplete="current-password" minlength="8" required>
+    <button class="botao cheio" id="botao-login" type="submit">Entrar</button>
+    <button type="button" class="link" id="esqueci">Esqueci minha senha</button>
+    <div id="msg-login" class="aviso escondido"></div>
+  </form>
+</section>
+
+<!-- ================= SISTEMA ================= -->
+<section id="tela-sistema" class="escondido">
+  <header>
+    <div class="topo">
+      <div class="marca" style="font-size:18px">ITA-IME</div>
+      <nav>
+        <button data-pagina="turmas" class="ativa">Turmas</button>
+        <button data-pagina="busca">Buscar aluno</button>
+        <button data-pagina="equipe" id="nav-equipe" class="escondido">Equipe</button>
+      </nav>
+      <div class="usuario"><strong id="nome-usuario"></strong><span id="papel-usuario"></span></div>
+      <button class="botao leve" id="sair">Sair</button>
+    </div>
+  </header>
+  <main id="conteudo"></main>
+</section>
+
+<!-- ================= CARÔMETRO PARA IMPRESSÃO (só aparece no papel) ================= -->
+<section id="impressao"></section>
+
+<!-- ================= FICHA (janela) ================= -->
+<div id="fundo-ficha" class="fundo-modal escondido"><div class="modal" id="ficha"></div></div>
+
+<script>
+// =====================================================================
+// CONFIGURAÇÃO — endereço do projeto no Supabase e a chave PÚBLICA.
+// A chave pública pode ficar aqui: quem protege os dados são as regras
+// (Row Level Security) do banco. NUNCA coloque aqui a chave "secret".
+// =====================================================================
+const SUPABASE_URL = 'https://xryueflxtsmphqevdoir.supabase.co';
+const SUPABASE_CHAVE_PUBLICA = 'sb_publishable_tMp35-YZV9F0KmQnd_DVQg_P2tHLJGU';
+const ANO_LETIVO = 2026;
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_CHAVE_PUBLICA);
+
+// Estado do sistema (o que já foi carregado)
+const estado = { papel: null, nome: '', turmas: [], matriculas: [], alunos: new Map(), fotos: new Map(), visao: 'carometro' };
+const NOMES_PAPEL = { admin: 'Administrador', coordenacao: 'Coordenação', professor: 'Professor', consulta: 'Consulta', pendente: 'Sem acesso' };
+
+// ---------- utilidades ----------
+const $ = (sel) => document.querySelector(sel);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const iniciais = (nome) => nome.split(' ').filter(p => p.length > 2).slice(0, 2).map(p => p[0]).join('');
+const telefone = (t) => !t ? '' : t.length === 11 ? `(${t.slice(0,2)}) ${t.slice(2,7)}-${t.slice(7)}` : t.length === 10 ? `(${t.slice(0,2)}) ${t.slice(2,6)}-${t.slice(6)}` : t;
+const cpf = (c) => c && c.length === 11 ? `${c.slice(0,3)}.${c.slice(3,6)}.${c.slice(6,9)}-${c.slice(9)}` : (c || '');
+const cep = (c) => c && c.length === 8 ? `${c.slice(0,5)}-${c.slice(5)}` : (c || '');
+const data = (d) => d ? d.split('-').reverse().join('/') : '';
+const semAcento = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+const veTudo = () => ['admin', 'coordenacao'].includes(estado.papel);
+
+function mostrar(idTela) {
+  ['#tela-login', '#tela-sistema'].forEach(t => $(t).classList.toggle('escondido', t !== idTela));
+}
+function mensagem(texto, erro = false) {
+  const m = $('#msg-login');
+  m.textContent = texto; m.classList.toggle('erro', erro); m.classList.remove('escondido');
+}
+
+// =====================================================================
+// LOGIN
+// =====================================================================
+// Modos da tela de login: entrar | criar (primeiro acesso) | recuperar (esqueci) | nova (definir nova senha)
+let modoLogin = 'entrar';
+const TEXTO_BOTAO = { entrar: 'Entrar', criar: 'Criar minha senha', recuperar: 'Enviar link de recuperação', nova: 'Salvar nova senha' };
+function mudarModo(modo) {
+  modoLogin = modo;
+  document.querySelectorAll('.abas button').forEach(x => x.classList.toggle('ativa', x.dataset.aba === modo));
+  $('#botao-login').textContent = TEXTO_BOTAO[modo];
+  $('#senha').autocomplete = modo === 'entrar' ? 'current-password' : 'new-password';
+  // no modo "recuperar" só o e-mail aparece; no modo "nova" só a senha
+  $('#senha').closest('form').querySelector('label[for=senha]').classList.toggle('escondido', modo === 'recuperar');
+  $('#senha').classList.toggle('escondido', modo === 'recuperar');
+  $('#senha').required = modo !== 'recuperar';
+  $('label[for=email]').classList.toggle('escondido', modo === 'nova');
+  $('#email').classList.toggle('escondido', modo === 'nova');
+  $('#email').required = modo !== 'nova';
+  $('label[for=senha]').textContent = modo === 'nova' ? 'Nova senha (mínimo 8 caracteres)' : 'Senha';
+  $('#esqueci').textContent = modo === 'recuperar' ? 'Voltar para entrar' : 'Esqueci minha senha';
+  $('#msg-login').classList.add('escondido');
+}
+document.querySelectorAll('.abas button').forEach(b => b.onclick = () => mudarModo(b.dataset.aba));
+$('#esqueci').onclick = () => mudarModo(modoLogin === 'recuperar' ? 'entrar' : 'recuperar');
+
+// Quando a pessoa chega pelo link do e-mail de recuperação, o Supabase avisa com este evento
+db.auth.onAuthStateChange((evento) => {
+  if (evento === 'PASSWORD_RECOVERY') {
+    mostrar('#tela-login'); mudarModo('nova');
+    mensagem('Digite a sua nova senha.');
+  }
+});
+
+$('#form-login').onsubmit = async (e) => {
+  e.preventDefault();
+  const email = $('#email').value.trim().toLowerCase();
+  const password = $('#senha').value;
+  $('#botao-login').disabled = true;
+  try {
+    if (modoLogin === 'recuperar') {
+      if (location.protocol === 'file:') {
+        mensagem('A recuperação de senha funciona na versão online do sistema. Por enquanto, peça ajuda ao administrador.', true);
+        return;
+      }
+      const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+      if (error) throw error;
+      mensagem('Se este e-mail estiver cadastrado, você vai receber um link para criar uma nova senha. Veja também a caixa de spam.');
+      return;
+    }
+    if (modoLogin === 'nova') {
+      const { error } = await db.auth.updateUser({ password });
+      if (error) throw error;
+      history.replaceState(null, '', location.pathname);
+      mudarModo('entrar');
+      return iniciar();
+    }
+    if (modoLogin === 'criar') {
+      const { data: r, error } = await db.auth.signUp({ email, password });
+      if (error) throw error;
+      if (r.session) return iniciar();
+      mensagem('Pronto! Enviamos um e-mail de confirmação. Clique no link do e-mail e depois volte aqui e use "Entrar".');
+    } else {
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await iniciar();
+    }
+  } catch (err) {
+    const t = String(err.message || err);
+    mensagem(
+      /Invalid login/i.test(t) ? 'E-mail ou senha incorretos.' :
+      /not confirmed/i.test(t) ? 'Seu e-mail ainda não foi confirmado. Procure o e-mail de confirmação (veja também o spam).' :
+      /already registered/i.test(t) ? 'Este e-mail já tem senha. Use a aba "Entrar".' :
+      /at least|password/i.test(t) ? 'A senha precisa ter pelo menos 8 caracteres.' :
+      /rate limit/i.test(t) ? 'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.' :
+      'Não foi possível entrar: ' + t, true);
+  } finally {
+    $('#botao-login').disabled = false;
+  }
+};
+
+$('#sair').onclick = async () => { await db.auth.signOut(); location.reload(); };
+
+// =====================================================================
+// INÍCIO: descobre o papel e carrega os dados
+// =====================================================================
+async function iniciar() {
+  const { data: { session } } = await db.auth.getSession();
+  if (!session) { mostrar('#tela-login'); return; }
+
+  const { data: papel } = await db.rpc('meu_papel');
+  const { data: eu } = await db.from('equipe').select('nome').eq('email', session.user.email).maybeSingle();
+  estado.papel = papel;
+  estado.nome = eu?.nome || session.user.email;
+
+  if (!papel || papel === 'pendente') {
+    mostrar('#tela-login');
+    mensagem(`Você entrou como ${session.user.email}, mas seu acesso ainda não foi liberado. Peça ao administrador (Wallison).`, true);
+    await db.auth.signOut();
+    return;
+  }
+
+  $('#nome-usuario').textContent = estado.nome;
+  $('#papel-usuario').textContent = NOMES_PAPEL[papel];
+  $('#nav-equipe').classList.toggle('escondido', papel !== 'admin');
+  mostrar('#tela-sistema');
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando turmas…</div>';
+
+  const [t, m, a] = await Promise.all([
+    db.from('turmas').select('*').order('id'),
+    db.from('matriculas').select('aluno_id, turma_id, ordem, situacao').eq('ano_letivo', ANO_LETIVO),
+    db.from('alunos_basico').select('*').order('nome'),
+  ]);
+  const erro = t.error || m.error || a.error;
+  if (erro) { $('#conteudo').innerHTML = `<div class="aviso erro">Erro ao carregar: ${esc(erro.message)}</div>`; return; }
+  estado.turmas = t.data;
+  estado.matriculas = m.data;
+  estado.alunos = new Map(a.data.map(x => [x.id, x]));
+  irPara('turmas');
+}
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => irPara(b.dataset.pagina));
+function irPara(pagina, extra) {
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === pagina || (pagina === 'turma' && b.dataset.pagina === 'turmas')));
+  ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe })[pagina](extra);
+}
+
+// =====================================================================
+// FOTOS: ficam num espaço privado; pedimos links temporários (1 hora)
+// =====================================================================
+async function carregarFotos(ids) {
+  const faltando = ids.map(id => estado.alunos.get(id)).filter(a => a?.foto && !estado.fotos.has(a.id));
+  if (!faltando.length) return;
+  const caminhos = faltando.map(a => a.foto.replace(/^fotos\//, ''));
+  const { data } = await db.storage.from('fotos').createSignedUrls(caminhos, 3600);
+  (data || []).forEach((r, i) => estado.fotos.set(faltando[i].id, r.signedUrl || null));
+}
+// se a foto ainda não foi enviada ao Supabase, mostra as iniciais
+function semFoto(img) {
+  const d = document.createElement('div'); d.className = 'sem-foto'; d.textContent = img.dataset.ini; img.replaceWith(d);
+}
+function htmlFoto(aluno, preguicoso = true) {
+  const url = estado.fotos.get(aluno.id);
+  return url
+    ? `<img class="foto" src="${esc(url)}" alt="" ${preguicoso ? 'loading="lazy"' : ''} data-ini="${esc(iniciais(aluno.nome))}" onerror="semFoto(this)">`
+    : `<div class="sem-foto">${esc(iniciais(aluno.nome))}</div>`;
+}
+
+// =====================================================================
+// PÁGINAS
+// =====================================================================
+function paginaTurmas() {
+  const cont = (id) => estado.matriculas.filter(m => m.turma_id === id && m.situacao === 'ativo').length;
+  $('#conteudo').innerHTML = `
+    <h1>Turmas ${ANO_LETIVO}</h1>
+    <p class="subtitulo">${estado.matriculas.length} alunos matriculados. Clique numa turma para ver o carômetro.</p>
+    <div class="grade-turmas">
+      ${estado.turmas.map(t => `
+        <button class="turma ${cont(t.id) ? '' : 'vazia'}" data-turma="${t.id}">
+          <div class="nome">${esc(t.nome)}</div>
+          <div class="qtd">${cont(t.id)}<span>${cont(t.id) ? 'alunos' : 'sem alunos ainda'}</span></div>
+        </button>`).join('')}
+    </div>`;
+  document.querySelectorAll('[data-turma]').forEach(b => b.onclick = () => irPara('turma', Number(b.dataset.turma)));
+}
+
+async function paginaTurma(turmaId) {
+  const turma = estado.turmas.find(t => t.id === turmaId);
+  const lista = estado.matriculas
+    .filter(m => m.turma_id === turmaId && m.situacao === 'ativo')
+    .sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999))
+    .map(m => estado.alunos.get(m.aluno_id)).filter(Boolean);
+  $('#conteudo').innerHTML = `<div class="carregando">Carregando fotos…</div>`;
+  await carregarFotos(lista.map(a => a.id));
+
+  $('#conteudo').innerHTML = `
+    <div class="barra">
+      <button class="botao leve" id="voltar">← Turmas</button>
+      <div><h1>${esc(turma.nome)}</h1></div>
+      <div class="espaco"></div>
+      <input type="search" id="filtro" placeholder="Filtrar por nome">
+      <div class="alternar">
+        <button data-visao="carometro" class="${estado.visao === 'carometro' ? 'ativa' : ''}">Carômetro</button>
+        <button data-visao="lista" class="${estado.visao === 'lista' ? 'ativa' : ''}">Lista</button>
+      </div>
+      <button class="botao leve" id="imprimir">Imprimir</button>
+    </div>
+    <div id="alunos-turma"></div>`;
+  $('#voltar').onclick = () => irPara('turmas');
+  $('#imprimir').onclick = () => imprimirCarometro(turma, lista);
+  document.querySelectorAll('[data-visao]').forEach(b => b.onclick = () => { estado.visao = b.dataset.visao; paginaTurma(turmaId); });
+  const desenhar = () => {
+    const f = semAcento($('#filtro').value.trim());
+    desenharAlunos(lista.filter(a => !f || semAcento(a.nome).includes(f)), '#alunos-turma');
+  };
+  $('#filtro').oninput = desenhar;
+  desenhar();
+}
+
+// Monta a folha do carômetro (foto, nome, nascimento e telefone) e abre a janela de impressão
+function imprimirCarometro(turma, lista) {
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  $('#impressao').innerHTML = `
+    <div class="imp-topo"><h1>TURMA ITA-IME · ${esc(turma.nome.toUpperCase())}</h1>
+      <span>${lista.length} alunos · ano letivo ${ANO_LETIVO} · impresso em ${hoje}</span></div>
+    <div class="imp-grade">${lista.map(a => `
+      <div class="imp-aluno">${htmlFoto(a, false)}
+        <div class="imp-dados"><strong>${esc(a.nome)}</strong>
+          Nasc.: ${esc(data(a.data_nascimento)) || '—'}<br>
+          Tel.: ${esc(telefone(a.telefone)) || '—'}
+        </div>
+      </div>`).join('')}</div>`;
+  // espera as fotos carregarem antes de abrir a impressão
+  const imgs = [...document.querySelectorAll('#impressao img')];
+  const carregadas = Promise.all(imgs.map(i => i.complete ? 1 : new Promise(r => { i.addEventListener('load', r); i.addEventListener('error', r); })));
+  const limite = new Promise(r => setTimeout(r, 4000)); // no máximo 4 segundos de espera
+  Promise.race([carregadas, limite]).then(() => window.print());
+}
+
+function desenharAlunos(alunos, onde, mostrarTurma = false) {
+  const turmaDe = (id) => estado.turmas.find(t => t.id === estado.matriculas.find(m => m.aluno_id === id)?.turma_id)?.nome || '';
+  if (!alunos.length) { $(onde).innerHTML = '<p class="subtitulo">Nenhum aluno encontrado.</p>'; return; }
+  $(onde).innerHTML = estado.visao === 'carometro'
+    ? `<div class="carometro">${alunos.map(a => `
+        <button class="pessoa" data-aluno="${a.id}">${htmlFoto(a)}
+          <div class="legenda">${esc(a.nome)}${mostrarTurma ? `<span>${esc(turmaDe(a.id))}</span>` : ''}</div>
+        </button>`).join('')}</div>`
+    : `<table><thead><tr><th>Nome</th>${mostrarTurma ? '<th>Turma</th>' : ''}<th>Telefone</th><th>E-mail</th></tr></thead><tbody>
+        ${alunos.map(a => `<tr class="clicavel" data-aluno="${a.id}"><td>${esc(a.nome)}</td>${mostrarTurma ? `<td>${esc(turmaDe(a.id))}</td>` : ''}
+          <td>${esc(telefone(a.telefone))}</td><td>${esc(a.email || '')}</td></tr>`).join('')}
+       </tbody></table>`;
+  document.querySelectorAll(`${onde} [data-aluno]`).forEach(el => el.onclick = () => abrirFicha(Number(el.dataset.aluno)));
+}
+
+function paginaBusca() {
+  $('#conteudo').innerHTML = `
+    <h1>Buscar aluno</h1>
+    <p class="subtitulo">Digite parte do nome. Acentos não importam.</p>
+    <div class="barra"><input type="search" id="busca" placeholder="Ex.: joao eduardo" autofocus></div>
+    <div id="resultado"></div>`;
+  const todos = [...estado.alunos.values()];
+  $('#busca').oninput = async () => {
+    const f = semAcento($('#busca').value.trim());
+    if (f.length < 2) { $('#resultado').innerHTML = ''; return; }
+    const achados = todos.filter(a => semAcento(a.nome).includes(f)).slice(0, 60);
+    await carregarFotos(achados.map(a => a.id));
+    desenharAlunos(achados, '#resultado', true);
+  };
+}
+
+// ---------- Ficha do aluno ----------
+async function abrirFicha(id) {
+  const basico = estado.alunos.get(id);
+  const turma = estado.turmas.find(t => t.id === estado.matriculas.find(m => m.aluno_id === id)?.turma_id);
+  const campo = (rotulo, valor) => `<div class="campo"><small>${rotulo}</small><div>${valor ? esc(valor) : '<span class="vazio">não informado</span>'}</div></div>`;
+  $('#fundo-ficha').classList.remove('escondido');
+  $('#ficha').innerHTML = '<div class="carregando">Carregando ficha…</div>';
+
+  let completo = null, responsaveis = [], pendencias = [];
+  if (veTudo()) {
+    const [a, r, p] = await Promise.all([
+      db.from('alunos').select('*').eq('id', id).single(),
+      db.from('aluno_responsavel').select('responsaveis(*)').eq('aluno_id', id),
+      db.from('pendencias').select('campo, problema, valor').eq('aluno_id', id).eq('resolvida', false),
+    ]);
+    completo = a.data; responsaveis = (r.data || []).map(x => x.responsaveis); pendencias = p.data || [];
+  }
+  const a = completo || basico;
+  $('#ficha').innerHTML = `
+    <div class="modal-topo">
+      ${htmlFoto(basico)}
+      <div><h2>${esc(a.nome)}</h2><span class="etiqueta">${esc(turma?.nome || '')}</span></div>
+      <button class="fechar" aria-label="Fechar">×</button>
+    </div>
+    <div class="secao"><h3>Contato</h3><div class="campos">
+      ${campo('Telefone', telefone(a.telefone))}${campo('E-mail', a.email)}
+      ${completo ? campo('Data de nascimento', data(a.data_nascimento)) : ''}
+    </div></div>
+    ${completo ? `
+      <div class="secao"><h3>Documentos e endereço</h3><div class="campos">
+        ${campo('RG', a.rg)}${campo('CPF', cpf(a.cpf))}
+        ${campo('Endereço', a.endereco)}${campo('Bairro', a.bairro)}${campo('CEP', cep(a.cep))}${campo('Cidade', a.cidade)}
+      </div></div>
+      ${responsaveis.map(r => `
+        <div class="secao"><h3>Responsável</h3><div class="campos">
+          ${campo('Nome', r.nome)}${campo('Telefone', telefone(r.telefone))}
+          ${campo('Endereço', r.endereco)}${campo('Bairro', r.bairro)}${campo('CEP', cep(r.cep))}
+        </div></div>`).join('')}
+      ${pendencias.length ? `<div class="secao"><h3>Pendências no cadastro</h3>
+        ${pendencias.map(p => `<div class="pendencia">${esc(p.problema)}${p.valor ? ` — <em>${esc(p.valor)}</em>` : ''}</div>`).join('')}</div>` : ''}
+      ${a.observacao ? `<div class="secao"><h3>Observação</h3><div>${esc(a.observacao)}</div></div>` : ''}
+    ` : `<div class="secao"><p class="subtitulo" style="margin:0">Documentos, endereço e responsável ficam visíveis só para a coordenação.</p></div>`}`;
+  $('#ficha .fechar').onclick = fecharFicha;
+}
+function fecharFicha() { $('#fundo-ficha').classList.add('escondido'); }
+$('#fundo-ficha').onclick = (e) => { if (e.target.id === 'fundo-ficha') fecharFicha(); };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharFicha(); });
+
+// ---------- Equipe (só administrador) ----------
+async function paginaEquipe() {
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando equipe…</div>';
+  const { data: equipe, error } = await db.from('equipe').select('*').order('nome');
+  if (error) { $('#conteudo').innerHTML = `<div class="aviso erro">${esc(error.message)}</div>`; return; }
+  $('#conteudo').innerHTML = `
+    <h1>Equipe e permissões</h1>
+    <p class="subtitulo">Escolha o que cada pessoa pode ver. A mudança vale no próximo acesso dela.</p>
+    <table><thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Ativo</th></tr></thead><tbody>
+      ${equipe.map(p => `<tr>
+        <td>${esc(p.nome)}</td><td>${esc(p.email)}</td>
+        <td><select data-email="${esc(p.email)}" data-campo="papel">
+          ${Object.entries(NOMES_PAPEL).map(([v, n]) => `<option value="${v}" ${v === p.papel ? 'selected' : ''}>${n}</option>`).join('')}
+        </select></td>
+        <td><input type="checkbox" data-email="${esc(p.email)}" data-campo="ativo" ${p.ativo ? 'checked' : ''}></td>
+      </tr>`).join('')}
+    </tbody></table>
+    <div id="msg-equipe" class="aviso escondido"></div>
+    <p class="subtitulo" style="margin-top:20px">
+      <strong>Administrador:</strong> tudo, inclusive esta página · <strong>Coordenação:</strong> vê tudo, inclusive documentos e responsáveis ·
+      <strong>Professor</strong> e <strong>Consulta:</strong> turmas, fotos, nomes e contatos · <strong>Sem acesso:</strong> não vê nada.
+    </p>`;
+  document.querySelectorAll('[data-campo]').forEach(el => el.onchange = async () => {
+    const valor = el.dataset.campo === 'ativo' ? el.checked : el.value;
+    const { error } = await db.from('equipe').update({ [el.dataset.campo]: valor }).eq('email', el.dataset.email);
+    const m = $('#msg-equipe');
+    m.textContent = error ? 'Não foi possível salvar: ' + error.message : 'Alteração salva.';
+    m.classList.toggle('erro', !!error); m.classList.remove('escondido');
+  });
+}
+
+// Se a pessoa veio pelo link de recuperação de senha, não entra direto: primeiro define a nova senha
+if (!location.hash.includes('type=recovery')) iniciar();
+</script>
+</body>
+</html>
