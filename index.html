@@ -137,6 +137,12 @@
   .caixa-erros .item:first-of-type { border-top: 0; }
   .caixa-erros select { max-width: 320px; margin: 4px 6px 0 0; }
   td.mult { text-align: center; }
+  /* Abas da planilha: "Notas dos professores" esconde as colunas do multiplicador e vice-versa */
+  .abas.abas-planilha { margin: 0 0 14px; max-width: 520px; }
+  #tabela-notas.vista-prof .col-mult, #tabela-notas.vista-mult .col-prof { display: none; }
+  .escolha-impressao { display: grid; gap: 10px; }
+  .escolha-impressao button { display: block; width: 100%; text-align: left; padding: 14px 16px; }
+  .escolha-impressao small { display: block; font-weight: 400; opacity: .8; margin-top: 3px; }
   #tela-publica main { max-width: 1100px; }
 
   /* ---------- Impressão do carômetro ---------- */
@@ -154,6 +160,15 @@
     .imp-aluno .foto, .imp-aluno .sem-foto { aspect-ratio: 1 / 1; width: 100%; font-size: 22pt; }
     .imp-dados { padding: 5px 6px; font-size: 7.5pt; line-height: 1.35; }
     .imp-dados strong { display: block; font-size: 8pt; margin-bottom: 2px; }
+    /* relatório de notas */
+    .imp-sub { font-size: 9.5pt; margin: 0 0 8px; color: #222; }
+    .imp-tabela { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+    .imp-tabela th, .imp-tabela td { border: 1px solid #999; padding: 3px 5px; }
+    .imp-tabela th { background: #eef3ef !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 8pt; }
+    .imp-tabela td.n, .imp-tabela th.n { text-align: center; white-space: nowrap; }
+    .imp-tabela tr { break-inside: avoid; }
+    .imp-tabela td.forte { font-weight: 700; }
+    .imp-rodape { margin-top: 8px; font-size: 8.5pt; color: #333; }
   }
 </style>
 </head>
@@ -813,6 +828,8 @@ async function paginaPlanilha(planilhaId) {
     .sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999)).map(m => estado.alunos.get(m.aluno_id)).filter(Boolean);
   const editar = veTudo();
   const temMult = MULT[p.nm] !== 1;
+  // sem multiplicador (NM2) só existe a visão das notas dos professores
+  const vista = temMult ? (estado.vistaPlanilha || 'prof') : 'prof';
   const cx = (v, attrs) => editar
     ? `<input class="nota" inputmode="decimal" ${attrs} value="${v == null ? '' : String(v).replace('.', ',')}">`
     : (v == null ? '—' : fmt(v));
@@ -836,7 +853,8 @@ async function paginaPlanilha(planilhaId) {
     <div class="barra"><button class="botao leve" id="voltar">← ${esc(ciclo.nome)}</button>
       <div><h1>${esc(p.materia)} · ${p.nm} · ${esc(nomeTurma(p.turma_id))}</h1></div>
       ${doc ? '<span class="status fechada">notas vindas de PDF</span>' : `<span class="status ${p.aberta ? 'aberta' : 'fechada'}">${p.aberta ? 'aberta para os professores' : 'fechada'}</span>`}
-      ${pend.length ? `<span class="status vermelho">${pend.length} ${pend.length === 1 ? 'pendência' : 'pendências'}</span>` : ''}</div>
+      ${pend.length ? `<span class="status vermelho">${pend.length} ${pend.length === 1 ? 'pendência' : 'pendências'}</span>` : ''}
+      <button class="botao" id="imprimir-relatorio" style="margin-left:auto">Imprimir relatório</button></div>
     ${doc ? `<div class="caixa-link"><strong>Notas importadas de PDF.</strong>
       ${editar ? '<button class="botao leve pequeno" id="reimportar">Importar PDF novamente</button>' : ''}
       <span class="subtitulo" style="margin:0">Uma nova importação atualiza as notas e refaz a lista de pendências.</span></div>` : `
@@ -852,20 +870,23 @@ async function paginaPlanilha(planilhaId) {
       ${soltas.map(x => `<div class="item"><strong>${esc(x.nome_documento || '')}</strong>${x.nota != null ? ` · nota ${fmt(x.nota)}` : ''}<br>${esc(x.motivo)}
         ${editar ? `<br><select data-destino="${x.id}">${opcoesAlunos}</select><button class="botao pequeno" data-lancar="${x.id}">Lançar para este aluno</button>${acoes(x)}` : ''}</div>`).join('')}</div>` : ''}
     <div class="aviso erro escondido alerta-notas"></div>
-    <div class="rolavel"><table id="tabela-notas">
+    ${temMult ? `<div class="abas abas-planilha">
+      <button data-vista="prof" class="${vista === 'prof' ? 'ativa' : ''}">Notas dos professores</button>
+      <button data-vista="mult" class="${vista === 'mult' ? 'ativa' : ''}">Com multiplicador (× ${fmt(MULT[p.nm])})</button></div>` : ''}
+    <div class="rolavel"><table id="tabela-notas" class="vista-${vista}">
       <thead><tr><th>Nº</th><th>Aluno</th>
-        ${questoes.map(q => `<th class="num">Q${q.numero}<br><small>${esc(q.professor)}</small></th>`).join('')}
-        ${doc ? '' : '<th class="num">Soma</th>'}<th class="num">2ª chamada</th><th class="num">Nota real</th>
-        ${temMult ? `<th class="mult">Usar × ${fmt(MULT[p.nm])}?</th>` : ''}<th class="num">Nota final<br><small>máx. 10</small></th></tr></thead>
+        ${questoes.map(q => `<th class="num col-prof">Q${q.numero}<br><small>${esc(q.professor)}</small></th>`).join('')}
+        ${doc ? '' : '<th class="num col-prof">Soma</th>'}<th class="num col-prof">2ª chamada</th><th class="num">Nota real</th>
+        ${temMult ? `<th class="mult col-mult">Usar × ${fmt(MULT[p.nm])}?</th>` : ''}<th class="num col-mult">Nota final<br><small>máx. 10</small></th></tr></thead>
       <tbody>${alunos.map((a, i) => {
         const c = linhaDe(a.id);
         return `<tr data-linha="${a.id}" class="${pendDoAluno(a.id).length ? 'com-erro' : ''}"><td>${i + 1}</td><td>${esc(a.nome)}${motivos(a.id)}</td>
-          ${questoes.map(q => `<td class="num">${cx(valor.get(`${a.id}-${q.id}`), `data-aluno="${a.id}" data-questao="${q.id}"`)}</td>`).join('')}
-          <td class="num ${c.soma > 10 ? 'acima' : ''} ${doc ? 'escondido' : ''}" data-soma>${fmt(c.soma)}</td>
-          <td class="num">${cx(seg.get(a.id), `data-aluno="${a.id}" data-segunda="1"`)}</td>
+          ${questoes.map(q => `<td class="num col-prof">${cx(valor.get(`${a.id}-${q.id}`), `data-aluno="${a.id}" data-questao="${q.id}"`)}</td>`).join('')}
+          <td class="num col-prof ${c.soma > 10 ? 'acima' : ''} ${doc ? 'escondido' : ''}" data-soma>${fmt(c.soma)}</td>
+          <td class="num col-prof">${cx(seg.get(a.id), `data-aluno="${a.id}" data-segunda="1"`)}</td>
           <td class="num forte" data-real>${fmt(c.real)}</td>
-          ${temMult ? `<td class="mult"><input type="checkbox" data-mult="${a.id}" ${semM.has(a.id) ? '' : 'checked'} ${editar ? '' : 'disabled'} title="Marcado = aplica o multiplicador"></td>` : ''}
-          <td class="num forte" data-final>${fmt(c.final)}</td></tr>`;
+          ${temMult ? `<td class="mult col-mult"><input type="checkbox" data-mult="${a.id}" ${semM.has(a.id) ? '' : 'checked'} ${editar ? '' : 'disabled'} title="Marcado = aplica o multiplicador"></td>` : ''}
+          <td class="num forte col-mult" data-final>${fmt(c.final)}</td></tr>`;
       }).join('')}</tbody></table></div>
     ${editar ? `<p class="subtitulo" style="margin-top:14px">${doc ? 'Linhas em vermelho têm pendência: corrija e a marca some. Digitar a nota do aluno também resolve a pendência dele.'
       : 'A coordenação também pode corrigir qualquer nota aqui. Soma em vermelho = passou de 10.'}
@@ -873,6 +894,26 @@ async function paginaPlanilha(planilhaId) {
       ${doc ? '' : '<button class="botao leve pequeno" id="mais-questao">+ Adicionar professor/questão</button>'}</p>` : ''}`;
 
   $('#voltar').onclick = () => irPara('ciclo', p.ciclo_id);
+  document.querySelectorAll('.abas-planilha button').forEach(b => b.onclick = () => {
+    estado.vistaPlanilha = b.dataset.vista;
+    $('#tabela-notas').className = 'vista-' + b.dataset.vista;
+    document.querySelectorAll('.abas-planilha button').forEach(x => x.classList.toggle('ativa', x === b));
+  });
+  $('#imprimir-relatorio').onclick = () => {
+    const dados = { p, ciclo, questoes, alunos, valor, seg, semM, doc, linhaDe };
+    if (!temMult) return imprimirRelatorio(dados, false);
+    $('#fundo-ficha').classList.remove('escondido');
+    $('#ficha').innerHTML = `
+      <div class="modal-topo"><div><h2>Imprimir relatório</h2>
+        <span class="etiqueta">${esc(p.materia)} · ${p.nm} · ${esc(nomeTurma(p.turma_id))} · ${esc(ciclo.nome)}</span></div>
+        <button class="fechar" aria-label="Fechar">×</button></div>
+      <div class="secao escolha-impressao">
+        <button class="botao leve" data-imp="sem">Sem multiplicador<small>Notas de cada professor, soma, 2ª chamada e nota real</small></button>
+        <button class="botao" data-imp="com">Com multiplicador<small>Nota real, se o × ${fmt(MULT[p.nm])} foi aplicado e nota final (máx. 10)</small></button>
+      </div>`;
+    $('#ficha .fechar').onclick = fecharFicha;
+    document.querySelectorAll('[data-imp]').forEach(b => b.onclick = () => { fecharFicha(); imprimirRelatorio(dados, b.dataset.imp === 'com'); });
+  };
   if ($('#reimportar')) $('#reimportar').onclick = () => importarPdf(ciclo, p.nm, p.materia, p.turma_id, p.id);
   const copiar = async (txt, botao) => { try { await navigator.clipboard.writeText(txt); botao.textContent = 'Copiado!'; } catch { $('#link-publico').select(); } };
   if ($('#copiar-link')) $('#copiar-link').onclick = (e) => copiar(linkPublico(p.token), e.target);
@@ -956,6 +997,35 @@ async function paginaPlanilha(planilhaId) {
       paginaPlanilha(p.id);
     }
   });
+}
+
+// Relatório de notas para imprimir: sem multiplicador (notas dos professores) ou com multiplicador
+function imprimirRelatorio({ p, ciclo, questoes, alunos, valor, seg, semM, doc, linhaDe }, comMult) {
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const linhas = alunos.map((a, i) => ({ a, i, c: linhaDe(a.id) }));
+  const media = (k) => {
+    const v = linhas.map(l => l.c[k]).filter(x => x != null);
+    return v.length ? fmt(Math.round(v.reduce((s, x) => s + x, 0) / v.length * 100) / 100) : '—';
+  };
+  const semNota = linhas.filter(l => l.c.real == null).length;
+  const cab = comMult
+    ? `<th class="n">Nº</th><th>Aluno</th><th class="n">Nota real</th><th class="n">Multiplicador</th><th class="n">Nota final</th>`
+    : `<th class="n">Nº</th><th>Aluno</th>${questoes.map(q => `<th class="n">${doc ? 'Nota do documento' : `Q${q.numero}<br>${esc(q.professor)}`}</th>`).join('')}
+       ${doc ? '' : '<th class="n">Soma</th>'}<th class="n">2ª chamada</th><th class="n">Nota real</th>`;
+  const corpo = linhas.map(({ a, i, c }) => comMult
+    ? `<tr><td class="n">${i + 1}</td><td>${esc(a.nome)}</td><td class="n">${fmt(c.real)}</td>
+        <td class="n">${semM.has(a.id) ? 'não aplicado' : '× ' + fmt(MULT[p.nm])}</td><td class="n forte">${fmt(c.final)}</td></tr>`
+    : `<tr><td class="n">${i + 1}</td><td>${esc(a.nome)}</td>${questoes.map(q => `<td class="n">${fmt(valor.get(`${a.id}-${q.id}`))}</td>`).join('')}
+        ${doc ? '' : `<td class="n">${fmt(c.soma)}</td>`}<td class="n">${fmt(seg.get(a.id))}</td><td class="n forte">${fmt(c.real)}</td></tr>`).join('');
+  $('#impressao').innerHTML = `
+    <div class="imp-topo"><h1>NOTAS · ${esc(p.materia.toUpperCase())} · ${p.nm} · ${esc(nomeTurma(p.turma_id).toUpperCase())}</h1>
+      <span>${esc(ciclo.nome)} · impresso em ${hoje}</span></div>
+    <p class="imp-sub"><strong>${comMult ? `Com multiplicador (× ${fmt(MULT[p.nm])}, nota final no máximo 10)` : (MULT[p.nm] !== 1 ? 'Sem multiplicador — notas lançadas pelos professores' : 'Notas lançadas')}</strong>
+      · ${alunos.length} alunos</p>
+    <table class="imp-tabela"><thead><tr>${cab}</tr></thead><tbody>${corpo}</tbody></table>
+    <p class="imp-rodape">Média da turma: nota real ${media('real')}${comMult ? ` · nota final ${media('final')}` : ''}
+      ${semNota ? ` · ${semNota} ${semNota === 1 ? 'aluno sem nota' : 'alunos sem nota'}` : ''}</p>`;
+  setTimeout(() => window.print(), 100);
 }
 
 // ---------- Página PÚBLICA de lançamento (professores, sem login) ----------
