@@ -29,7 +29,7 @@
   .abas button { flex: 1; border: 0; background: transparent; padding: 8px; border-radius: 6px; color: var(--suave); font-weight: 500; }
   .abas button.ativa { background: var(--branco); color: var(--texto); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
   label { display: block; font-size: 13px; font-weight: 500; margin: 12px 0 6px; }
-  input[type=email], input[type=password], input[type=search] { width: 100%; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 8px; background: var(--branco); }
+  input[type=email], input[type=password], input[type=search], input[type=text] { width: 100%; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 8px; background: var(--branco); }
   input:focus, select:focus { outline: 2px solid var(--verde); outline-offset: -1px; }
   .botao { display: inline-flex; align-items: center; gap: 6px; border: 0; background: var(--verde); color: #fff; padding: 10px 16px; border-radius: 8px; font-weight: 600; }
   .botao:hover { background: var(--verde-escuro); }
@@ -104,6 +104,26 @@
 
   .link { background: none; border: 0; color: var(--verde); padding: 0; margin-top: 14px; font-size: 14px; text-decoration: underline; }
 
+  /* ---------- Notas ---------- */
+  h2 { font-size: 17px; margin: 28px 0 10px; display: flex; align-items: center; gap: 10px; }
+  .rolavel { overflow-x: auto; border-radius: 12px; }
+  .nota { width: 64px; padding: 6px 4px; text-align: center; border: 1px solid var(--borda); border-radius: 6px; background: var(--branco); }
+  .nota:disabled { background: var(--fundo); color: var(--texto); border-color: transparent; }
+  .nota.salvo { border-color: var(--verde); background: var(--verde-claro); }
+  .nota.invalido { border-color: var(--erro); background: #fdecea; }
+  .acima { color: var(--erro); font-weight: 700; }
+  td.num, th.num { text-align: center; }
+  td.forte { font-weight: 700; }
+  .pendente { color: var(--suave); font-size: 13px; font-style: italic; }
+  .botao.pequeno { padding: 6px 10px; font-size: 13px; }
+  .caixa-link { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--branco); border: 1px solid var(--borda); border-radius: 12px; padding: 14px; margin-bottom: 18px; }
+  .caixa-link input { flex: 1; min-width: 260px; }
+  .linha-prof { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 8px; }
+  .status { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+  .status.aberta { background: var(--verde-claro); color: var(--verde-escuro); }
+  .status.fechada { background: #eceff1; color: var(--suave); }
+  #tela-publica main { max-width: 1100px; }
+
   /* ---------- Impressão do carômetro ---------- */
   #impressao { display: none; }
   @media print {
@@ -149,7 +169,9 @@
       <div class="marca" style="font-size:18px">ITA-IME</div>
       <nav>
         <button data-pagina="turmas" class="ativa">Turmas</button>
+        <button data-pagina="notas">Notas</button>
         <button data-pagina="busca">Buscar aluno</button>
+        <button data-pagina="professores" id="nav-professores" class="escondido">Professores</button>
         <button data-pagina="equipe" id="nav-equipe" class="escondido">Equipe</button>
       </nav>
       <div class="usuario"><strong id="nome-usuario"></strong><span id="papel-usuario"></span></div>
@@ -157,6 +179,12 @@
     </div>
   </header>
   <main id="conteudo"></main>
+</section>
+
+<!-- ================= LANÇAMENTO PÚBLICO (professores, sem login) ================= -->
+<section id="tela-publica" class="escondido">
+  <header><div class="topo"><div class="marca" style="font-size:18px">ITA-IME</div><div style="flex:1"></div><span class="usuario">Lançamento de notas</span></div></header>
+  <main id="conteudo-publico"></main>
 </section>
 
 <!-- ================= CARÔMETRO PARA IMPRESSÃO (só aparece no papel) ================= -->
@@ -193,7 +221,7 @@ const semAcento = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase(
 const veTudo = () => ['admin', 'coordenacao'].includes(estado.papel);
 
 function mostrar(idTela) {
-  ['#tela-login', '#tela-sistema'].forEach(t => $(t).classList.toggle('escondido', t !== idTela));
+  ['#tela-login', '#tela-sistema', '#tela-publica'].forEach(t => $(t).classList.toggle('escondido', t !== idTela));
 }
 function mensagem(texto, erro = false) {
   const m = $('#msg-login');
@@ -304,6 +332,7 @@ async function iniciar() {
   $('#nome-usuario').textContent = estado.nome;
   $('#papel-usuario').textContent = NOMES_PAPEL[papel];
   $('#nav-equipe').classList.toggle('escondido', papel !== 'admin');
+  $('#nav-professores').classList.toggle('escondido', !veTudo());
   mostrar('#tela-sistema');
   $('#conteudo').innerHTML = '<div class="carregando">Carregando turmas…</div>';
 
@@ -322,8 +351,10 @@ async function iniciar() {
 
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => irPara(b.dataset.pagina));
 function irPara(pagina, extra) {
-  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === pagina || (pagina === 'turma' && b.dataset.pagina === 'turmas')));
-  ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe })[pagina](extra);
+  const menu = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' }[pagina] || pagina;
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === menu));
+  ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe,
+     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores })[pagina](extra);
 }
 
 // =====================================================================
@@ -467,12 +498,24 @@ async function abrirFicha(id) {
     completo = a.data; responsaveis = (r.data || []).map(x => x.responsaveis); pendencias = p.data || [];
   }
   const a = completo || basico;
+  const [{ data: notasAluno }, { data: ciclosAluno }] = await Promise.all([
+    db.from('notas_planilha').select('ciclo_id, nm, materia, nota_real, nota_multiplicada').eq('aluno_id', id),
+    db.from('ciclos').select('id, nome').eq('ano_letivo', ANO_LETIVO),
+  ]);
+  const nomeCiclo = (cid) => (ciclosAluno || []).find(c => c.id === cid)?.nome || '';
+  const notasHtml = (notasAluno || []).filter(n => n.nota_real != null).length ? `
+    <div class="secao"><h3>Notas</h3><div class="rolavel"><table>
+      <thead><tr><th>Ciclo</th><th>NM</th><th>Matéria</th><th class="num">Nota real</th><th class="num">Com multiplicador</th></tr></thead>
+      <tbody>${notasAluno.filter(n => n.nota_real != null).map(n => `<tr><td>${esc(nomeCiclo(n.ciclo_id))}</td><td>${n.nm}</td><td>${esc(n.materia)}</td>
+        <td class="num">${fmt(n.nota_real)}</td><td class="num forte">${fmt(n.nota_multiplicada)}</td></tr>`).join('')}</tbody>
+    </table></div></div>` : '';
   $('#ficha').innerHTML = `
     <div class="modal-topo">
       ${htmlFoto(basico)}
       <div><h2>${esc(a.nome)}</h2><span class="etiqueta">${esc(turma?.nome || '')}</span></div>
       <button class="fechar" aria-label="Fechar">×</button>
     </div>
+    ${notasHtml}
     <div class="secao"><h3>Contato</h3><div class="campos">
       ${campo('Telefone', telefone(a.telefone))}${campo('E-mail', a.email)}
       ${completo ? campo('Data de nascimento', data(a.data_nascimento)) : ''}
@@ -529,7 +572,410 @@ async function paginaEquipe() {
 }
 
 // Se a pessoa veio pelo link de recuperação de senha, não entra direto: primeiro define a nova senha
-if (!location.hash.includes('type=recovery')) iniciar();
+// =====================================================================
+// NOTAS — ciclos, planilhas dos professores e cálculo
+// =====================================================================
+const MATERIAS = ['Matemática', 'Física', 'Química', 'Inglês', 'Linguagens'];
+const EXATAS = ['Matemática', 'Física', 'Química'];
+const NMS = { NM1: 'NM1 · ITA', NM2: 'NM2 · Provão + Qualitativa', NM3: 'NM3 · IME' };
+const MULT = { NM1: 1.5, NM2: 1, NM3: 1.5 };
+const TURMAS_NOTAS = [1, 2, 3, 4]; // 1ª A, 1ª B, 2ª A, 2ª B (3ª série e Cursinho entram depois)
+
+const fmt = (n) => n == null ? '—' : Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+const nomeTurma = (id) => estado.turmas.find(t => t.id === id)?.nome || '';
+const codigoTurma = (txt) => semAcento(txt || '').replace(/SERIE/g, '').replace(/[^0-9A-Z]/g, '');
+const linkPublico = (token) => location.origin + location.pathname + '#lancar-' + token;
+const erroNaTela = (e) => { $('#conteudo').innerHTML = `<div class="aviso erro">Erro: ${esc(e.message || e)}</div>`; };
+
+// Lê o que foi digitado: aceita vírgula ou ponto. Vazio = apagar. NaN = inválido.
+function lerNota(txt) {
+  const t = String(txt).trim().replace(',', '.');
+  if (t === '') return null;
+  if (!/^\d+(\.\d+)?$/.test(t)) return NaN;
+  const n = Number(t);
+  return n >= 0 && n <= 10 ? Math.round(n * 100) / 100 : NaN;
+}
+
+// Liga as caixas de nota: valida, salva ao sair da caixa e mostra verde (salvo) ou vermelho (erro)
+function ligarNotas(container, salvar, aoSalvar) {
+  container.querySelectorAll('input.nota').forEach(inp => {
+    inp.onchange = async () => {
+      const v = lerNota(inp.value);
+      inp.classList.remove('salvo', 'invalido');
+      if (Number.isNaN(v)) { inp.classList.add('invalido'); inp.title = 'Digite um número de 0 a 10 (ex.: 1,5)'; alertaNotas(`"${inp.value}" não é uma nota válida. Digite um número de 0 a 10 (ex.: 1,5).`); return; }
+      inp.disabled = true;
+      const { error } = await salvar(inp.dataset, v);
+      inp.disabled = false;
+      if (error) { inp.classList.add('invalido'); inp.title = error.message; alertaNotas(error.message); return; }
+      inp.value = v == null ? '' : String(v).replace('.', ',');
+      inp.classList.add('salvo'); inp.title = 'Salvo';
+      aoSalvar && aoSalvar(inp.dataset, v);
+    };
+    inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); proximaCaixa(inp); } };
+  });
+}
+// Enter desce para o próximo aluno na mesma coluna (como numa planilha)
+function proximaCaixa(inp) {
+  const col = inp.dataset.questao || 'segunda';
+  const todas = [...inp.closest('table').querySelectorAll(`input.nota:not(:disabled)`)].filter(i => (i.dataset.questao || 'segunda') === col);
+  const prox = todas[todas.indexOf(inp) + 1];
+  inp.blur(); prox && prox.focus();
+}
+function alertaNotas(msg) {
+  const a = document.querySelector('.alerta-notas');
+  if (a) { a.textContent = msg; a.classList.remove('escondido'); setTimeout(() => a.classList.add('escondido'), 6000); }
+}
+
+// Calcula a linha de um aluno: soma das questões, 2ª chamada, nota real e com multiplicador
+function calcularLinha(valores, segunda, nm) {
+  const presentes = valores.filter(v => v != null);
+  const soma = presentes.length ? Math.round(presentes.reduce((a, b) => a + b, 0) * 100) / 100 : null;
+  const real = segunda != null ? segunda : soma;
+  return { soma, real, final: real == null ? null : Math.round(real * MULT[nm] * 100) / 100 };
+}
+
+// ---------- Lista de ciclos ----------
+async function paginaNotas() {
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando ciclos…</div>';
+  const { data: ciclos, error } = await db.from('ciclos').select('*').eq('ano_letivo', ANO_LETIVO).order('criado_em');
+  if (error) return erroNaTela(error);
+  $('#conteudo').innerHTML = `
+    <h1>Notas ${ANO_LETIVO}</h1>
+    <p class="subtitulo">Cada ciclo tem as notas NM1 (ITA), NM2 (Provão + Qualitativa) e NM3 (IME).</p>
+    ${veTudo() ? `<form class="barra" id="form-ciclo">
+        <input type="text" id="nome-ciclo" placeholder="Nome do novo ciclo (ex.: I Ciclo)" required style="max-width:320px">
+        <button class="botao">Criar ciclo</button></form>
+      <div id="msg-ciclo" class="aviso erro escondido"></div>` : ''}
+    <div class="grade-turmas">${ciclos.map(c => `
+      <button class="turma" data-ciclo="${c.id}"><div class="nome">${esc(c.nome)}</div>
+        <div class="subtitulo" style="margin:10px 0 0">Abrir notas →</div></button>`).join('')
+      || '<p class="subtitulo">Nenhum ciclo criado ainda.</p>'}</div>`;
+  document.querySelectorAll('[data-ciclo]').forEach(b => b.onclick = () => irPara('ciclo', Number(b.dataset.ciclo)));
+  const f = $('#form-ciclo');
+  if (f) f.onsubmit = async (e) => {
+    e.preventDefault();
+    const nome = $('#nome-ciclo').value.trim();
+    const { data, error } = await db.from('ciclos').insert({ nome, ano_letivo: ANO_LETIVO }).select().single();
+    if (error) { $('#msg-ciclo').textContent = /duplicate|unique/i.test(error.message) ? 'Já existe um ciclo com esse nome.' : error.message; $('#msg-ciclo').classList.remove('escondido'); return; }
+    irPara('ciclo', data.id);
+  };
+}
+
+// ---------- Um ciclo: quadro NM × matéria × turma ----------
+async function paginaCiclo(cicloId) {
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando ciclo…</div>';
+  const [{ data: ciclo, error: e1 }, { data: planilhas, error: e2 }, { data: linhas, error: e3 }] = await Promise.all([
+    db.from('ciclos').select('*').eq('id', cicloId).single(),
+    db.from('planilhas').select('*').eq('ciclo_id', cicloId),
+    db.from('notas_planilha').select('planilha_id, nota_real').eq('ciclo_id', cicloId),
+  ]);
+  if (e1 || e2 || e3) return erroNaTela(e1 || e2 || e3);
+  const resumo = (pid) => {
+    const l = linhas.filter(x => x.planilha_id === pid);
+    return `${l.filter(x => x.nota_real != null).length} de ${l.length} com nota`;
+  };
+  const celula = (nm, materia, turmaId) => {
+    if (nm === 'NM2' || !EXATAS.includes(materia)) return '<td class="pendente">aguardando modelo do documento</td>';
+    const p = planilhas.find(x => x.nm === nm && x.materia === materia && x.turma_id === turmaId);
+    if (p) return `<td><button class="botao leve pequeno" data-planilha="${p.id}">${resumo(p.id)}</button>
+      <span class="status ${p.aberta ? 'aberta' : 'fechada'}">${p.aberta ? 'aberta' : 'fechada'}</span></td>`;
+    return veTudo() ? `<td><button class="botao pequeno" data-criar="${nm}|${materia}|${turmaId}">+ Criar planilha</button></td>` : '<td class="pendente">não criada</td>';
+  };
+  $('#conteudo').innerHTML = `
+    <div class="barra"><button class="botao leve" id="voltar">← Ciclos</button><h1>${esc(ciclo.nome)}</h1></div>
+    ${['NM1', 'NM2', 'NM3'].map(nm => `
+      <h2>${NMS[nm]} <span class="etiqueta">${MULT[nm] === 1 ? 'mantém a nota' : '× ' + fmt(MULT[nm])}</span></h2>
+      <div class="rolavel"><table>
+        <thead><tr><th>Matéria</th>${TURMAS_NOTAS.map(t => `<th>${esc(nomeTurma(t))}</th>`).join('')}</tr></thead>
+        <tbody>${MATERIAS.map(m => `<tr><td><strong>${m}</strong></td>${TURMAS_NOTAS.map(t => celula(nm, m, t)).join('')}</tr>`).join('')}</tbody>
+      </table></div>`).join('')}`;
+  $('#voltar').onclick = () => irPara('notas');
+  document.querySelectorAll('[data-planilha]').forEach(b => b.onclick = () => irPara('planilha', Number(b.dataset.planilha)));
+  document.querySelectorAll('[data-criar]').forEach(b => b.onclick = () => {
+    const [nm, materia, turma] = b.dataset.criar.split('|');
+    criarPlanilha(ciclo, nm, materia, Number(turma), planilhas);
+  });
+}
+
+// ---------- Criar planilha: escolher os professores ----------
+async function criarPlanilha(ciclo, nm, materia, turmaId, planilhasDoCiclo) {
+  $('#fundo-ficha').classList.remove('escondido');
+  $('#ficha').innerHTML = '<div class="carregando">Carregando professores…</div>';
+  const { data: profs } = await db.from('professores').select('*').eq('ativo', true).order('nome');
+  // Sugestão: os mesmos professores da outra NM desta matéria/turma; senão, os cadastrados para a matéria e turma
+  let sugestao = [];
+  const irma = planilhasDoCiclo.find(p => p.materia === materia && p.turma_id === turmaId);
+  if (irma) {
+    const { data: q } = await db.from('questoes').select('professor, professor_email').eq('planilha_id', irma.id).order('numero');
+    sugestao = (q || []).map(x => ({ nome: x.professor, email: x.professor_email || '' }));
+  } else {
+    const cod = codigoTurma(nomeTurma(turmaId));
+    sugestao = (profs || []).filter(p => semAcento(p.materia || '') === semAcento(materia) && (!p.turmas || codigoTurma(p.turmas).includes(cod)))
+      .map(p => ({ nome: p.nome, email: p.email || '' }));
+  }
+  if (!sugestao.length) sugestao = [{ nome: '', email: '' }];
+
+  const linha = (p) => `<div class="linha-prof">
+      <input type="text" class="prof-nome" list="lista-profs" placeholder="Nome do professor" value="${esc(p.nome)}">
+      <input type="email" class="prof-email" placeholder="E-mail (para o aviso)" value="${esc(p.email)}">
+      <button type="button" class="botao leve pequeno remover" title="Remover">×</button></div>`;
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2>Nova planilha</h2>
+      <span class="etiqueta">${esc(materia)} · ${nm} · ${esc(nomeTurma(turmaId))} · ${esc(ciclo.nome)}</span></div>
+      <button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao">
+      <h3>Professores (uma coluna/questão para cada um, na ordem)</h3>
+      <datalist id="lista-profs">${(profs || []).map(p => `<option value="${esc(p.nome)}">`).join('')}</datalist>
+      <div id="linhas-prof">${sugestao.map(linha).join('')}</div>
+      <button type="button" class="botao leve pequeno" id="mais-prof">+ Adicionar professor</button>
+    </div>
+    <div class="secao"><button class="botao" id="gerar">Gerar planilha</button>
+      <div id="msg-criar" class="aviso erro escondido"></div></div>`;
+  $('#ficha .fechar').onclick = fecharFicha;
+  const ligarLinhas = () => {
+    document.querySelectorAll('.linha-prof .remover').forEach(b => b.onclick = () => b.parentElement.remove());
+    document.querySelectorAll('.prof-nome').forEach(i => i.onchange = () => {
+      const p = (profs || []).find(x => x.nome === i.value);
+      const em = i.parentElement.querySelector('.prof-email');
+      if (p && !em.value) em.value = p.email || '';
+    });
+  };
+  ligarLinhas();
+  $('#mais-prof').onclick = () => { $('#linhas-prof').insertAdjacentHTML('beforeend', linha({ nome: '', email: '' })); ligarLinhas(); };
+  $('#gerar').onclick = async () => {
+    const lista = [...document.querySelectorAll('.linha-prof')].map(l => ({
+      nome: l.querySelector('.prof-nome').value.trim(), email: l.querySelector('.prof-email').value.trim().toLowerCase() || null,
+    })).filter(x => x.nome);
+    const msg = $('#msg-criar');
+    if (!lista.length) { msg.textContent = 'Adicione pelo menos um professor.'; msg.classList.remove('escondido'); return; }
+    $('#gerar').disabled = true;
+    const { data: p, error } = await db.from('planilhas').insert({ ciclo_id: ciclo.id, nm, materia, turma_id: turmaId }).select().single();
+    if (error) { msg.textContent = error.message; msg.classList.remove('escondido'); $('#gerar').disabled = false; return; }
+    const { error: e2 } = await db.from('questoes').insert(lista.map((x, i) => ({ planilha_id: p.id, numero: i + 1, professor: x.nome, professor_email: x.email })));
+    if (e2) { msg.textContent = e2.message; msg.classList.remove('escondido'); $('#gerar').disabled = false; return; }
+    fecharFicha();
+    irPara('planilha', p.id);
+  };
+}
+
+// ---------- Uma planilha (visão da coordenação) ----------
+async function paginaPlanilha(planilhaId) {
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando planilha…</div>';
+  const { data: p, error } = await db.from('planilhas').select('*').eq('id', planilhaId).single();
+  if (error) return erroNaTela(error);
+  const [{ data: ciclo }, { data: questoes }, { data: segundas }] = await Promise.all([
+    db.from('ciclos').select('*').eq('id', p.ciclo_id).single(),
+    db.from('questoes').select('*').eq('planilha_id', p.id).order('numero'),
+    db.from('segunda_chamada').select('*').eq('planilha_id', p.id),
+  ]);
+  const { data: notas } = questoes.length
+    ? await db.from('notas_questao').select('aluno_id, questao_id, nota').in('questao_id', questoes.map(q => q.id))
+    : { data: [] };
+  const valor = new Map((notas || []).map(n => [`${n.aluno_id}-${n.questao_id}`, Number(n.nota)]));
+  const seg = new Map((segundas || []).map(s => [s.aluno_id, Number(s.nota)]));
+  const alunos = estado.matriculas.filter(m => m.turma_id === p.turma_id && m.situacao === 'ativo')
+    .sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999)).map(m => estado.alunos.get(m.aluno_id)).filter(Boolean);
+  const editar = veTudo();
+  const cx = (v, attrs) => editar
+    ? `<input class="nota" inputmode="decimal" ${attrs} value="${v == null ? '' : String(v).replace('.', ',')}">`
+    : (v == null ? '—' : fmt(v));
+  const emails = questoes.map(q => q.professor_email).filter(Boolean);
+  const titulo = `${p.materia} · ${p.nm} · ${nomeTurma(p.turma_id)} · ${ciclo.nome}`;
+  const mensagem = `Olá! A planilha de notas de ${titulo} está aberta.\nLance as notas da sua questão neste link (salva automaticamente):\n${linkPublico(p.token)}`;
+
+  $('#conteudo').innerHTML = `
+    <div class="barra"><button class="botao leve" id="voltar">← ${esc(ciclo.nome)}</button>
+      <div><h1>${esc(p.materia)} · ${p.nm} · ${esc(nomeTurma(p.turma_id))}</h1></div>
+      <span class="status ${p.aberta ? 'aberta' : 'fechada'}">${p.aberta ? 'aberta para os professores' : 'fechada'}</span></div>
+    <div class="caixa-link">
+      <strong>Link dos professores:</strong>
+      <input type="text" readonly value="${esc(linkPublico(p.token))}" id="link-publico">
+      <button class="botao leve pequeno" id="copiar-link">Copiar link</button>
+      <button class="botao leve pequeno" id="copiar-msg">Copiar mensagem (WhatsApp)</button>
+      ${emails.length ? `<a class="botao leve pequeno" id="avisar" href="mailto:?bcc=${encodeURIComponent(emails.join(','))}&subject=${encodeURIComponent('Notas - ' + titulo)}&body=${encodeURIComponent(mensagem)}">Avisar por e-mail (${emails.length})</a>` : ''}
+      ${editar ? `<button class="botao leve pequeno" id="abrir-fechar">${p.aberta ? 'Fechar lançamento' : 'Reabrir lançamento'}</button>` : ''}
+    </div>
+    <div class="aviso erro escondido alerta-notas"></div>
+    <div class="rolavel"><table id="tabela-notas">
+      <thead><tr><th>Nº</th><th>Aluno</th>
+        ${questoes.map(q => `<th class="num">Q${q.numero}<br><small>${esc(q.professor)}</small></th>`).join('')}
+        <th class="num">Soma</th><th class="num">2ª chamada</th><th class="num">Nota real</th><th class="num">× ${fmt(MULT[p.nm])}</th></tr></thead>
+      <tbody>${alunos.map((a, i) => {
+        const c = calcularLinha(questoes.map(q => valor.get(`${a.id}-${q.id}`) ?? null), seg.get(a.id) ?? null, p.nm);
+        return `<tr data-linha="${a.id}"><td>${i + 1}</td><td>${esc(a.nome)}</td>
+          ${questoes.map(q => `<td class="num">${cx(valor.get(`${a.id}-${q.id}`), `data-aluno="${a.id}" data-questao="${q.id}"`)}</td>`).join('')}
+          <td class="num ${c.soma > 10 ? 'acima' : ''}" data-soma>${fmt(c.soma)}</td>
+          <td class="num">${cx(seg.get(a.id), `data-aluno="${a.id}" data-segunda="1"`)}</td>
+          <td class="num forte" data-real>${fmt(c.real)}</td><td class="num forte" data-final>${fmt(c.final)}</td></tr>`;
+      }).join('')}</tbody></table></div>
+    ${editar ? `<p class="subtitulo" style="margin-top:14px">A coordenação também pode corrigir qualquer nota aqui. Soma em vermelho = passou de 10.
+      <button class="botao leve pequeno" id="mais-questao">+ Adicionar professor/questão</button></p>` : ''}`;
+
+  $('#voltar').onclick = () => irPara('ciclo', p.ciclo_id);
+  const copiar = async (txt, botao) => { try { await navigator.clipboard.writeText(txt); botao.textContent = 'Copiado!'; } catch { $('#link-publico').select(); } };
+  $('#copiar-link').onclick = (e) => copiar(linkPublico(p.token), e.target);
+  $('#copiar-msg').onclick = (e) => copiar(mensagem, e.target);
+  if ($('#abrir-fechar')) $('#abrir-fechar').onclick = async () => {
+    await db.from('planilhas').update({ aberta: !p.aberta }).eq('id', p.id); paginaPlanilha(p.id);
+  };
+  if ($('#mais-questao')) $('#mais-questao').onclick = async () => {
+    const nome = window.prompt ? prompt('Nome do professor da nova questão:') : null;
+    if (!nome) return;
+    await db.from('questoes').insert({ planilha_id: p.id, numero: questoes.length + 1, professor: nome.trim() });
+    paginaPlanilha(p.id);
+  };
+  // salvar pela coordenação
+  ligarNotas($('#tabela-notas'), (d, v) => {
+    const aluno_id = Number(d.aluno);
+    if (d.segunda) return v == null
+      ? db.from('segunda_chamada').delete().eq('aluno_id', aluno_id).eq('planilha_id', p.id)
+      : db.from('segunda_chamada').upsert({ aluno_id, planilha_id: p.id, nota: v });
+    const questao_id = Number(d.questao);
+    return v == null
+      ? db.from('notas_questao').delete().eq('aluno_id', aluno_id).eq('questao_id', questao_id)
+      : db.from('notas_questao').upsert({ aluno_id, questao_id, nota: v, atualizado_em: new Date().toISOString() });
+  }, (d, v) => {
+    const aluno = Number(d.aluno);
+    if (d.segunda) { v == null ? seg.delete(aluno) : seg.set(aluno, v); } else { valor.set(`${aluno}-${d.questao}`, v); }
+    const c = calcularLinha(questoes.map(q => valor.get(`${aluno}-${q.id}`) ?? null), seg.get(aluno) ?? null, p.nm);
+    const tr = $('#tabela-notas').querySelector(`tr[data-linha="${aluno}"]`);
+    tr.querySelector('[data-soma]').textContent = fmt(c.soma);
+    tr.querySelector('[data-soma]').classList.toggle('acima', c.soma > 10);
+    tr.querySelector('[data-real]').textContent = fmt(c.real);
+    tr.querySelector('[data-final]').textContent = fmt(c.final);
+  });
+}
+
+// ---------- Página PÚBLICA de lançamento (professores, sem login) ----------
+async function paginaPublica(token) {
+  mostrar('#tela-publica');
+  const alvo = $('#conteudo-publico');
+  alvo.innerHTML = '<div class="carregando">Abrindo planilha…</div>';
+  const { data: pl, error } = await db.rpc('planilha_publica', { p_token: token });
+  if (error || !pl) { alvo.innerHTML = '<div class="aviso erro">Link inválido ou planilha removida. Confira o link com a coordenação.</div>'; return; }
+  const valor = new Map(pl.notas.map(n => [`${n.aluno_id}-${n.questao_id}`, Number(n.nota)]));
+  let escolhido = null;
+  try { escolhido = Number(localStorage.getItem('professor-' + token)) || null; } catch {}
+  if (!pl.questoes.some(q => q.id === escolhido)) escolhido = null;
+
+  const desenhar = () => {
+    alvo.innerHTML = `
+      <h1>${esc(pl.materia)} · ${esc(pl.nm)} · ${esc(pl.turma)}</h1>
+      <p class="subtitulo">${esc(pl.ciclo)} · ${pl.alunos.length} alunos</p>
+      ${pl.aberta ? '' : '<div class="aviso erro">Esta planilha foi fechada pela coordenação. As notas não podem mais ser alteradas.</div>'}
+      <div class="caixa-link"><strong>Quem é você?</strong>
+        <select id="quem"><option value="">Escolha o seu nome…</option>
+          ${pl.questoes.map(q => `<option value="${q.id}" ${q.id === escolhido ? 'selected' : ''}>Q${q.numero} · ${esc(q.professor)}</option>`).join('')}</select>
+        <span class="subtitulo" style="margin:0">Digite as notas da sua questão (0 a 10, vírgula ou ponto). Salva sozinho ao sair da caixa. Enter desce para o próximo aluno.</span>
+      </div>
+      <div class="aviso erro escondido alerta-notas"></div>
+      <div class="rolavel"><table id="tabela-publica">
+        <thead><tr><th>Nº</th><th>Aluno</th>${pl.questoes.map(q => `<th class="num">Q${q.numero}<br><small>${esc(q.professor)}</small></th>`).join('')}<th class="num">Soma</th></tr></thead>
+        <tbody>${pl.alunos.map((a, i) => {
+          const vals = pl.questoes.map(q => valor.get(`${a.id}-${q.id}`) ?? null);
+          const soma = calcularLinha(vals, null, pl.nm).soma;
+          return `<tr data-linha="${a.id}"><td>${i + 1}</td><td>${esc(a.nome)}</td>
+            ${pl.questoes.map((q, j) => `<td class="num"><input class="nota" inputmode="decimal" data-aluno="${a.id}" data-questao="${q.id}"
+               value="${vals[j] == null ? '' : String(vals[j]).replace('.', ',')}" ${pl.aberta && q.id === escolhido ? '' : 'disabled'}></td>`).join('')}
+            <td class="num ${soma > 10 ? 'acima' : ''}" data-soma>${fmt(soma)}</td></tr>`;
+        }).join('')}</tbody></table></div>`;
+    $('#quem').onchange = () => {
+      escolhido = Number($('#quem').value) || null;
+      try { localStorage.setItem('professor-' + token, escolhido || ''); } catch {}
+      desenhar();
+    };
+    ligarNotas($('#tabela-publica'),
+      (d, v) => db.rpc('salvar_nota_publica', { p_token: token, p_aluno: Number(d.aluno), p_questao: Number(d.questao), p_nota: v }),
+      (d, v) => {
+        valor.set(`${d.aluno}-${d.questao}`, v);
+        const soma = calcularLinha(pl.questoes.map(q => valor.get(`${d.aluno}-${q.id}`) ?? null), null, pl.nm).soma;
+        const td = $('#tabela-publica').querySelector(`tr[data-linha="${d.aluno}"] [data-soma]`);
+        td.textContent = fmt(soma); td.classList.toggle('acima', soma > 10);
+      });
+  };
+  desenhar();
+}
+
+// ---------- Professores (cadastro + importação de Excel) ----------
+const XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+function carregarScript(url) {
+  return new Promise((ok, falha) => {
+    if (document.querySelector(`script[src="${url}"]`)) return ok();
+    const s = document.createElement('script'); s.src = url; s.onload = ok; s.onerror = falha; document.head.appendChild(s);
+  });
+}
+
+async function paginaProfessores() {
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando professores…</div>';
+  const { data: profs, error } = await db.from('professores').select('*').order('nome');
+  if (error) return erroNaTela(error);
+  $('#conteudo').innerHTML = `
+    <h1>Professores</h1>
+    <p class="subtitulo">Usados para preencher automaticamente as planilhas de notas e os avisos por e-mail.</p>
+    <div class="caixa-link">
+      <strong>Importar do Excel:</strong>
+      <input type="file" id="arquivo-prof" accept=".xlsx,.xls,.csv">
+      <button class="botao leve pequeno" id="baixar-modelo">Baixar modelo</button>
+      <span class="subtitulo" style="margin:0">Colunas: Nome, E-mail, Matéria, Turmas.</span>
+    </div>
+    <div id="msg-prof" class="aviso escondido"></div>
+    <form class="linha-prof" id="form-prof" style="grid-template-columns: 1.2fr 1.2fr 1fr 1fr auto; margin: 14px 0">
+      <input type="text" id="np-nome" placeholder="Nome" required>
+      <input type="email" id="np-email" placeholder="E-mail">
+      <select id="np-materia"><option value="">Matéria…</option>${MATERIAS.map(m => `<option>${m}</option>`).join('')}</select>
+      <input type="text" id="np-turmas" placeholder="Turmas (ex.: 1ª A, 1ª B)">
+      <button class="botao pequeno">Adicionar</button>
+    </form>
+    <div class="rolavel"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Matéria</th><th>Turmas</th><th>Ativo</th></tr></thead>
+      <tbody>${profs.map(p => `<tr><td>${esc(p.nome)}</td><td>${esc(p.email || '')}</td><td>${esc(p.materia || '')}</td><td>${esc(p.turmas || '')}</td>
+        <td><input type="checkbox" data-prof="${p.id}" ${p.ativo ? 'checked' : ''}></td></tr>`).join('')
+        || '<tr><td colspan="5" class="pendente">Nenhum professor cadastrado ainda.</td></tr>'}</tbody></table></div>`;
+  const aviso = (t, erro) => { const m = $('#msg-prof'); m.textContent = t; m.classList.toggle('erro', !!erro); m.classList.remove('escondido'); };
+
+  $('#form-prof').onsubmit = async (e) => {
+    e.preventDefault();
+    const { error } = await db.from('professores').insert({
+      nome: $('#np-nome').value.trim(), email: $('#np-email').value.trim().toLowerCase() || null,
+      materia: $('#np-materia').value || null, turmas: $('#np-turmas').value.trim() || null });
+    if (error) return aviso(/duplicate|unique/i.test(error.message) ? 'Já existe um professor com esse e-mail.' : error.message, true);
+    paginaProfessores();
+  };
+  document.querySelectorAll('[data-prof]').forEach(c => c.onchange = () => db.from('professores').update({ ativo: c.checked }).eq('id', Number(c.dataset.prof)));
+
+  $('#baixar-modelo').onclick = async () => {
+    await carregarScript(XLSX_URL);
+    const ws = XLSX.utils.aoa_to_sheet([['Nome', 'E-mail', 'Matéria', 'Turmas'], ['Exemplo da Silva', 'exemplo@gmail.com', 'Química', '1ª A, 1ª B']]);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Professores');
+    XLSX.writeFile(wb, 'modelo_professores.xlsx');
+  };
+  $('#arquivo-prof').onchange = async (e) => {
+    const arq = e.target.files[0]; if (!arq) return;
+    try {
+      await carregarScript(XLSX_URL);
+      const wb = XLSX.read(await arq.arrayBuffer());
+      const linhas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      const pega = (l, ...nomes) => { const k = Object.keys(l).find(k => nomes.includes(semAcento(k).replace(/[^A-Z]/g, ''))); return k ? String(l[k]).trim() : ''; };
+      const lista = linhas.map(l => ({
+        nome: pega(l, 'NOME', 'PROFESSOR'), email: pega(l, 'EMAIL').toLowerCase() || null,
+        materia: pega(l, 'MATERIA', 'DISCIPLINA') || null, turmas: pega(l, 'TURMAS', 'TURMA') || null,
+      })).filter(x => x.nome && x.nome !== 'Exemplo da Silva');
+      if (!lista.length) return aviso('Não encontrei professores no arquivo. Confira se a primeira linha tem: Nome, E-mail, Matéria, Turmas.', true);
+      const comEmail = lista.filter(x => x.email), semEmail = lista.filter(x => !x.email);
+      const r1 = comEmail.length ? await db.from('professores').upsert(comEmail, { onConflict: 'email' }) : { error: null };
+      const r2 = semEmail.length ? await db.from('professores').insert(semEmail) : { error: null };
+      if (r1.error || r2.error) return aviso((r1.error || r2.error).message, true);
+      await paginaProfessores();
+      aviso(`${lista.length} professores importados.`);
+    } catch (err) { aviso('Não consegui ler o arquivo: ' + err.message, true); }
+  };
+}
+
+// =====================================================================
+// INÍCIO DA PÁGINA
+// =====================================================================
+const linkLancamento = location.hash.match(/^#lancar-([0-9a-f-]{36})$/);
+if (linkLancamento) paginaPublica(linkLancamento[1]);
+else if (!location.hash.includes('type=recovery')) iniciar();
 </script>
 </body>
 </html>
