@@ -290,6 +290,52 @@
   .hor-regras { margin: 0 0 14px; padding-left: 20px; line-height: 1.7; color: var(--texto); font-size: 14px; }
   @media (max-width: 700px) { .hor-grade { border-spacing: 3px; } .hor-aula { padding: 6px; } .hor-aula strong { font-size: 11px; } .hor-escolha { justify-items: start; } }
 
+  /* ---------- Frequência ---------- */
+  .fr-bloco { background: var(--branco); border: 1px solid var(--borda); border-radius: 12px; padding: 16px 18px; margin: 0 0 16px; }
+  .fr-bloco h2 { font-size: 17px; margin: 0; }
+  .fr-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .fr-card { display: flex; flex-direction: column; gap: 4px; text-align: left; background: var(--fundo); border: 1px solid var(--borda); border-left: 5px solid #c9d1cc;
+    border-radius: 10px; padding: 12px 14px; color: var(--texto); }
+  .fr-card.feita { background: var(--verde-claro); border-left-color: var(--verde); }
+  .fr-card:hover { border-color: var(--verde); }
+  .fr-card strong { font-size: 16px; }
+  .fr-card small { color: var(--suave); font-size: 12px; }
+  .fr-ok { color: var(--verde); font-weight: 700; font-size: 13px; }
+  .fr-pendente { color: var(--alerta); font-weight: 700; font-size: 13px; }
+  .fr-pct { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--verde-claro); color: var(--verde-escuro); font-weight: 700; }
+  .fr-pct.ruim { background: #fde7e5; color: var(--erro); }
+  .fr-pct.grande { font-size: 24px; padding: 4px 14px; }
+  .fr-txt-ruim { color: var(--erro); }
+  .fr-resumo { display: flex; gap: 14px; align-items: center; }
+  .fr-rel td, .fr-rel th { padding: 6px 6px; }
+  .fr-bloco td { vertical-align: middle; }
+  .fr-bloco button.link { padding: 0; margin: 0; text-align: left; }
+  .fr-rel td.fr-f { background: #fde7e5; color: var(--erro); font-weight: 800; text-align: center; }
+  .fr-rel td.fr-p { color: #9aa59f; text-align: center; }
+  .fr-rel tr.alerta td:nth-child(2) { box-shadow: inset 4px 0 0 var(--erro); }
+  .fr-escolha { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 14px; }
+  .fr-escolha label { display: flex; gap: 8px; align-items: center; font-weight: 500; }
+  .fr-escolha label.vazio { color: #9aa59f; }
+  .fr-escolha small { color: var(--suave); }
+  .fr-camera { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+  .fr-camera label.botao { display: inline-flex; align-items: center; }
+  .fr-grande { font-size: 17px; padding: 14px 22px; }
+  .fr-revisao { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .fr-foto canvas { width: 100%; height: auto; border: 1px solid var(--borda); border-radius: 8px; display: block; }
+  .fr-foto { position: sticky; top: 0; }
+  .fr-itens { display: flex; flex-direction: column; gap: 4px; }
+  .fr-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--borda); background: var(--branco); }
+  .fr-item.conferir { background: #fdecc8; border-color: #f0c36d; }
+  .fr-num { width: 24px; text-align: right; color: var(--suave); font-size: 12px; flex: none; }
+  .fr-nome { flex: 1; font-size: 13px; font-weight: 600; min-width: 0; }
+  .fr-nome small { display: block; font-weight: 500; color: var(--alerta); font-size: 11.5px; }
+  .fr-estado { flex: none; border: 0; border-radius: 999px; padding: 6px 12px; font-weight: 700; font-size: 13px; min-width: 88px; }
+  .fr-estado.falta { background: var(--erro); color: #fff; }
+  .fr-estado.presente { background: var(--verde-claro); color: var(--verde-escuro); }
+  .fr-lista-manual { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 4px 14px; }
+  .fr-lista-manual label { display: flex; gap: 8px; align-items: center; font-size: 13.5px; padding: 3px 0; }
+  @media (max-width: 760px) { .fr-revisao { grid-template-columns: 1fr; } .fr-foto { position: static; } }
+
   /* ---------- Impressão do carômetro ---------- */
   #impressao { display: none; }
   @media print {
@@ -319,6 +365,15 @@
     .imp-tabela tr { break-inside: avoid; }
     .imp-tabela td.forte { font-weight: 700; }
     .imp-rodape { margin-top: 8px; font-size: 8.5pt; color: #333; }
+    /* folha de frequência: A4 inteiro, sem margem (o desenho já tem as margens) */
+    @page folha { size: A4 portrait; margin: 0; }
+    .imp-folha { page: folha; width: 210mm; height: 296mm; overflow: hidden; break-after: page; margin: 0; }
+    .imp-folha:last-child { break-after: auto; }
+    .imp-folha svg { width: 210mm; height: 296mm; display: block; }
+    @page paisagem { size: A4 landscape; margin: 10mm; }
+    .imp-paisagem { page: paisagem; }
+    .fr-rel-imp { font-size: 7.5pt; }
+    .fr-rel-imp td, .fr-rel-imp th { padding: 2px 3px; }
     /* horário: A4 deitado, uma grade por página */
     @page horario { size: A4 landscape; margin: 10mm; }
     .imp-horario { page: horario; break-after: page; }
@@ -368,6 +423,7 @@
         <button data-pagina="comparativos">Comparativos</button>
         <button data-pagina="desempenho">Desempenho</button>
         <button data-pagina="horarios">Horários de aula</button>
+        <button data-pagina="frequencia" id="nav-frequencia" class="escondido">Frequência</button>
         <button data-pagina="busca">Buscar aluno</button>
         <button data-pagina="ocorrencias" id="nav-ocorrencias" class="escondido">Ocorrências</button>
         <button data-pagina="professores" id="nav-professores" class="escondido">Professores</button>
@@ -533,6 +589,7 @@ async function iniciar() {
   $('#nav-equipe').classList.toggle('escondido', papel !== 'admin');
   $('#nav-professores').classList.toggle('escondido', !veTudo());
   $('#nav-ocorrencias').classList.toggle('escondido', !veTudo());
+  $('#nav-frequencia').classList.toggle('escondido', !veTudo());
   mostrar('#tela-sistema');
   $('#conteudo').innerHTML = '<div class="carregando">Carregando turmas…</div>';
 
@@ -570,7 +627,7 @@ function irPara(pagina, extra, modo) {
   const menu = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' }[pagina] || pagina;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === menu));
   ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe,
-     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias, comparativos: paginaComparativos, desempenho: paginaDesempenho, horarios: paginaHorarios })[pagina](extra);
+     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias, comparativos: paginaComparativos, desempenho: paginaDesempenho, horarios: paginaHorarios, frequencia: paginaFrequencia })[pagina](extra);
 }
 
 window.addEventListener('popstate', (e) => {
@@ -916,10 +973,13 @@ async function abrirFicha(id, aba) {
   }
   const a = completo || basico;
   // notas em qualquer turma (continuam aparecendo depois de mudar de turma ou desistir)
-  const [{ data: notasAluno }, { data: movs }] = await Promise.all([
+  const [{ data: notasAluno }, { data: movs }, { data: freq }, { data: faltasAluno }] = await Promise.all([
     db.from('historico_notas').select('ciclo_id, ciclo, nm, materia, turma_id, nota_real, nota_multiplicada').eq('aluno_id', id).order('ciclo_id').order('nm'),
     db.from('movimentacoes').select('*').eq('aluno_id', id).order('feito_em'),
+    db.from('frequencia_resumo').select('*').eq('aluno_id', id).eq('ano_letivo', ANO_LETIVO).maybeSingle(),
+    db.from('frequencia_detalhe').select('data').eq('aluno_id', id).eq('ano_letivo', ANO_LETIVO).eq('faltou', true).order('data'),
   ]);
+  const faltasDatas = (faltasAluno || []).map(x => x.data);
   const textoMov = (x) => ({
     mudou_turma: `Mudou da ${esc(nomeTurma(x.de_turma))} para a ${esc(nomeTurma(x.para_turma))}`,
     desistente: `Marcado como desistente (estava na ${esc(nomeTurma(x.de_turma))})`,
@@ -968,6 +1028,7 @@ async function abrirFicha(id, aba) {
         <button class="botao leve" id="ver-ocorrencias">Ocorrências${balaoOc(id)}</button>` : ''}
       <button class="botao leve" id="ver-desempenho">Desempenho</button></div>`)}
     ${matriculaHtml}
+    <div class="secao"><h3>Frequência</h3>${htmlFrequenciaAluno(freq, faltasDatas)}</div>
     <div class="secao"><h3>Contato</h3><div class="campos">
       ${campo('Telefone', telefone(a.telefone))}${campo('E-mail', a.email)}
       ${a.data_nascimento !== undefined ? campo('Data de nascimento', data(a.data_nascimento)) : ''}
@@ -987,7 +1048,7 @@ async function abrirFicha(id, aba) {
       ${a.observacao ? `<div class="secao"><h3>Observação</h3><div>${esc(a.observacao)}</div></div>` : ''}
     ` : `<div class="secao"><p class="subtitulo" style="margin:0">Documentos, endereço e responsável ficam visíveis só para a coordenação.</p></div>`}`;
   $('#ficha .fechar').onclick = fecharFicha;
-  $('#ver-boletim').onclick = async () => { await carregarCortes(); mostrarBoletim(a, notasAluno || [], topo, id); };
+  $('#ver-boletim').onclick = async () => { await carregarCortes(); mostrarBoletim(a, notasAluno || [], topo, id, freq, faltasDatas); };
   if ($('#editar-aluno')) $('#editar-aluno').onclick = () => mostrarEdicao(id, a, responsaveis, matricula, topo);
   const abrirOcorrencias = () => mostrarOcorrencias({ a, basico, ocorrencias, topo, id, responsaveis, nomeTurmaAluno: turma?.nome || '' });
   if ($('#ver-ocorrencias')) $('#ver-ocorrencias').onclick = abrirOcorrencias;
@@ -1037,7 +1098,7 @@ function montarBoletim(notas) {
   ciclos.forEach(c => { c.nms = [...c.nms].sort(); c.linhas = [...c.linhas.values()].sort((x, y) => x.materia.localeCompare(y.materia, 'pt-BR')); });
   return ciclos;
 }
-function mostrarBoletim(a, notas, topo, id) {
+function mostrarBoletim(a, notas, topo, id, freq, faltasDatas) {
   const ciclos = montarBoletim(notas.filter(n => n.nota_real != null || n.nota_multiplicada != null));
   const celula = (n) => !n || n.nota_multiplicada == null ? '—'
     : `<strong>${fmt(n.nota_multiplicada)}</strong>${n.nota_real != null && Number(n.nota_real) !== Number(n.nota_multiplicada) ? `<small>real ${fmt(n.nota_real)}</small>` : ''}`;
@@ -1054,11 +1115,12 @@ function mostrarBoletim(a, notas, topo, id) {
         </table></div>`).join('')}
       <p class="subtitulo" style="margin:12px 0 0">Nota em destaque = nota final (com multiplicador, no máximo 10). Quando é diferente, a nota real aparece embaixo.</p>
     </div>
+    <div class="secao"><h3>Frequência</h3>${htmlFrequenciaAluno(freq, faltasDatas)}</div>
     ${ciclos.length ? `<div class="secao"><h3>Evolução e notas de corte</h3>
       <div class="barra" style="margin:0 0 10px">${seletorVestibular('evo-vest')}</div>
       <div id="evolucao"></div></div>` : ''}
     <div class="rodape-ficha">
-      ${ciclos.length ? '<button class="botao leve" id="imprimir-boletim">Imprimir boletim</button>' : ''}
+      ${ciclos.length || freq?.dias ? '<button class="botao leve" id="imprimir-boletim">Imprimir boletim</button>' : ''}
       <button class="botao" id="voltar-ficha">Voltar à ficha</button>
     </div>`;
   $('#ficha .fechar').onclick = fecharFicha;
@@ -1071,14 +1133,15 @@ function mostrarBoletim(a, notas, topo, id) {
     const turmaAtual = nomeTurma(estado.matriculas.find(m => m.aluno_id === id)?.turma_id);
     $('#impressao').innerHTML = `<div class="imp-boletim">
       <div class="imp-topo"><h1>BOLETIM · ${esc(a.nome)}</h1><span>${esc(turmaAtual || '')} · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+      ${textoFrequenciaImpressa(freq) ? `<p class="imp-sub"><strong>${esc(textoFrequenciaImpressa(freq))}</strong></p>` : ''}
       ${ciclos.map(c => `<h2>${esc(c.nome)}</h2>
         <table class="imp-tabela"><thead><tr><th>Matéria</th>${c.nms.map(nm => `<th class="n">${nm}</th>`).join('')}</tr></thead>
         <tbody>${c.linhas.map(l => `<tr><td>${esc(l.materia)}</td>${c.nms.map(nm => {
           const n = l.nm[nm]; return `<td class="n">${!n || n.nota_multiplicada == null ? '—' : `<strong>${fmt(n.nota_multiplicada)}</strong>${n.nota_real != null && Number(n.nota_real) !== Number(n.nota_multiplicada) ? ` <small>(real ${fmt(n.nota_real)})</small>` : ''}`}</td>`;
         }).join('')}</tr>`).join('')}</tbody></table>`).join('')}
-      <p class="imp-rodape">Nota final com multiplicador (no máximo 10); entre parênteses, a nota real quando diferente.</p>
+      ${ciclos.length ? `<p class="imp-rodape">Nota final com multiplicador (no máximo 10); entre parênteses, a nota real quando diferente.</p>
       <h2>Comparativo com a nota de corte${vestEscolhido() ? ' do ' + esc(nomeVestibular(vestEscolhido())) : ''}</h2>
-      ${htmlEvolucao(ciclos, vestEscolhido(), true)}</div>`;
+      ${htmlEvolucao(ciclos, vestEscolhido(), true)}` : ''}</div>`;
     setTimeout(() => window.print(), 100);
   };
 }
@@ -2942,6 +3005,637 @@ async function baixarModeloHorario(aulas) {
   const a = document.createElement('a'); a.href = url; a.download = `horario_${ANO_LETIVO}.xlsx`; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
+
+// =====================================================================
+// FREQUÊNCIA: uma folha impressa por turma e por dia. Quem faltou ganha um X
+// no quadradinho; quem veio assina. A câmera do celular lê a folha.
+// =====================================================================
+const JSQR_URL = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+const QRGEN_URL = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+const FREQ_MINIMA = 75;        // presença abaixo disso (em %) gera alerta
+const FREQ_SEGUIDAS = 3;       // faltas seguidas que geram alerta
+const FREQ_DIAS_MIN = 5;       // só calcula alerta de % depois de alguns dias de aula
+const QR_PREFIXO = 'ITAIME-FREQ:';
+const ALUNOS_POR_FOLHA = 42;
+
+// Tudo na folha é medido em milímetros (A4 em pé: 210 x 297).
+// Os quadrados pretos dos cantos e do meio das laterais são as "âncoras" que a câmera procura.
+const FOLHA = {
+  marcas: { TL: [15, 15], TR: [195, 15], BR: [195, 282], BL: [15, 282], ML: [15, 148.5], MR: [195, 148.5] },
+  lado: 9,
+  x: { num: 24, nome: 32, faltou: 112, assin: 126, fim: 186 },
+  topoTabela: 43, cab: 6, fimTabela: 272,
+  qr: { x: 160, y: 7, lado: 26 },
+};
+const PPM = 5;   // pixels por milímetro na folha "endireitada"
+
+function geometriaFolha(n) {
+  const inicio = FOLHA.topoTabela + FOLHA.cab;
+  const h = Math.min(6.5, (FOLHA.fimTabela - inicio) / Math.max(n, 1));
+  const caixa = Math.min(4.6, Math.max(3, h - 1.6));
+  const cx = (FOLHA.x.faltou + FOLHA.x.assin) / 2;
+  return { inicio, h, caixa, linhas: Array.from({ length: n }, (_, i) => {
+    const y = inicio + i * h; return { y, caixa: [cx - caixa / 2, y + (h - caixa) / 2] }; }) };
+}
+const diaSemana = (d) => new Date(d + 'T12:00').toLocaleDateString('pt-BR', { weekday: 'long' });
+const pctPresenca = (r) => r && Number(r.dias) ? Math.round(1000 * (r.dias - r.faltas) / r.dias) / 10 : null;
+const emAlerta = (r) => !!r && Number(r.dias) > 0 &&
+  ((Number(r.dias) >= FREQ_DIAS_MIN && pctPresenca(r) < FREQ_MINIMA) || Number(r.faltas_seguidas) >= FREQ_SEGUIDAS);
+const alunosAtivosDaTurma = (turmaId) => estado.matriculas
+  .filter(m => m.turma_id === turmaId && m.situacao === 'ativo')
+  .sort((x, y) => (x.ordem ?? 999) - (y.ordem ?? 999) || (estado.alunos.get(x.aluno_id)?.nome || '').localeCompare(estado.alunos.get(y.aluno_id)?.nome || '', 'pt-BR'))
+  .map(m => m.aluno_id);
+
+// ---------- desenho da folha (SVG em milímetros: sai igual em qualquer impressora) ----------
+function svgQR(texto, x, y, lado) {
+  const qr = qrcode(0, 'M'); qr.addData(texto); qr.make();
+  const n = qr.getModuleCount(), m = 4, total = n + 2 * m, k = lado / total;
+  let d = '';
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += `M${c + m} ${r + m}h1v1h-1z`;
+  return `<g transform="translate(${x} ${y}) scale(${k})"><rect width="${total}" height="${total}" fill="#fff"/>
+    <path d="${d}" fill="#000" shape-rendering="crispEdges"/></g>`;
+}
+function svgFolha(folha, turma, primeiroNum) {
+  const g = geometriaFolha(folha.alunos.length), X = FOLHA.x, L = FOLHA.lado, n = folha.alunos.length;
+  const fimTab = g.inicio + n * g.h;
+  const txt = (x, y, tam, t, extra = '') => `<text x="${x}" y="${y}" font-size="${tam}" ${extra}>${esc(t)}</text>`;
+  const marcas = Object.values(FOLHA.marcas).map(([cx, cy]) => `<rect x="${cx - L / 2}" y="${cy - L / 2}" width="${L}" height="${L}" fill="#000"/>`).join('');
+  const caixaTopo = (x, y, w, rot, valor) => `
+    <rect x="${x}" y="${y}" width="${w}" height="7.5" fill="none" stroke="#000" stroke-width=".35"/>
+    <line x1="${x + 17}" y1="${y}" x2="${x + 17}" y2="${y + 7.5}" stroke="#000" stroke-width=".35"/>
+    ${txt(x + 2, y + 5, 3, rot, 'font-weight="700"')}${txt(x + 19.5, y + 5.1, 3.4, valor, 'font-weight="700"')}`;
+  const linhas = folha.alunos.map((id, i) => {
+    const r = g.linhas[i], nome = estado.alunos.get(id)?.nome || '', base = r.y + g.h / 2 + 1;
+    const tam = Math.min(3, g.h * 0.55), longo = nome.length * tam * 0.6 > X.faltou - X.nome - 3;
+    return `<line x1="${X.num}" y1="${r.y + g.h}" x2="${X.fim}" y2="${r.y + g.h}" stroke="#666" stroke-width=".2"/>
+      ${txt((X.num + X.nome) / 2, base, tam, primeiroNum + i, 'text-anchor="middle"')}
+      ${txt(X.nome + 1.5, base, tam, nome, longo ? `textLength="${X.faltou - X.nome - 3}" lengthAdjust="spacingAndGlyphs"` : '')}
+      <rect x="${r.caixa[0]}" y="${r.caixa[1]}" width="${g.caixa}" height="${g.caixa}" fill="#fff" stroke="#000" stroke-width=".35"/>`;
+  }).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" font-family="Arial, Helvetica, sans-serif">
+    <rect width="210" height="297" fill="#fff"/>${marcas}
+    ${txt(24, 13.5, 5.2, 'LISTA DE FREQUÊNCIA', 'font-weight="700"')}
+    ${txt(24, 18.5, 2.8, `Turmas ITA-IME · ${folha.ano_letivo}`, 'fill="#444"')}
+    ${caixaTopo(24, 22, 64, 'TURMA:', turma.toUpperCase())}
+    ${caixaTopo(92, 22, 62, 'DATA:', `${data(folha.data)} · ${diaSemana(folha.data)}`)}
+    ${txt(24, 36, 2.9, 'Faltou: marque um X no quadradinho.  Veio: assine o seu nome na sua linha.')}
+    ${txt(24, 40, 2.4, 'Não escreva sobre os quadrados pretos dos cantos nem sobre o código ao lado.', 'fill="#555"')}
+    ${svgQR(QR_PREFIXO + folha.id, FOLHA.qr.x, FOLHA.qr.y, FOLHA.qr.lado)}
+    ${txt(FOLHA.qr.x + FOLHA.qr.lado / 2, FOLHA.qr.y + FOLHA.qr.lado + 3.2, 2.8, `Folha nº ${folha.id}`, 'text-anchor="middle" font-weight="700"')}
+    <rect x="${X.num}" y="${FOLHA.topoTabela}" width="${X.fim - X.num}" height="${fimTab - FOLHA.topoTabela}" fill="none" stroke="#000" stroke-width=".35"/>
+    <line x1="${X.num}" y1="${g.inicio}" x2="${X.fim}" y2="${g.inicio}" stroke="#000" stroke-width=".35"/>
+    ${[X.nome, X.faltou, X.assin].map(x => `<line x1="${x}" y1="${FOLHA.topoTabela}" x2="${x}" y2="${fimTab}" stroke="#000" stroke-width=".25"/>`).join('')}
+    ${txt((X.num + X.nome) / 2, FOLHA.topoTabela + 4.2, 2.9, 'Nº', 'text-anchor="middle" font-weight="700"')}
+    ${txt(X.nome + 1.5, FOLHA.topoTabela + 4.2, 2.9, 'NOME', 'font-weight="700"')}
+    ${txt((X.faltou + X.assin) / 2, FOLHA.topoTabela + 4.2, 2.6, 'FALTOU', 'text-anchor="middle" font-weight="700"')}
+    ${txt((X.assin + X.fim) / 2, FOLHA.topoTabela + 4.2, 2.9, 'ASSINATURA', 'text-anchor="middle" font-weight="700"')}
+    ${linhas}
+    ${txt(24, 280.5, 2.4, `Folha nº ${folha.id} · ${turma} · ${data(folha.data)} · ${n} ${n === 1 ? 'aluno' : 'alunos'}`, 'fill="#444"')}
+    ${txt(186, 280.5, 2.4, 'Depois da aula, fotografe a folha inteira com o celular.', 'text-anchor="end" fill="#444"')}
+  </svg>`;
+}
+
+// ---------- imprimir as folhas do dia ----------
+function abrirImprimirFolhas() {
+  const turmas = estado.turmas.map(t => ({ t, n: alunosAtivosDaTurma(t.id).length }));
+  $('#fundo-ficha').classList.remove('escondido'); $('#ficha').classList.remove('largo');
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2>Imprimir folhas de frequência</h2>
+      <span class="etiqueta">uma folha por turma, com os alunos ativos de hoje</span></div>
+      <button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao">
+      <label for="fi-data">Dia da chamada</label>
+      <input type="date" id="fi-data" value="${estado.freq?.dia || hojeLocal()}" style="max-width:220px">
+      <h3 style="margin:18px 0 8px">Turmas</h3>
+      <div class="fr-escolha">${turmas.map(({ t, n }) => `<label class="${n ? '' : 'vazio'}"><input type="checkbox" value="${t.id}" ${n ? 'checked' : 'disabled'}>
+        ${esc(t.nome)} <small>${n} ${n === 1 ? 'aluno' : 'alunos'}${n > ALUNOS_POR_FOLHA ? ` · ${Math.ceil(n / ALUNOS_POR_FOLHA)} folhas` : ''}</small></label>`).join('')}</div>
+      <p class="subtitulo" style="margin:14px 0 0">Imprima em A4, <strong>sem ajustar à página</strong> (escala 100%). Cada folha tem um código só dela:
+        imprima de novo se a turma mudar.</p>
+    </div>
+    <div id="msg-fi" class="aviso erro escondido" style="margin:0 24px 14px"></div>
+    <div class="rodape-ficha"><button class="botao leve" id="fi-cancelar">Cancelar</button>
+      <button class="botao" id="fi-ok">Gerar e imprimir</button></div>`;
+  $('#ficha .fechar').onclick = fecharFicha; $('#fi-cancelar').onclick = fecharFicha;
+  $('#fi-ok').onclick = async (e) => {
+    const dia = $('#fi-data').value, ids = [...document.querySelectorAll('.fr-escolha input:checked')].map(c => Number(c.value));
+    const erro = (m) => { $('#msg-fi').textContent = m; $('#msg-fi').classList.remove('escondido'); e.target.disabled = false; e.target.textContent = 'Gerar e imprimir'; };
+    if (!dia) return erro('Escolha o dia.');
+    if (!ids.length) return erro('Marque pelo menos uma turma.');
+    e.target.disabled = true; e.target.textContent = 'Gerando…';
+    try { await carregarScript(QRGEN_URL); } catch { return erro('Não consegui carregar o gerador de código. Confira a internet e tente de novo.'); }
+    const novas = [];
+    for (const tid of ids) {
+      const alunos = alunosAtivosDaTurma(tid), partes = Math.ceil(alunos.length / ALUNOS_POR_FOLHA), tam = Math.ceil(alunos.length / partes);
+      for (let p = 0; p < partes; p++) novas.push({ ano_letivo: ANO_LETIVO, turma_id: tid, data: dia, alunos: alunos.slice(p * tam, (p + 1) * tam) });
+    }
+    const { data: criadas, error } = await db.from('folhas_frequencia').insert(novas).select('id, ano_letivo, turma_id, data, alunos');
+    if (error) return erro('Não foi possível gerar: ' + error.message);
+    const ordem = (f) => [ids.indexOf(f.turma_id), alunosAtivosDaTurma(f.turma_id).indexOf(f.alunos[0])];
+    criadas.sort((x, y) => ordem(x)[0] - ordem(y)[0] || ordem(x)[1] - ordem(y)[1]);
+    $('#impressao').innerHTML = criadas.map(f => `<div class="imp-folha">${svgFolha(f, nomeTurma(f.turma_id), ordem(f)[1] + 1)}</div>`).join('');
+    fecharFicha();
+    imprimirSemMargem();
+  };
+}
+// as folhas precisam sair do tamanho exato do A4 (sem a margem padrão do sistema)
+function imprimirSemMargem() {
+  const st = document.createElement('style'); st.id = 'pagina-folha';
+  st.textContent = '@media print { @page { size: A4 portrait; margin: 0; } }';
+  document.head.appendChild(st);
+  const tirar = () => { st.remove(); window.removeEventListener('afterprint', tirar); };
+  window.addEventListener('afterprint', tirar);
+  setTimeout(() => { window.print(); setTimeout(tirar, 1500); }, 150);
+}
+
+// ---------- leitura da foto ----------
+async function carregarImagem(arquivo, maxLado = 2200) {
+  const url = URL.createObjectURL(arquivo);
+  try {
+    const img = new Image(); img.src = url; await img.decode();
+    const k = Math.min(1, maxLado / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * k), h = Math.round(img.naturalHeight * k);
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0, w, h);
+    const px = cx.getImageData(0, 0, w, h).data, cinza = new Uint8ClampedArray(w * h);
+    for (let i = 0, j = 0; i < cinza.length; i++, j += 4) cinza[i] = (px[j] * 77 + px[j + 1] * 150 + px[j + 2] * 29) >> 8;
+    return { w, h, cinza };
+  } finally { URL.revokeObjectURL(url); }
+}
+// "escuro" = bem mais escuro que a vizinhança (assim sombra e luz desigual não atrapalham)
+function binarizar({ w, h, cinza }, janela, fator) {
+  const W = w + 1, I = new Float64Array(W * (h + 1));
+  for (let y = 0; y < h; y++) { let s = 0; for (let x = 0; x < w; x++) { s += cinza[y * w + x]; I[(y + 1) * W + x + 1] = I[y * W + x + 1] + s; } }
+  const r = Math.max(4, janela >> 1), out = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    const y0 = Math.max(0, y - r), y1 = Math.min(h, y + r + 1);
+    for (let x = 0; x < w; x++) {
+      const x0 = Math.max(0, x - r), x1 = Math.min(w, x + r + 1);
+      const soma = I[y1 * W + x1] - I[y0 * W + x1] - I[y1 * W + x0] + I[y0 * W + x0];
+      if (cinza[y * w + x] * (y1 - y0) * (x1 - x0) < soma * fator) out[y * w + x] = 1;
+    }
+  }
+  return out;
+}
+function manchas(bin, w, h) {
+  const rot = new Uint8Array(w * h), pilha = new Int32Array(w * h), lista = [];
+  for (let i = 0; i < w * h; i++) {
+    if (!bin[i] || rot[i]) continue;
+    let topo = 0, area = 0, sx = 0, sy = 0, x0 = w, x1 = 0, y0 = h, y1 = 0;
+    pilha[topo++] = i; rot[i] = 1;
+    while (topo) {
+      const p = pilha[--topo], x = p % w, y = (p - x) / w;
+      area++; sx += x; sy += y; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      if (x > 0 && bin[p - 1] && !rot[p - 1]) { rot[p - 1] = 1; pilha[topo++] = p - 1; }
+      if (x < w - 1 && bin[p + 1] && !rot[p + 1]) { rot[p + 1] = 1; pilha[topo++] = p + 1; }
+      if (y > 0 && bin[p - w] && !rot[p - w]) { rot[p - w] = 1; pilha[topo++] = p - w; }
+      if (y < h - 1 && bin[p + w] && !rot[p + w]) { rot[p + w] = 1; pilha[topo++] = p + w; }
+    }
+    if (area < 40) continue;
+    lista.push({ area, cx: sx / area, cy: sy / area, x0, x1, y0, y1, borda: x0 === 0 || y0 === 0 || x1 === w - 1 || y1 === h - 1 });
+  }
+  return lista;
+}
+function resolverSistema(A, b) {
+  const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]];
+    if (Math.abs(M[c][c]) < 1e-12) return null;
+    for (let r = 0; r < n; r++) { if (r === c) continue; const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; }
+  }
+  return M.map((r, i) => r[n] / r[i]);
+}
+// leva pontos da folha (mm) para a foto (pixels), a partir de 4 pares conhecidos
+function homografia(de, para) {
+  const A = [], b = [];
+  for (let i = 0; i < 4; i++) {
+    const [x, y] = de[i], [u, v] = para[i];
+    A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
+    A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
+  }
+  const k = resolverSistema(A, b);
+  if (!k || k.some(v => !isFinite(v))) return null;
+  return (x, y) => { const d = k[6] * x + k[7] * y + 1; return [(k[0] * x + k[1] * y + k[2]) / d, (k[3] * x + k[4] * y + k[5]) / d]; };
+}
+function retificar(img, mapa, x0, y0, larg, alt, ppm) {
+  const W = Math.round(larg * ppm), H = Math.round(alt * ppm), out = new Uint8ClampedArray(W * H), c = img.cinza, w = img.w;
+  for (let j = 0; j < H; j++) {
+    const ymm = y0 + (j + 0.5) / ppm;
+    for (let i = 0; i < W; i++) {
+      const [u, v] = mapa(x0 + (i + 0.5) / ppm, ymm), xi = Math.floor(u), yi = Math.floor(v);
+      if (xi < 0 || yi < 0 || xi >= w - 1 || yi >= img.h - 1) { out[j * W + i] = 255; continue; }
+      const fx = u - xi, fy = v - yi, p = yi * w + xi;
+      out[j * W + i] = (c[p] * (1 - fx) + c[p + 1] * fx) * (1 - fy) + (c[p + w] * (1 - fx) + c[p + w + 1] * fx) * fy;
+    }
+  }
+  return { w: W, h: H, cinza: out };
+}
+const areaPoligono = (p) => Math.abs(p.reduce((s, a, i) => { const b = p[(i + 1) % p.length]; return s + a[0] * b[1] - b[0] * a[1]; }, 0)) / 2;
+const emOrdemHoraria = (pts) => { const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length, cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  return [...pts].sort((a, b) => Math.atan2(a[1] - cy, a[0] - cx) - Math.atan2(b[1] - cy, b[0] - cx)); };
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+
+function lerQRRetificado(img, mapa) {
+  const q = FOLHA.qr, ret = retificar(img, mapa, q.x - 5, q.y - 5, q.lado + 10, q.lado + 10, 8);
+  const rgba = new Uint8ClampedArray(ret.w * ret.h * 4);
+  for (let i = 0; i < ret.cinza.length; i++) { rgba[4 * i] = rgba[4 * i + 1] = rgba[4 * i + 2] = ret.cinza[i]; rgba[4 * i + 3] = 255; }
+  const r = jsQR(rgba, ret.w, ret.h, { inversionAttempts: 'dontInvert' });
+  return r && r.data.startsWith(QR_PREFIXO) ? Number(r.data.slice(QR_PREFIXO.length)) : null;
+}
+
+// encontra os quadrados pretos, endireita a folha e lê o código da folha
+async function localizarFolha(arquivo) {
+  const img = await carregarImagem(arquivo);
+  const bin = binarizar(img, Math.round(Math.max(img.w, img.h) / 10), 0.7);
+  const todas = manchas(bin, img.w, img.h).filter(c => !c.borda).map(c => {
+    const bw = c.x1 - c.x0 + 1, bh = c.y1 - c.y0 + 1;
+    return { ...c, bw, bh, cheio: c.area / (bw * bh), p: [c.cx, c.cy] };
+  }).filter(c => c.cheio >= 0.45 && c.bw / c.bh < 2 && c.bh / c.bw < 2 && bin[Math.round(c.cy) * img.w + Math.round(c.cx)]);
+  todas.sort((a, b) => b.area - a.area);
+  const top = todas.slice(0, 10);
+  if (top.length < 4) throw new Error('Não achei os 4 quadrados pretos dos cantos da folha.');
+  // os 4 cantos: a combinação de manchas que forma o maior quadrilátero
+  let melhor = null;
+  for (let a = 0; a < top.length; a++) for (let b = a + 1; b < top.length; b++) for (let c = b + 1; c < top.length; c++) for (let d = c + 1; d < top.length; d++) {
+    const g = [top[a], top[b], top[c], top[d]], areas = g.map(x => x.area);
+    if (Math.max(...areas) > 5 * Math.min(...areas)) continue;
+    const pts = emOrdemHoraria(g.map(x => x.p)), ar = areaPoligono(pts);
+    if (!melhor || ar > melhor.ar) melhor = { pts, ar, g };
+  }
+  if (!melhor || melhor.ar < img.w * img.h * 0.08) throw new Error('Não achei os 4 quadrados pretos dos cantos da folha.');
+  const M = FOLHA.marcas, mmCantos = [M.TL, M.TR, M.BR, M.BL];
+  // descobre qual canto é o de cima à esquerda: primeiro pelo formato (a folha é mais alta que larga), depois pelo código
+  const giros = [0, 1, 2, 3].map(k => [0, 1, 2, 3].map(i => melhor.pts[(i + k) % 4]))
+    .filter(c => (dist(c[0], c[1]) + dist(c[2], c[3])) < (dist(c[1], c[2]) + dist(c[3], c[0])));
+  await carregarScript(JSQR_URL);
+  let escolhido = null, folhaId = null;
+  for (const c of giros) {
+    const mapa = homografia(mmCantos, c);
+    if (!mapa) continue;
+    const id = lerQRRetificado(img, mapa);
+    if (id) { escolhido = c; folhaId = id; break; }
+  }
+  // sem código legível: supõe a folha em pé (canto de cima à esquerda é o mais perto do topo da foto)
+  if (!escolhido) escolhido = giros.sort((x, y) => (x[0][0] + x[0][1]) - (y[0][0] + y[0][1]))[0] || melhor.pts;
+  let mapa = homografia(mmCantos, escolhido);
+  if (!mapa) throw new Error('A folha ficou muito torta na foto.');
+  // papel curvado: se achar também os quadrados do meio das laterais, usa metade de cima e metade de baixo separadas
+  const escala = dist(escolhido[0], escolhido[1]) / (M.TR[0] - M.TL[0]);
+  const perto = (mm) => { const alvo = mapa(...mm); const c = todas.filter(x => dist(x.p, alvo) < 7 * escala).sort((x, y) => dist(x.p, alvo) - dist(y.p, alvo))[0]; return c?.p; };
+  const ml = perto(M.ML), mr = perto(M.MR);
+  let meio = false;
+  if (ml && mr) {
+    const cima = homografia([M.TL, M.TR, M.MR, M.ML], [escolhido[0], escolhido[1], mr, ml]);
+    const baixo = homografia([M.ML, M.MR, M.BR, M.BL], [ml, mr, escolhido[2], escolhido[3]]);
+    if (cima && baixo) { mapa = (x, y) => (y < M.ML[1] ? cima : baixo)(x, y); meio = true; }
+  }
+  const ret = retificar(img, mapa, 0, 0, 210, 297, PPM);
+  return { ret, folhaId, meio };
+}
+
+// lê cada linha: quadradinho marcado? tem assinatura?
+function analisarFolha(ret, n) {
+  const g = geometriaFolha(n), W = ret.w, bin = binarizar(ret, 15 * PPM, 0.78);
+  const escuro = (x0, y0, x1, y1) => { let s = 0, t = 0;
+    for (let y = Math.max(0, y0); y < Math.min(ret.h, y1); y++) for (let x = Math.max(0, x0); x < Math.min(W, x1); x++) { s += bin[y * W + x]; t++; }
+    return t ? s / t : 0; };
+  const s = Math.round(g.caixa * PPM), busca = 7;
+  let tortas = 0;
+  const linhas = g.linhas.map(r => {
+    const bx = Math.round(r.caixa[0] * PPM), by = Math.round(r.caixa[1] * PPM);
+    // acha a borda impressa do quadradinho perto de onde ele deveria estar (corrige pequenos desvios da foto)
+    let m = { dx: 0, dy: 0, v: -1 };
+    for (let dy = -busca; dy <= busca; dy++) for (let dx = -busca; dx <= busca; dx++) {
+      let v = 0; const x0 = bx + dx, y0 = by + dy;
+      for (let k = 0; k <= s; k++) v += bin[y0 * W + x0 + k] + bin[(y0 + s) * W + x0 + k] + bin[(y0 + k) * W + x0] + bin[(y0 + k) * W + x0 + s];
+      if (v > m.v || (v === m.v && Math.abs(dx) + Math.abs(dy) < Math.abs(m.dx) + Math.abs(m.dy))) m = { dx, dy, v };
+    }
+    if (m.v < 2 * s) { tortas++; m = { dx: 0, dy: 0, v: m.v }; }
+    const dentro = Math.round(0.8 * PPM), x0 = bx + m.dx, y0 = by + m.dy;
+    const marca = escuro(x0 + dentro, y0 + dentro, x0 + s - dentro + 1, y0 + s - dentro + 1);
+    const ya = Math.round((r.y + 0.8) * PPM) + m.dy, yb = Math.round((r.y + g.h - 0.8) * PPM) + m.dy;
+    const assinatura = escuro(Math.round((FOLHA.x.assin + 1.2) * PPM), ya, Math.round((FOLHA.x.fim - 1.2) * PPM), yb);
+    return { marca, assinatura, dx: m.dx, dy: m.dy };
+  });
+  return { linhas, tortas, g };
+}
+// decide falta/presença e o que precisa de conferência
+function decidirLinha(l) {
+  const marcou = l.marca >= 0.12, fraca = !marcou && l.marca >= 0.05, assinou = l.assinatura >= 0.008;
+  if (fraca) return { falta: !assinou, conferir: 'marca fraca no quadradinho' };
+  if (marcou && assinou) return { falta: true, conferir: 'marcado como falta, mas tem assinatura' };
+  if (!marcou && !assinou) return { falta: true, conferir: 'sem X e sem assinatura' };
+  return { falta: marcou, conferir: null };
+}
+
+// ---------- tela de leitura (funciona no celular) ----------
+function abrirLeituraFolha() {
+  $('#fundo-ficha').classList.remove('escondido'); $('#ficha').classList.add('largo');
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2>Ler folha de frequência</h2>
+      <span class="etiqueta">fotografe a folha inteira, de cima</span></div>
+      <button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao" id="lf-corpo">
+      <div class="fr-camera">
+        <label class="botao fr-grande">📷 Tirar foto da folha<input type="file" accept="image/*" capture="environment" id="lf-camera" hidden></label>
+        <label class="botao leve">Escolher foto já tirada<input type="file" accept="image/*" id="lf-galeria" hidden></label>
+      </div>
+      <ul class="hor-regras" style="margin-top:16px">
+        <li>A folha inteira na foto, com os <strong>4 quadrados pretos dos cantos</strong> aparecendo.</li>
+        <li>Folha apoiada numa mesa, sem dobras, com boa luz e sem sombra forte do celular.</li>
+        <li>Pode tirar meio de lado: o sistema endireita sozinho. Antes de gravar, você confere tudo.</li>
+      </ul>
+    </div>`;
+  $('#ficha .fechar').onclick = fecharFicha;
+  const escolher = (ev) => { const f = ev.target.files[0]; if (f) processarFoto(f); };
+  $('#lf-camera').onchange = escolher; $('#lf-galeria').onchange = escolher;
+}
+async function processarFoto(arquivo, folhaDigitada) {
+  const corpo = $('#lf-corpo');
+  corpo.innerHTML = '<div class="carregando">Lendo a folha…</div>';
+  await new Promise(r => setTimeout(r, 30));
+  let loc;
+  try { loc = await localizarFolha(arquivo); }
+  catch (e) {
+    corpo.innerHTML = `<div class="aviso erro">${esc(e.message || 'Não consegui ler a foto.')}</div>
+      <p>Tente de novo com a folha inteira aparecendo, os quatro quadrados pretos visíveis e boa luz.</p>
+      <div class="fr-camera"><button class="botao" id="lf-de-novo">Tirar outra foto</button></div>`;
+    $('#lf-de-novo').onclick = abrirLeituraFolha;
+    return;
+  }
+  const folhaId = folhaDigitada || loc.folhaId;
+  if (!folhaId) {
+    corpo.innerHTML = `<div class="aviso">Achei a folha, mas não consegui ler o código (o quadrado de pontinhos no alto, à direita).</div>
+      <label for="lf-num">Digite o número da folha (está embaixo do código: "Folha nº …")</label>
+      <div class="linha-acao"><input type="number" id="lf-num" min="1" style="max-width:180px"><button class="botao" id="lf-continuar">Continuar</button>
+        <button class="botao leve" id="lf-de-novo">Tirar outra foto</button></div>`;
+    $('#lf-de-novo').onclick = abrirLeituraFolha;
+    $('#lf-continuar').onclick = () => { const n = Number($('#lf-num').value); if (n > 0) processarFoto(arquivo, n); };
+    return;
+  }
+  const { data: folha, error } = await db.from('folhas_frequencia').select('*').eq('id', folhaId).maybeSingle();
+  if (error || !folha) {
+    corpo.innerHTML = `<div class="aviso erro">A folha nº ${esc(folhaId)} não foi encontrada no sistema.</div>
+      <div class="fr-camera"><button class="botao" id="lf-de-novo">Tirar outra foto</button></div>`;
+    $('#lf-de-novo').onclick = abrirLeituraFolha;
+    return;
+  }
+  const analise = analisarFolha(loc.ret, folha.alunos.length);
+  const { data: jaTem } = await db.from('chamadas').select('id, origem, registrado_por, registrado_em').eq('turma_id', folha.turma_id).eq('data', folha.data).maybeSingle();
+  mostrarRevisao(folha, loc, analise, jaTem);
+}
+function desenharRetificada(ret, analise, itens, comMarcas) {
+  const cv = document.createElement('canvas'); cv.width = ret.w; cv.height = ret.h;
+  const cx = cv.getContext('2d'), im = cx.createImageData(ret.w, ret.h);
+  for (let i = 0; i < ret.cinza.length; i++) { im.data[4 * i] = im.data[4 * i + 1] = im.data[4 * i + 2] = ret.cinza[i]; im.data[4 * i + 3] = 255; }
+  cx.putImageData(im, 0, 0);
+  if (comMarcas) {
+    const g = analise.g;
+    itens.forEach((it, i) => {
+      const l = analise.linhas[i], y = (g.linhas[i].y) * PPM + l.dy, h = g.h * PPM;
+      if (it.conferir && !it.conferido) { cx.fillStyle = 'rgba(245, 180, 0, .28)'; cx.fillRect(FOLHA.x.num * PPM, y, (FOLHA.x.fim - FOLHA.x.num) * PPM, h); }
+      cx.lineWidth = 3; cx.strokeStyle = it.falta ? '#d92d20' : '#16a34a';
+      const [bx, by] = g.linhas[i].caixa;
+      cx.strokeRect(bx * PPM + l.dx - 4, by * PPM + l.dy - 4, g.caixa * PPM + 8, g.caixa * PPM + 8);
+    });
+  }
+  return cv;
+}
+function mostrarRevisao(folha, loc, analise, jaTem) {
+  const turma = nomeTurma(folha.turma_id);
+  const itens = folha.alunos.map((id, i) => ({ id, num: i + 1, nome: estado.alunos.get(id)?.nome || '(aluno apagado do cadastro)', ...decidirLinha(analise.linhas[i]), conferido: false }));
+  const corpo = $('#lf-corpo');
+  const desenhar = () => {
+    const faltas = itens.filter(x => x.falta).length, conferir = itens.filter(x => x.conferir && !x.conferido).length;
+    corpo.innerHTML = `
+      <div class="barra" style="margin:0 0 6px"><h3 style="margin:0">${esc(turma)} · ${esc(data(folha.data))} <small class="vazio">${esc(diaSemana(folha.data))} · folha nº ${folha.id}</small></h3></div>
+      ${jaTem ? `<div class="aviso">Esta turma já tem chamada neste dia (${jaTem.origem === 'manual' ? 'lançada à mão' : 'lida de uma folha'}).
+        Salvar vai atualizar os alunos desta folha.</div>` : ''}
+      ${analise.tortas > itens.length * 0.3 ? '<div class="aviso erro">A foto ficou difícil de ler (folha dobrada ou fora de foco). Confira linha por linha ou tire outra foto.</div>' : ''}
+      <div class="tiles">
+        <div class="tile"><span>Presentes</span><strong>${itens.length - faltas}</strong></div>
+        <div class="tile ${faltas ? 'ruim' : ''}"><span>Faltas</span><strong>${faltas}</strong></div>
+        <div class="tile ${conferir ? 'ruim' : 'bom'}"><span>Para conferir</span><strong>${conferir}</strong></div>
+      </div>
+      ${conferir ? `<p class="subtitulo" style="margin:0 0 10px">As linhas em <strong style="background:#fdecc8;padding:0 4px">amarelo</strong> precisam do seu olho:
+        confira na foto e toque em Falta/Presente para corrigir, ou em "Está certo".</p>` : ''}
+      <div class="fr-revisao">
+        <div class="fr-foto" id="lf-foto"></div>
+        <div class="fr-itens">${itens.map((it, i) => `
+          <div class="fr-item ${it.conferir && !it.conferido ? 'conferir' : ''}" data-i="${i}">
+            <span class="fr-num">${it.num}</span>
+            <div class="fr-nome">${esc(it.nome)}${it.conferir && !it.conferido ? `<small>${esc(it.conferir)}</small>` : ''}</div>
+            ${it.conferir && !it.conferido ? `<button class="botao leve pequeno" data-ok="${i}">Está certo</button>` : ''}
+            <button class="fr-estado ${it.falta ? 'falta' : 'presente'}" data-alternar="${i}">${it.falta ? 'Falta' : 'Presente'}</button>
+          </div>`).join('')}</div>
+      </div>
+      <div id="msg-lf" class="aviso erro escondido"></div>
+      <div class="rodape-ficha" style="padding:16px 0 0">
+        <button class="botao leve" id="lf-outra">Tirar outra foto</button>
+        <button class="botao" id="lf-salvar">Salvar chamada${conferir ? ` (${conferir} sem conferir)` : ''}</button>
+      </div>`;
+    $('#lf-foto').appendChild(desenharRetificada(loc.ret, analise, itens, true));
+    corpo.querySelectorAll('[data-alternar]').forEach(b => b.onclick = () => { const it = itens[b.dataset.alternar]; it.falta = !it.falta; it.conferido = true; desenhar(); });
+    corpo.querySelectorAll('[data-ok]').forEach(b => b.onclick = () => { itens[b.dataset.ok].conferido = true; desenhar(); });
+    $('#lf-outra').onclick = abrirLeituraFolha;
+    $('#lf-salvar').onclick = (e) => salvarLeitura(e.target);
+  };
+  const salvarLeitura = async (botao) => {
+    botao.disabled = true; botao.textContent = 'Salvando…';
+    const msg = (m) => { $('#msg-lf').innerHTML = m; $('#msg-lf').classList.remove('escondido'); };
+    // guarda a imagem endireitada da folha (com as assinaturas), num espaço que só a coordenação abre
+    let foto = null;
+    try {
+      const blob = await new Promise(ok => desenharRetificada(loc.ret, analise, itens, false).toBlob(ok, 'image/jpeg', 0.72));
+      const caminho = `${folha.ano_letivo}/${folha.turma_id}/${folha.data}_folha${folha.id}.jpg`;
+      const { error } = await db.storage.from('frequencia').upload(caminho, blob, { upsert: true, contentType: 'image/jpeg' });
+      if (!error) foto = caminho;
+    } catch (e) { /* segue sem a foto */ }
+    const { error } = await db.rpc('salvar_chamada', { p_turma: folha.turma_id, p_data: folha.data, p_ano: folha.ano_letivo,
+      p_alunos: folha.alunos, p_faltas: itens.filter(x => x.falta).map(x => x.id), p_origem: 'folha', p_folha: folha.id, p_foto: foto });
+    if (error) { botao.disabled = false; botao.textContent = 'Salvar chamada'; return msg('Não foi possível salvar: ' + esc(error.message)); }
+    const faltas = itens.filter(x => x.falta);
+    corpo.innerHTML = `<div class="aviso">Chamada da <strong>${esc(turma)}</strong> de ${esc(data(folha.data))} salva:
+        ${itens.length - faltas.length} presentes e ${faltas.length} ${faltas.length === 1 ? 'falta' : 'faltas'}.${foto ? '' : ' (A imagem da folha não foi guardada.)'}</div>
+      ${faltas.length ? `<p><strong>Faltaram:</strong> ${faltas.map(x => esc(x.nome)).join(', ')}</p>` : ''}
+      <div class="fr-camera"><button class="botao fr-grande" id="lf-proxima">📷 Ler a próxima folha</button>
+        <button class="botao leve" id="lf-fechar">Fechar</button></div>`;
+    $('#lf-proxima').onclick = abrirLeituraFolha;
+    $('#lf-fechar').onclick = () => { fecharFicha(); if (estado.pagina?.[0] === 'frequencia') paginaFrequencia(); };
+  };
+  desenhar();
+}
+
+// ---------- corrigir ou lançar uma chamada à mão ----------
+async function editarChamada(turmaId, dia) {
+  $('#fundo-ficha').classList.remove('escondido'); $('#ficha').classList.remove('largo');
+  $('#ficha').innerHTML = '<div class="carregando">Carregando chamada…</div>';
+  const { data: ch } = await db.from('chamadas').select('*').eq('turma_id', turmaId).eq('data', dia).maybeSingle();
+  let lista = [];
+  if (ch) {
+    const { data: fr } = await db.from('frequencia').select('aluno_id, faltou').eq('chamada_id', ch.id);
+    const ordem = alunosAtivosDaTurma(turmaId);
+    lista = (fr || []).map(x => ({ id: x.aluno_id, faltou: x.faltou }))
+      .sort((a, b) => ((ordem.indexOf(a.id) + 1) || 999) - ((ordem.indexOf(b.id) + 1) || 999) || (estado.alunos.get(a.id)?.nome || '').localeCompare(estado.alunos.get(b.id)?.nome || '', 'pt-BR'));
+  } else lista = alunosAtivosDaTurma(turmaId).map(id => ({ id, faltou: false }));
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2>${esc(nomeTurma(turmaId))} · ${esc(data(dia))}</h2>
+      <span class="etiqueta">${ch ? (ch.origem === 'manual' ? 'chamada lançada à mão' : `lida da folha nº ${ch.folha_id ?? '—'}`) : 'sem chamada neste dia'}</span>
+      ${ch?.registrado_por ? `<div><small class="vazio">por ${esc(ch.registrado_por)}</small></div>` : ''}</div>
+      <button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao">
+      <p class="subtitulo" style="margin:0 0 10px">Marque quem <strong>faltou</strong>.</p>
+      <div class="fr-lista-manual">${lista.map(x => `<label><input type="checkbox" value="${x.id}" ${x.faltou ? 'checked' : ''}> ${esc(estado.alunos.get(x.id)?.nome || '(aluno apagado)')}</label>`).join('')}</div>
+      ${ch?.foto ? '<div class="linha-acao"><button class="botao leve" id="ch-foto">Ver a folha fotografada</button></div>' : ''}
+      ${ch ? `<div class="linha-acao"><button class="botao leve" id="ch-apagar">Apagar esta chamada…</button></div>
+        <div id="ch-confirmar" class="escondido"><div class="aviso erro">Apaga a chamada inteira deste dia (presenças e faltas).</div>
+          <div class="linha-acao"><button class="botao perigo" id="ch-apagar-sim">Sim, apagar</button><button class="botao leve" id="ch-apagar-nao">Cancelar</button></div></div>` : ''}
+    </div>
+    <div id="msg-ch" class="aviso erro escondido" style="margin:0 24px 14px"></div>
+    <div class="rodape-ficha"><button class="botao leve" id="ch-cancelar">Cancelar</button><button class="botao" id="ch-salvar">Salvar</button></div>`;
+  $('#ficha .fechar').onclick = fecharFicha; $('#ch-cancelar').onclick = fecharFicha;
+  const erro = (m) => { $('#msg-ch').textContent = m; $('#msg-ch').classList.remove('escondido'); };
+  const depois = () => { fecharFicha(); paginaFrequencia(); };
+  if ($('#ch-foto')) $('#ch-foto').onclick = async () => {
+    const { data: u, error } = await db.storage.from('frequencia').createSignedUrl(ch.foto, 600);
+    if (error || !u?.signedUrl) return erro('Não consegui abrir a imagem da folha.');
+    window.open(u.signedUrl, '_blank', 'noopener');
+  };
+  if ($('#ch-apagar')) {
+    $('#ch-apagar').onclick = () => { $('#ch-confirmar').classList.remove('escondido'); $('#ch-apagar').classList.add('escondido'); };
+    $('#ch-apagar-nao').onclick = () => { $('#ch-confirmar').classList.add('escondido'); $('#ch-apagar').classList.remove('escondido'); };
+    $('#ch-apagar-sim').onclick = async () => { const { error } = await db.from('chamadas').delete().eq('id', ch.id); if (error) return erro(error.message); depois(); };
+  }
+  $('#ch-salvar').onclick = async (e) => {
+    if (!lista.length) return erro('Esta turma não tem alunos ativos.');
+    e.target.disabled = true;
+    const faltas = [...document.querySelectorAll('.fr-lista-manual input:checked')].map(c => Number(c.value));
+    const { error } = await db.rpc('salvar_chamada', { p_turma: turmaId, p_data: dia, p_ano: ch?.ano_letivo || ANO_LETIVO, p_alunos: lista.map(x => x.id),
+      p_faltas: faltas, p_origem: ch?.origem || 'manual', p_folha: ch?.folha_id ?? null, p_foto: null });
+    if (error) { e.target.disabled = false; return erro('Não foi possível salvar: ' + error.message); }
+    depois();
+  };
+}
+
+// ---------- página Frequência ----------
+async function paginaFrequencia() {
+  if (!veTudo()) return irPara('turmas');
+  const F = estado.freq || (estado.freq = { dia: hojeLocal(), turma: '', mes: hojeLocal().slice(0, 7) });
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando frequência…</div>';
+  const [ch, det, res] = await Promise.all([
+    db.from('chamadas').select('id, turma_id, data, origem').eq('data', F.dia),
+    db.from('frequencia_detalhe').select('turma_id, aluno_id, faltou').eq('data', F.dia),
+    db.from('frequencia_resumo').select('*').eq('ano_letivo', ANO_LETIVO),
+  ]);
+  const erro = ch.error || det.error || res.error;
+  if (erro) return erroNaTela(erro);
+  estado.freqResumo = new Map((res.data || []).map(r => [r.aluno_id, r]));
+  const turmas = estado.turmas.filter(t => alunosAtivosDaTurma(t.id).length || (ch.data || []).some(c => c.turma_id === t.id));
+  const ativos = new Map(estado.matriculas.filter(m => m.situacao === 'ativo').map(m => [m.aluno_id, m]));
+  const alertas = [...estado.freqResumo.values()].filter(r => ativos.has(r.aluno_id) && emAlerta(r))
+    .sort((a, b) => pctPresenca(a) - pctPresenca(b) || b.faltas_seguidas - a.faltas_seguidas);
+  const feitas = turmas.filter(t => (ch.data || []).some(c => c.turma_id === t.id)).length;
+  const meses = Array.from({ length: 12 }, (_, i) => `${ANO_LETIVO}-${String(i + 1).padStart(2, '0')}`);
+  const nomeMes = (m) => new Date(m + '-15T12:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  $('#conteudo').innerHTML = `
+    <div class="barra"><h1>Frequência</h1><div class="espaco"></div>
+      <button class="botao leve" id="fr-imprimir">Imprimir folhas</button>
+      <button class="botao" id="fr-ler">📷 Ler folha</button></div>
+    <p class="subtitulo">Imprima a folha do dia, a turma assina e quem faltou ganha um X; depois fotografe a folha com o celular.</p>
+
+    <div class="fr-bloco"><div class="barra" style="margin:0 0 10px"><h2>Chamadas do dia</h2>
+      <input type="date" id="fr-dia" value="${F.dia}" style="max-width:190px"><span class="subtitulo" style="margin:0">${esc(diaSemana(F.dia))} · ${feitas} de ${turmas.length} feitas</span></div>
+      <div class="fr-cards">${turmas.map(t => {
+        const c = (ch.data || []).find(x => x.turma_id === t.id);
+        const ls = (det.data || []).filter(x => x.turma_id === t.id), f = ls.filter(x => x.faltou).length;
+        return `<button class="fr-card ${c ? 'feita' : ''}" data-turma="${t.id}">
+          <strong>${esc(t.nome)}</strong>
+          ${c ? `<span class="fr-ok">✓ Chamada feita</span><span>${ls.length - f} presentes · <b>${f} ${f === 1 ? 'falta' : 'faltas'}</b></span>
+            <small>${c.origem === 'manual' ? 'lançada à mão' : 'lida da folha'} · toque para ver ou corrigir</small>`
+          : '<span class="fr-pendente">Sem chamada</span><small>toque para lançar à mão</small>'}</button>`; }).join('')}</div></div>
+
+    <div class="fr-bloco"><h2>Alertas de faltas</h2>
+      <p class="subtitulo" style="margin:0 0 10px">Alunos ativos com presença abaixo de ${FREQ_MINIMA}% (depois de ${FREQ_DIAS_MIN} dias de aula) ou com ${FREQ_SEGUIDAS} ou mais faltas seguidas.</p>
+      ${!alertas.length ? '<p class="subtitulo">Nenhum aluno em alerta. 🎉</p>' : `<div class="rolavel"><table>
+        <thead><tr><th>Aluno</th><th>Turma</th><th class="num">Presença</th><th class="num">Faltas</th><th class="num">Seguidas</th><th>Última falta</th></tr></thead>
+        <tbody>${alertas.map(r => { const al = estado.alunos.get(r.aluno_id), p = pctPresenca(r);
+          return `<tr><td><button class="link" data-aluno="${r.aluno_id}">${esc(al?.nome || '')}</button></td><td>${esc(nomeTurma(ativos.get(r.aluno_id).turma_id))}</td>
+            <td class="num"><span class="fr-pct ${p < FREQ_MINIMA ? 'ruim' : ''}">${fmt(p)}%</span></td><td class="num">${r.faltas} de ${r.dias}</td>
+            <td class="num">${Number(r.faltas_seguidas) >= FREQ_SEGUIDAS ? `<span class="fr-pct ruim">${r.faltas_seguidas}</span>` : r.faltas_seguidas}</td>
+            <td>${esc(data(r.ultima_falta))}</td></tr>`; }).join('')}</tbody></table></div>`}</div>
+
+    <div class="fr-bloco"><div class="barra" style="margin:0 0 10px"><h2>Relatório da turma</h2>
+      <select id="fr-turma">${estado.turmas.map(t => `<option value="${t.id}" ${String(t.id) === String(F.turma || turmas[0]?.id) ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select>
+      <select id="fr-mes">${meses.map(m => `<option value="${m}" ${m === F.mes ? 'selected' : ''}>${esc(nomeMes(m))}</option>`).join('')}</select>
+      <div class="espaco"></div><button class="botao leve" id="fr-imprimir-rel">Imprimir relatório</button></div>
+      <div id="fr-relatorio"><div class="carregando">Carregando…</div></div></div>`;
+  $('#fr-imprimir').onclick = abrirImprimirFolhas;
+  $('#fr-ler').onclick = abrirLeituraFolha;
+  $('#fr-dia').onchange = (e) => { if (e.target.value) { F.dia = e.target.value; paginaFrequencia(); } };
+  document.querySelectorAll('.fr-card').forEach(b => b.onclick = () => editarChamada(Number(b.dataset.turma), F.dia));
+  document.querySelectorAll('#conteudo [data-aluno]').forEach(b => b.onclick = () => abrirFicha(Number(b.dataset.aluno)));
+  let rel = null;
+  const carregarRel = async () => {
+    F.turma = $('#fr-turma').value; F.mes = $('#fr-mes').value;
+    rel = await relatorioTurma(Number(F.turma), F.mes);
+    $('#fr-relatorio').innerHTML = rel.html;
+    $('#fr-relatorio').querySelectorAll('[data-aluno]').forEach(b => b.onclick = () => abrirFicha(Number(b.dataset.aluno)));
+  };
+  $('#fr-turma').onchange = carregarRel; $('#fr-mes').onchange = carregarRel;
+  $('#fr-imprimir-rel').onclick = () => {
+    if (!rel) return;
+    $('#impressao').innerHTML = `<div class="imp-paisagem">
+      <div class="imp-topo"><h1>FREQUÊNCIA · ${esc(nomeTurma(Number(F.turma)).toUpperCase())}</h1><span>${esc(nomeMes(F.mes))} · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+      ${rel.imp}</div>`;
+    setTimeout(() => window.print(), 100);
+  };
+  await carregarRel();
+}
+async function relatorioTurma(turmaId, mes) {
+  const [ano, m] = mes.split('-').map(Number), ultimo = new Date(ano, m, 0).getDate();
+  const { data: linhas, error } = await db.from('frequencia_detalhe').select('aluno_id, data, faltou')
+    .eq('turma_id', turmaId).gte('data', `${mes}-01`).lte('data', `${mes}-${String(ultimo).padStart(2, '0')}`);
+  if (error) return { html: `<div class="aviso erro">${esc(error.message)}</div>`, imp: '' };
+  const dias = [...new Set(linhas.map(l => l.data))].sort();
+  const ordem = alunosAtivosDaTurma(turmaId);
+  const ids = [...new Set([...ordem, ...linhas.map(l => l.aluno_id)])]
+    .sort((a, b) => ((ordem.indexOf(a) + 1) || 999) - ((ordem.indexOf(b) + 1) || 999) || (estado.alunos.get(a)?.nome || '').localeCompare(estado.alunos.get(b)?.nome || '', 'pt-BR'));
+  if (!dias.length) return { html: '<p class="subtitulo">Nenhuma chamada desta turma neste mês.</p>', imp: '<p>Nenhuma chamada desta turma neste mês.</p>' };
+  const mapa = new Map(linhas.map(l => [l.aluno_id + '|' + l.data, l.faltou]));
+  const resumo = estado.freqResumo || new Map();
+  const corpo = ids.map((id, i) => {
+    const marcas = dias.map(d => mapa.get(id + '|' + d));
+    const f = marcas.filter(x => x === true).length, total = marcas.filter(x => x !== undefined).length;
+    const pMes = total ? Math.round(1000 * (total - f) / total) / 10 : null, r = resumo.get(id), pAno = pctPresenca(r);
+    return { id, num: i + 1, nome: estado.alunos.get(id)?.nome || '(aluno apagado)', marcas, f, total, pMes, pAno, alerta: emAlerta(r) };
+  });
+  const cel = (x) => x === true ? '<td class="fr-f">F</td>' : x === false ? '<td class="fr-p">•</td>' : '<td></td>';
+  const cab = `<tr><th>Nº</th><th>Aluno</th>${dias.map(d => `<th class="n">${d.slice(8)}</th>`).join('')}<th class="n">Faltas no mês</th><th class="n">Presença no mês</th><th class="n">Presença no ano</th></tr>`;
+  const html = `<div class="rolavel"><table class="fr-rel">
+    <thead>${cab.replace(/class="n"/g, 'class="num"')}</thead>
+    <tbody>${corpo.map(l => `<tr class="${l.alerta ? 'alerta' : ''}"><td>${l.num}</td><td><button class="link" data-aluno="${l.id}">${esc(l.nome)}</button></td>
+      ${l.marcas.map(cel).join('')}<td class="num">${l.f}</td><td class="num">${l.pMes == null ? '—' : fmt(l.pMes) + '%'}</td>
+      <td class="num">${l.pAno == null ? '—' : `<span class="fr-pct ${l.alerta ? 'ruim' : ''}">${fmt(l.pAno)}%</span>`}</td></tr>`).join('')}</tbody></table></div>
+    <p class="subtitulo" style="margin:8px 0 0">${dias.length} ${dias.length === 1 ? 'dia' : 'dias'} com chamada no mês · F = falta · • = presente · linhas em destaque estão em alerta.</p>`;
+  const imp = `<table class="imp-tabela fr-rel-imp"><thead>${cab}</thead><tbody>${corpo.map(l => `<tr><td class="n">${l.num}</td><td>${esc(l.nome)}${l.alerta ? ' ⚠' : ''}</td>
+    ${l.marcas.map(x => `<td class="n">${x === true ? '<strong>F</strong>' : x === false ? '•' : ''}</td>`).join('')}
+    <td class="n">${l.f}</td><td class="n">${l.pMes == null ? '—' : fmt(l.pMes) + '%'}</td><td class="n">${l.pAno == null ? '—' : fmt(l.pAno) + '%'}</td></tr>`).join('')}</tbody></table>
+    <p class="imp-rodape">F = falta · • = presente · ⚠ = em alerta (presença abaixo de ${FREQ_MINIMA}% ou ${FREQ_SEGUIDAS}+ faltas seguidas).</p>`;
+  return { html, imp };
+}
+
+// ---------- frequência na ficha e no boletim ----------
+function htmlFrequenciaAluno(r, faltas) {
+  if (!r || !Number(r.dias)) return '<p class="subtitulo" style="margin:0">Ainda não há chamadas lançadas para este aluno.</p>';
+  const p = pctPresenca(r), alerta = emAlerta(r);
+  return `<div class="fr-resumo"><span class="fr-pct grande ${alerta ? 'ruim' : 'bom'}">${fmt(p)}%</span>
+      <div>de presença em ${ANO_LETIVO} · <strong>${r.faltas}</strong> ${Number(r.faltas) === 1 ? 'falta' : 'faltas'} em ${r.dias} ${Number(r.dias) === 1 ? 'dia' : 'dias'} de aula
+      ${Number(r.faltas_seguidas) >= FREQ_SEGUIDAS ? `<br><strong class="fr-txt-ruim">${r.faltas_seguidas} faltas seguidas</strong>` : ''}
+      ${alerta && p < FREQ_MINIMA && Number(r.dias) >= FREQ_DIAS_MIN ? `<br><strong class="fr-txt-ruim">Abaixo de ${FREQ_MINIMA}%</strong>` : ''}</div></div>
+    ${faltas?.length ? `<p class="subtitulo" style="margin:8px 0 0">Faltou em: ${faltas.map(d => esc(data(d).slice(0, 5))).join(', ')}</p>` : ''}`;
+}
+const textoFrequenciaImpressa = (r) => !r || !Number(r.dias) ? '' :
+  `Frequência em ${ANO_LETIVO}: ${fmt(pctPresenca(r))}% de presença (${r.faltas} ${Number(r.faltas) === 1 ? 'falta' : 'faltas'} em ${r.dias} ${Number(r.dias) === 1 ? 'dia' : 'dias'} de aula)`;
 
 function carregarScript(url) {
   return new Promise((ok, falha) => {
