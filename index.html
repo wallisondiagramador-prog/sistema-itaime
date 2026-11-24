@@ -41,9 +41,10 @@
 
   /* ---------- Topo e navegação ---------- */
   header { background: var(--branco); border-bottom: 1px solid var(--borda); position: sticky; top: 0; z-index: 5; }
-  .topo { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 24px; }
-  nav { display: flex; gap: 4px; flex: 1; }
-  nav button { border: 0; background: transparent; padding: 8px 12px; border-radius: 8px; color: var(--suave); font-weight: 500; }
+  .topo { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 18px; }
+  .topo > * { flex-shrink: 0; white-space: nowrap; } .topo > nav { flex-shrink: 1; min-width: 0; }
+  nav { display: flex; gap: 2px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+  nav button { border: 0; background: transparent; padding: 8px 9px; border-radius: 8px; color: var(--suave); font-weight: 500; font-size: 14px; white-space: nowrap; flex-shrink: 0; }
   nav button.ativa { background: var(--verde-claro); color: var(--verde-escuro); }
   .usuario { font-size: 13px; color: var(--suave); text-align: right; }
   .usuario strong { color: var(--texto); display: block; font-size: 14px; }
@@ -230,6 +231,65 @@
   .escolha-impressao small { display: block; font-weight: 400; opacity: .8; margin-top: 3px; }
   #tela-publica main { max-width: 1100px; }
 
+
+  /* ---------- Horários de aula ---------- */
+  .hor-vazio { background: var(--branco); border: 1px dashed var(--borda); border-radius: 16px; padding: 40px 24px; text-align: center; max-width: 640px; margin: 20px auto; }
+  .hor-vazio-icone { font-size: 40px; }
+  .hor-vazio h2 { justify-content: center; margin: 8px 0; }
+  .hor-vazio p { color: var(--suave); line-height: 1.55; }
+  .hor-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .hor-chips.grande { margin: 4px 0 16px; }
+  .hor-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--borda); background: var(--branco); color: var(--texto); border-radius: 99px; padding: 6px 12px; font-size: 13px; font-weight: 600; }
+  button.hor-chip:hover { border-color: var(--verde); }
+  .hor-chip.ativa { background: var(--verde); border-color: var(--verde); color: #fff; }
+  .hor-chip small { font-weight: 500; opacity: .7; font-size: 11px; }
+  .hor-bolinha { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--cor); flex-shrink: 0; margin-right: 6px; vertical-align: middle; }
+  .hor-chip .hor-bolinha { margin-right: 0; }
+  .hor-bolinha.grande { width: 14px; height: 14px; }
+  .hor-cabeca { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .hor-cabeca h2 { margin: 0; font-size: 20px; }
+  .hor-sala { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--fundo); color: var(--suave); border: 1px solid var(--borda); white-space: nowrap; }
+  .hor-sala.grande { font-size: 13px; padding: 4px 12px; background: var(--verde-claro); color: var(--verde-escuro); border-color: transparent; }
+  .hor-grade { width: 100%; border-collapse: separate; border-spacing: 6px; table-layout: fixed; background: var(--branco); border: 1px solid var(--borda); border-radius: 14px; padding: 6px; }
+  .hor-grade th { font-size: 12px; letter-spacing: .6px; color: var(--suave); font-weight: 700; padding: 6px 0; text-align: center; background: none; border: 0; }
+  .hor-grade th small { display: block; font-size: 10px; letter-spacing: 0; color: var(--verde); font-weight: 600; text-transform: lowercase; }
+  .hor-grade th.hoje { color: var(--verde-escuro); }
+  .hor-grade td { padding: 0; border: 0; vertical-align: top; cursor: pointer; }
+  .hor-grade td.hoje { background: rgba(31,107,58,.04); border-radius: 10px; }
+  .hor-grade .hor-hora { width: 74px; font-size: 14px; color: var(--texto); font-weight: 700; text-align: center; vertical-align: middle; }
+  .hor-grade .hor-hora small { display: block; font-size: 11px; color: var(--suave); font-weight: 500; }
+  .hor-aula { position: relative; border-left: 4px solid var(--cor); border-radius: 8px; padding: 10px 10px 9px; min-height: 52px; display: flex; flex-direction: column; justify-content: center; transition: transform .12s, box-shadow .12s; }
+  .hor-aula[style] { background: var(--fundo); }
+  .hor-aula strong { font-size: 13px; color: var(--texto); letter-spacing: .2px; }
+  .hor-aula small { font-size: 11px; color: var(--suave); margin-top: 2px; }
+  .hor-aula + .hor-aula { margin-top: 4px; }
+  td:hover .hor-aula { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.08); }
+  .hor-aula.agora { box-shadow: 0 0 0 2px var(--verde), 0 4px 14px rgba(31,107,58,.18); }
+  .hor-aula.marcada { box-shadow: 0 0 0 2px var(--cor); }
+  .hor-agora-tag { position: absolute; top: -8px; right: 6px; background: var(--verde); color: #fff; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 1px 6px; border-radius: 99px; }
+  .hor-sem { min-height: 52px; display: grid; place-items: center; color: #c4cbc7; font-size: 12px; border: 1px dashed #e3e8e5; border-radius: 8px; }
+  .hor-pausa td { cursor: default; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #8a948f;
+    background: repeating-linear-gradient(135deg, #f4f6f5 0 8px, #eef1ef 8px 16px); border-radius: 8px; padding: 5px 0; }
+  .hor-conflito { font-size: 10px; color: var(--erro); font-weight: 700; margin-top: 3px; }
+  .hor-momento { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; background: var(--branco); border: 1px solid var(--borda); border-radius: 14px; padding: 14px 18px; margin-bottom: 14px; }
+  .hor-relogio { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+  .hor-relogio span:last-child { color: var(--suave); }
+  .hor-tag { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 99px; background: var(--fundo); color: var(--suave); text-transform: uppercase; letter-spacing: .5px; }
+  .hor-tag.ao-vivo { background: #fdecea; color: var(--erro); }
+  .hor-escolha { display: grid; gap: 8px; justify-items: end; }
+  .hor-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin: 14px 0 8px; }
+  .hor-card { background: var(--branco); border: 1px solid var(--borda); border-top: 5px solid var(--cor, #d5dcd8); border-radius: 12px; padding: 14px 16px; }
+  .hor-card[style] { background: linear-gradient(180deg, var(--fundo) 0, var(--branco) 70%); }
+  .hor-card.livre { border-top-color: #d5dcd8; }
+  .hor-card-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; }
+  .hor-card-prof { font-size: 22px; font-weight: 800; letter-spacing: .3px; margin-top: 10px; color: var(--texto); }
+  .hor-card-prof.vazio { color: #b6beba; font-weight: 600; font-size: 18px; }
+  .hor-card-hora { font-size: 12px; color: var(--suave); margin-top: 2px; }
+  .hor-card-depois { font-size: 12px; color: var(--suave); border-top: 1px solid var(--borda); margin-top: 12px; padding-top: 8px; }
+  .hor-lista { width: 100%; }
+  .hor-regras { margin: 0 0 14px; padding-left: 20px; line-height: 1.7; color: var(--texto); font-size: 14px; }
+  @media (max-width: 700px) { .hor-grade { border-spacing: 3px; } .hor-aula { padding: 6px; } .hor-aula strong { font-size: 11px; } .hor-escolha { justify-items: start; } }
+
   /* ---------- Impressão do carômetro ---------- */
   #impressao { display: none; }
   @media print {
@@ -259,6 +319,21 @@
     .imp-tabela tr { break-inside: avoid; }
     .imp-tabela td.forte { font-weight: 700; }
     .imp-rodape { margin-top: 8px; font-size: 8.5pt; color: #333; }
+    /* horário: A4 deitado, uma grade por página */
+    @page horario { size: A4 landscape; margin: 10mm; }
+    .imp-horario { page: horario; break-after: page; }
+    .imp-horario:last-child { break-after: auto; }
+    .imp-hor-grade { width: 100%; border-collapse: separate; border-spacing: 3px; table-layout: fixed; font-size: 9pt; }
+    .imp-hor-grade th { text-align: center; background: none !important; border: 0; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .5px; color: #333; padding: 4px 0; }
+    .imp-hor-grade th:first-child { width: 58px; }
+    .imp-hor-grade tbody th { font-size: 9.5pt; text-transform: none; letter-spacing: 0; }
+    .imp-hor-grade tbody th small { font-size: 7.5pt; color: #666; font-weight: 400; }
+    .imp-hor-grade td { vertical-align: middle; height: 34px; border: 1px solid #e2e6e4; border-radius: 5px; padding: 0; }
+    .imp-hor-aula { background: var(--fundo) !important; border-left: 3px solid var(--cor); border-radius: 4px; padding: 5px 6px; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .imp-hor-aula strong { display: block; font-size: 9pt; }
+    .imp-hor-aula small { display: block; font-size: 7.5pt; color: #555; }
+    .imp-hor-pausa td { height: auto; text-align: center; font-size: 7pt; letter-spacing: 1px; text-transform: uppercase; color: #777; background: #f2f4f3 !important; border: 0; padding: 2px 0;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 </head>
@@ -292,6 +367,7 @@
         <button data-pagina="notas">Notas</button>
         <button data-pagina="comparativos">Comparativos</button>
         <button data-pagina="desempenho">Desempenho</button>
+        <button data-pagina="horarios">Horários de aula</button>
         <button data-pagina="busca">Buscar aluno</button>
         <button data-pagina="ocorrencias" id="nav-ocorrencias" class="escondido">Ocorrências</button>
         <button data-pagina="professores" id="nav-professores" class="escondido">Professores</button>
@@ -494,7 +570,7 @@ function irPara(pagina, extra, modo) {
   const menu = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' }[pagina] || pagina;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === menu));
   ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe,
-     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias, comparativos: paginaComparativos, desempenho: paginaDesempenho })[pagina](extra);
+     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias, comparativos: paginaComparativos, desempenho: paginaDesempenho, horarios: paginaHorarios })[pagina](extra);
 }
 
 window.addEventListener('popstate', (e) => {
@@ -2342,6 +2418,531 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null, colun
 
 // ---------- Professores (cadastro + importação de Excel) ----------
 const XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+// =====================================================================
+// HORÁRIOS DE AULA
+// Uma linha por aula: turma, dia (1 = segunda … 6 = sábado), início, fim e professor.
+// Toda a equipe vê; admin e coordenação sobem o Excel e definem as salas.
+// =====================================================================
+const EXCELJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+const DIAS_LONGO = ['', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+const DIAS_CURTO = ['', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM'];
+const DURACAO_AULA = 50;   // minutos, quando o Excel só traz a hora de início
+// horário padrão da escola (usado na planilha modelo quando ainda não há horário salvo)
+const SLOTS_PADRAO = ['07:00', '07:50', '08:40', '10:00', '10:50', '11:40', '14:00', '14:50', '15:40', '17:00', '17:50']
+  .map(h => ({ ini: paraMin(h), fim: paraMin(h) + DURACAO_AULA }));
+// cores suaves por professor: [fundo, cor forte]
+const CORES_AULA = [['#e8f1fd', '#2a78d6'], ['#fdeee6', '#d85a22'], ['#e3f5ed', '#16935f'], ['#fdf3d9', '#b07800'], ['#f0eafb', '#7148c4'],
+  ['#fde8ef', '#c93a6e'], ['#e3f3f6', '#14879a'], ['#edf4e0', '#5d8a17'], ['#f5ece4', '#94592b'], ['#eaeef6', '#46598a'],
+  ['#fbede0', '#bb5c16'], ['#e6efec', '#367563']];
+
+function paraMin(h) { const m = String(h || '').match(/(\d{1,2})[:hH](\d{2})/); return m ? Number(m[1]) * 60 + Number(m[2]) : null; }
+const hm = (min) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+const chaveProf = (p) => semAcento(String(p || '')).replace(/[^A-Z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+function corDe(texto) {
+  let h = 0; for (const c of chaveProf(texto)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return CORES_AULA[h % CORES_AULA.length];
+}
+const estiloCor = (texto) => { const [f, c] = corDe(texto); return `--fundo:${f};--cor:${c}`; };
+const nomeCurtoTurma = (t) => t ? t.nome.replace(/\s*S[ée]rie\s*/i, ' ').replace(/\s+/g, ' ').trim() : '';   // "1ª A"
+const salaDe = (turmaId) => estado.turmas.find(t => t.id === turmaId)?.sala || '';
+function agoraNaEscola() {
+  const d = new Date(); return { dia: d.getDay() === 0 ? 7 : d.getDay(), min: d.getHours() * 60 + d.getMinutes() };
+}
+
+// horários (slots) de aula, em ordem, e os intervalos entre eles
+function montarSlots(aulas) {
+  const mapa = new Map();
+  aulas.forEach(a => mapa.set(a.ini, Math.max(mapa.get(a.ini) || 0, a.fim)));
+  const slots = [...mapa].map(([ini, fim]) => ({ ini, fim })).sort((x, y) => x.ini - y.ini);
+  return slots.length ? slots : SLOTS_PADRAO;
+}
+function pausaEntre(a, b) {
+  if (!a || !b || b.ini <= a.fim) return null;
+  return { ini: a.fim, fim: b.ini, nome: b.ini - a.fim >= 60 ? 'Almoço' : 'Intervalo' };
+}
+const diasUsados = (aulas) => { const max = Math.max(5, ...aulas.map(a => a.dia)); return [1, 2, 3, 4, 5, 6, 7].filter(d => d <= max); };
+
+async function carregarHorario() {
+  const { data, error } = await db.from('horarios').select('turma_id, dia, inicio, fim, professor').eq('ano_letivo', ANO_LETIVO).order('dia').order('inicio');
+  if (error) throw error;
+  return (data || []).map(x => ({ turma: x.turma_id, dia: x.dia, ini: paraMin(x.inicio), fim: paraMin(x.fim), prof: x.professor }));
+}
+
+async function paginaHorarios() {
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando horários…</div>';
+  let aulas;
+  try { aulas = await carregarHorario(); } catch (e) { return erroNaTela(e); }
+  const H = estado.hor || (estado.hor = { visao: 'agora', turma: null, prof: null, momento: null });
+  const turmasCom = estado.turmas.filter(t => aulas.some(a => a.turma === t.id));
+  const profs = [...new Map(aulas.map(a => [chaveProf(a.prof), a.prof])).entries()]
+    .map(([chave, nome]) => ({ chave, nome, n: aulas.filter(a => chaveProf(a.prof) === chave).length }))
+    .sort((x, y) => x.nome.localeCompare(y.nome));
+  if (!H.turma || !turmasCom.some(t => t.id === H.turma)) H.turma = turmasCom[0]?.id || null;
+  if (!H.prof || !profs.some(p => p.chave === H.prof)) H.prof = profs[0]?.chave || null;
+  const slots = montarSlots(aulas), dias = diasUsados(aulas);
+
+  $('#conteudo').innerHTML = `
+    <div class="barra"><div><h1>Horários de aula</h1></div><div class="espaco"></div>
+      ${veTudo() ? `<button class="botao leve" id="hor-salas">Salas das turmas</button>
+        <button class="botao leve" id="hor-modelo">Baixar planilha (Excel)</button>
+        <button class="botao" id="hor-subir">Subir horário (Excel)</button>` : ''}</div>
+    <p class="subtitulo">${aulas.length ? `${aulas.length} aulas por semana · ${turmasCom.length} turmas · ${profs.length} professores · ano letivo ${ANO_LETIVO}`
+      : 'Nenhum horário cadastrado ainda.'}</p>
+    ${aulas.length ? `<div class="barra">
+      <div class="alternar">
+        <button data-hvisao="agora" class="${H.visao === 'agora' ? 'ativa' : ''}">Quem está onde</button>
+        <button data-hvisao="turma" class="${H.visao === 'turma' ? 'ativa' : ''}">Por turma</button>
+        <button data-hvisao="professor" class="${H.visao === 'professor' ? 'ativa' : ''}">Por professor</button>
+      </div><div class="espaco"></div>
+      <button class="botao leve" id="hor-imprimir">Imprimir</button>
+      ${H.visao === 'turma' ? '<button class="botao leve" id="hor-imprimir-todas">Imprimir todas as turmas</button>' : ''}
+    </div><div id="hor-corpo"></div>`
+    : `<div class="hor-vazio">
+        <div class="hor-vazio-icone">🗓️</div>
+        <h2>Comece pelo Excel</h2>
+        <p>${veTudo() ? `Baixe a planilha modelo (uma aba para cada turma, já formatada), preencha o nome do professor em cada aula e suba o arquivo.
+          Também dá para subir direto a planilha que vocês já usam, no mesmo formato: uma aba por turma, horários nas linhas e os dias nas colunas.`
+          : 'A coordenação ainda não cadastrou o horário deste ano.'}</p>
+        ${veTudo() ? '<div class="barra" style="justify-content:center"><button class="botao leve" id="hor-modelo2">Baixar planilha modelo</button><button class="botao" id="hor-subir2">Subir horário (Excel)</button></div>' : ''}
+      </div>`}`;
+  const ligar = (id, fn) => { if ($(id)) $(id).onclick = fn; };
+  ligar('#hor-salas', () => editarSalas());
+  ligar('#hor-modelo', () => baixarModeloHorario(aulas));
+  ligar('#hor-modelo2', () => baixarModeloHorario(aulas));
+  ligar('#hor-subir', () => subirHorario());
+  ligar('#hor-subir2', () => subirHorario());
+  if (!aulas.length) return;
+  document.querySelectorAll('[data-hvisao]').forEach(b => b.onclick = () => { H.visao = b.dataset.hvisao; paginaHorarios(); });
+
+  const corpo = $('#hor-corpo');
+  // ---------- Quem está onde (agora ou um momento escolhido) ----------
+  const momentoAtual = () => {
+    if (H.momento) return H.momento;
+    const agora = agoraNaEscola();
+    const dia = dias.includes(agora.dia) ? agora.dia : dias[0];
+    const doDia = slots;
+    const atual = dia === agora.dia ? doDia.find(s => agora.min >= s.ini && agora.min < s.fim) : null;
+    const proximo = dia === agora.dia ? doDia.find(s => s.ini > agora.min) : null;
+    return { dia, ini: (atual || proximo || doDia[0]).ini, agora: dia === agora.dia, emAula: !!atual, min: agora.min };
+  };
+  const painelMomento = (dia, ini) => {
+    const slot = slots.find(s => s.ini === ini) || { ini, fim: ini + DURACAO_AULA };
+    const iSlot = slots.indexOf(slot);
+    const nesse = aulas.filter(a => a.dia === dia && a.ini === ini);
+    const cards = turmasCom.map(t => {
+      const a = nesse.find(x => x.turma === t.id);
+      const depois = slots.slice(iSlot + 1).map(s => aulas.find(x => x.dia === dia && x.ini === s.ini && x.turma === t.id)).find(Boolean);
+      return `<div class="hor-card ${a ? '' : 'livre'}" ${a ? `style="${estiloCor(a.prof)}"` : ''}>
+        <div class="hor-card-topo"><strong>${esc(t.nome)}</strong>${t.sala ? `<span class="hor-sala">${esc(t.sala)}</span>` : ''}</div>
+        ${a ? `<div class="hor-card-prof">${esc(a.prof)}</div><div class="hor-card-hora">${hm(a.ini)} – ${hm(a.fim)}</div>`
+            : '<div class="hor-card-prof vazio">Sem aula</div><div class="hor-card-hora">&nbsp;</div>'}
+        <div class="hor-card-depois">${depois ? `Depois: <strong>${esc(depois.prof)}</strong> às ${hm(depois.ini)}` : 'Última aula do dia'}</div>
+      </div>`;
+    }).join('');
+    const lista = [...nesse].sort((x, y) => x.prof.localeCompare(y.prof));
+    return `<div class="hor-cards">${cards}</div>
+      <h2>Professores em sala · ${DIAS_LONGO[dia]}, ${hm(slot.ini)} – ${hm(slot.fim)}</h2>
+      ${lista.length ? `<table class="hor-lista"><thead><tr><th>Professor</th><th>Turma</th><th>Sala</th><th>Horário</th></tr></thead><tbody>
+        ${lista.map(a => `<tr><td><span class="hor-bolinha" style="${estiloCor(a.prof)}"></span><strong>${esc(a.prof)}</strong></td>
+          <td>${esc(nomeTurma(a.turma))}</td><td>${esc(salaDe(a.turma)) || '<span class="vazio">sem sala</span>'}</td><td>${hm(a.ini)} – ${hm(a.fim)}</td></tr>`).join('')}
+      </tbody></table>` : '<p class="subtitulo">Nenhuma aula neste horário.</p>'}`;
+  };
+  const desenharAgora = () => {
+    const m = momentoAtual();
+    const real = agoraNaEscola();
+    let aviso = '';
+    if (!H.momento) {
+      if (!m.agora) aviso = `Hoje (${DIAS_LONGO[real.dia]}) não há aulas. Mostrando ${DIAS_LONGO[m.dia]}.`;
+      else if (!m.emAula) {
+        const antes = [...slots].reverse().find(s => s.fim <= real.min), prox = slots.find(s => s.ini > real.min);
+        const pausa = pausaEntre(antes, prox);
+        aviso = prox ? (pausa ? `Agora é ${pausa.nome.toLowerCase()} (${hm(pausa.ini)} – ${hm(pausa.fim)}). Mostrando a próxima aula.` : `As aulas começam às ${hm(prox.ini)}. Mostrando a primeira aula.`)
+                     : 'As aulas de hoje já terminaram. Mostrando a primeira aula do dia.';
+      }
+    }
+    corpo.innerHTML = `
+      <div class="hor-momento">
+        <div class="hor-relogio">${H.momento ? '<span class="hor-tag">Outro horário</span>' : '<span class="hor-tag ao-vivo">● Agora</span>'}
+          <strong>${DIAS_LONGO[m.dia]}</strong> <span>${hm(m.ini)} – ${hm((slots.find(s => s.ini === m.ini) || {}).fim || m.ini + DURACAO_AULA)}</span></div>
+        <div class="hor-escolha">
+          <div class="hor-chips">${dias.map(d => `<button class="hor-chip ${d === m.dia ? 'ativa' : ''}" data-hdia="${d}">${DIAS_CURTO[d]}</button>`).join('')}</div>
+          <div class="hor-chips">${slots.map(s => `<button class="hor-chip ${s.ini === m.ini ? 'ativa' : ''}" data-hini="${s.ini}">${hm(s.ini)}</button>`).join('')}</div>
+          ${H.momento ? '<button class="botao leve pequeno" id="hor-agora">Voltar para agora</button>' : ''}
+        </div>
+      </div>
+      ${aviso ? `<div class="aviso">${aviso}</div>` : ''}
+      ${painelMomento(m.dia, m.ini)}`;
+    corpo.querySelectorAll('[data-hdia]').forEach(b => b.onclick = () => { H.momento = { dia: Number(b.dataset.hdia), ini: m.ini }; desenharAgora(); });
+    corpo.querySelectorAll('[data-hini]').forEach(b => b.onclick = () => { H.momento = { dia: m.dia, ini: Number(b.dataset.hini) }; desenharAgora(); });
+    if ($('#hor-agora')) $('#hor-agora').onclick = () => { H.momento = null; desenharAgora(); };
+  };
+
+  // ---------- Grade da semana (turma ou professor) ----------
+  const destaqueAgora = () => { const a = agoraNaEscola(); const s = slots.find(x => a.min >= x.ini && a.min < x.fim); return s ? { dia: a.dia, ini: s.ini } : null; };
+  const grade = (celula, sel) => {
+    const ag = destaqueAgora(), hoje = agoraNaEscola().dia;
+    let linhas = '';
+    slots.forEach((s, i) => {
+      const p = pausaEntre(slots[i - 1], s);
+      if (p) linhas += `<tr class="hor-pausa"><td colspan="${dias.length + 1}">${p.nome} · ${hm(p.ini)} – ${hm(p.fim)}</td></tr>`;
+      linhas += `<tr><th class="hor-hora">${hm(s.ini)}<small>${hm(s.fim)}</small></th>${dias.map(d => {
+        const marcado = sel && sel.dia === d && sel.ini === s.ini, agora = ag && ag.dia === d && ag.ini === s.ini;
+        return `<td class="${d === hoje ? 'hoje' : ''}" data-hmom="${d}|${s.ini}">${celula(d, s, agora, marcado)}</td>`;
+      }).join('')}</tr>`;
+    });
+    return `<div class="rolavel"><table class="hor-grade"><thead><tr><th class="hor-hora">Horário</th>
+      ${dias.map(d => `<th class="${d === hoje ? 'hoje' : ''}">${DIAS_CURTO[d]}${d === hoje ? '<small>hoje</small>' : ''}</th>`).join('')}</tr></thead>
+      <tbody>${linhas}</tbody></table></div>`;
+  };
+  const caixa = (texto, sub, cor, agora, marcado) => `<div class="hor-aula ${agora ? 'agora' : ''} ${marcado ? 'marcada' : ''}" style="${estiloCor(cor)}">
+    ${agora ? '<span class="hor-agora-tag">agora</span>' : ''}<strong>${esc(texto)}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+  const ligarCelulas = (redesenhar) => corpo.querySelectorAll('[data-hmom]').forEach(td => td.onclick = () => {
+    const [d, i] = td.dataset.hmom.split('|').map(Number); H.momento = { dia: d, ini: i }; redesenhar(true);
+  });
+
+  const desenharTurma = (rolar) => {
+    const t = estado.turmas.find(x => x.id === H.turma);
+    const minhas = aulas.filter(a => a.turma === H.turma);
+    const sel = H.momento;
+    corpo.innerHTML = `
+      <div class="hor-chips grande">${turmasCom.map(x => `<button class="hor-chip ${x.id === H.turma ? 'ativa' : ''}" data-hturma="${x.id}">${esc(nomeCurtoTurma(x))}</button>`).join('')}</div>
+      <div class="hor-cabeca"><h2>${esc(t.nome)}</h2>${t.sala ? `<span class="hor-sala grande">${esc(t.sala)}</span>` : (veTudo() ? '<span class="vazio">sala não definida</span>' : '')}
+        <span class="subtitulo" style="margin:0">${minhas.length} aulas por semana · clique numa aula para ver onde está cada professor naquele horário</span></div>
+      ${grade((d, s, agora, marcado) => { const a = minhas.find(x => x.dia === d && x.ini === s.ini); return a ? caixa(a.prof, '', a.prof, agora, marcado) : '<div class="hor-sem">—</div>'; }, sel)}
+      <div id="hor-momento-baixo">${sel ? `<div class="barra" style="margin-top:24px"><div class="espaco"></div><button class="botao leve pequeno" id="hor-fechar-mom">Fechar</button></div>${painelMomento(sel.dia, sel.ini)}` : ''}</div>`;
+    corpo.querySelectorAll('[data-hturma]').forEach(b => b.onclick = () => { H.turma = Number(b.dataset.hturma); desenharTurma(); });
+    ligarCelulas(desenharTurma);
+    if ($('#hor-fechar-mom')) $('#hor-fechar-mom').onclick = () => { H.momento = null; desenharTurma(); };
+    if (rolar && sel) $('#hor-momento-baixo').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const desenharProfessor = (rolar) => {
+    const p = profs.find(x => x.chave === H.prof);
+    const minhas = aulas.filter(a => chaveProf(a.prof) === H.prof);
+    const sel = H.momento;
+    const turmasDele = [...new Set(minhas.map(a => a.turma))].map(id => nomeCurtoTurma(estado.turmas.find(t => t.id === id))).join(', ');
+    corpo.innerHTML = `
+      <div class="barra"><input type="search" id="hor-busca-prof" placeholder="Buscar professor"></div>
+      <div class="hor-chips grande" id="hor-lista-profs">${profs.map(x => `<button class="hor-chip ${x.chave === H.prof ? 'ativa' : ''}" data-hprof="${esc(x.chave)}">
+        <span class="hor-bolinha" style="${estiloCor(x.nome)}"></span>${esc(x.nome)} <small>${x.n}</small></button>`).join('')}</div>
+      <div class="hor-cabeca"><h2><span class="hor-bolinha grande" style="${estiloCor(p.nome)}"></span>${esc(p.nome)}</h2>
+        <span class="subtitulo" style="margin:0">${minhas.length} aulas por semana · ${esc(turmasDele)}</span></div>
+      ${grade((d, s, agora, marcado) => {
+        const a = minhas.filter(x => x.dia === d && x.ini === s.ini);
+        if (!a.length) return '<div class="hor-sem">livre</div>';
+        return a.map(x => caixa(nomeTurma(x.turma), salaDe(x.turma), nomeTurma(x.turma), agora, marcado)).join('') + (a.length > 1 ? '<div class="hor-conflito">2 turmas no mesmo horário</div>' : '');
+      }, sel)}
+      <div id="hor-momento-baixo">${sel ? `<div class="barra" style="margin-top:24px"><div class="espaco"></div><button class="botao leve pequeno" id="hor-fechar-mom">Fechar</button></div>${painelMomento(sel.dia, sel.ini)}` : ''}</div>`;
+    corpo.querySelectorAll('[data-hprof]').forEach(b => b.onclick = () => { H.prof = b.dataset.hprof; desenharProfessor(); });
+    $('#hor-busca-prof').oninput = () => {
+      const f = chaveProf($('#hor-busca-prof').value);
+      corpo.querySelectorAll('[data-hprof]').forEach(b => b.classList.toggle('escondido', !!f && !b.dataset.hprof.includes(f)));
+    };
+    ligarCelulas(desenharProfessor);
+    if ($('#hor-fechar-mom')) $('#hor-fechar-mom').onclick = () => { H.momento = null; desenharProfessor(); };
+    if (rolar && sel) $('#hor-momento-baixo').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // ---------- Impressão (A4 deitado, uma grade por página) ----------
+  const folha = (titulo, sub, celula) => {
+    let linhas = '';
+    slots.forEach((s, i) => {
+      const p = pausaEntre(slots[i - 1], s);
+      if (p) linhas += `<tr class="imp-hor-pausa"><td colspan="${dias.length + 1}">${p.nome} · ${hm(p.ini)} – ${hm(p.fim)}</td></tr>`;
+      linhas += `<tr><th>${hm(s.ini)}<br><small>${hm(s.fim)}</small></th>${dias.map(d => `<td>${celula(d, s)}</td>`).join('')}</tr>`;
+    });
+    return `<div class="imp-horario"><div class="imp-topo"><h1>${esc(titulo)}</h1><span>${esc(sub)}</span></div>
+      <table class="imp-hor-grade"><thead><tr><th>Horário</th>${dias.map(d => `<th>${DIAS_LONGO[d].replace('-feira', '')}</th>`).join('')}</tr></thead><tbody>${linhas}</tbody></table></div>`;
+  };
+  const impCaixa = (txt, sub, cor) => `<div class="imp-hor-aula" style="${estiloCor(cor)}"><strong>${esc(txt)}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+  const folhaTurma = (t) => folha(`HORÁRIO · ${t.nome.toUpperCase()}`, `${t.sala ? t.sala + ' · ' : ''}ano letivo ${ANO_LETIVO}`,
+    (d, s) => { const a = aulas.find(x => x.turma === t.id && x.dia === d && x.ini === s.ini); return a ? impCaixa(a.prof, '', a.prof) : ''; });
+  const imprimir = (html) => { $('#impressao').innerHTML = html; setTimeout(() => window.print(), 50); };
+  ligar('#hor-imprimir', () => {
+    if (H.visao === 'turma') return imprimir(folhaTurma(estado.turmas.find(t => t.id === H.turma)));
+    if (H.visao === 'professor') {
+      const p = profs.find(x => x.chave === H.prof);
+      return imprimir(folha(`HORÁRIO · PROF. ${p.nome}`, `ano letivo ${ANO_LETIVO}`, (d, s) => aulas.filter(x => chaveProf(x.prof) === H.prof && x.dia === d && x.ini === s.ini)
+        .map(x => impCaixa(nomeTurma(x.turma), salaDe(x.turma), nomeTurma(x.turma))).join('')));
+    }
+    // quem está onde: um quadro geral (turmas nas colunas) para o dia escolhido
+    const m = momentoAtual();
+    imprimir(`<div class="imp-horario"><div class="imp-topo"><h1>QUADRO DO DIA · ${DIAS_LONGO[m.dia].toUpperCase()}</h1><span>ano letivo ${ANO_LETIVO}</span></div>
+      <table class="imp-hor-grade"><thead><tr><th>Horário</th>${turmasCom.map(t => `<th>${esc(nomeCurtoTurma(t))}${t.sala ? `<br><small>${esc(t.sala)}</small>` : ''}</th>`).join('')}</tr></thead><tbody>
+      ${slots.map((s, i) => { const p = pausaEntre(slots[i - 1], s);
+        return (p ? `<tr class="imp-hor-pausa"><td colspan="${turmasCom.length + 1}">${p.nome} · ${hm(p.ini)} – ${hm(p.fim)}</td></tr>` : '') +
+          `<tr><th>${hm(s.ini)}<br><small>${hm(s.fim)}</small></th>${turmasCom.map(t => { const a = aulas.find(x => x.turma === t.id && x.dia === m.dia && x.ini === s.ini); return `<td>${a ? impCaixa(a.prof, '', a.prof) : ''}</td>`; }).join('')}</tr>`; }).join('')}
+      </tbody></table></div>`);
+  });
+  ligar('#hor-imprimir-todas', () => imprimir(turmasCom.map(folhaTurma).join('')));
+
+  ({ agora: desenharAgora, turma: desenharTurma, professor: desenharProfessor })[H.visao]();
+}
+
+// ---------- Salas das turmas ----------
+function editarSalas() {
+  $('#fundo-ficha').classList.remove('escondido');
+  $('#ficha').classList.remove('largo');
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2>Salas das turmas</h2><span class="etiqueta">aparece no horário, no quadro "quem está onde" e na impressão</span></div>
+      <button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao"><div class="form-edicao">${estado.turmas.map(t => `
+      <div><label for="sala-${t.id}">${esc(t.nome)}</label><input type="text" id="sala-${t.id}" data-sala="${t.id}" value="${esc(t.sala || '')}" placeholder="Ex.: Sala 3"></div>`).join('')}
+    </div></div>
+    <div id="msg-salas" class="aviso erro escondido" style="margin:0 24px 14px"></div>
+    <div class="rodape-ficha"><button class="botao leve" id="salas-cancelar">Cancelar</button><button class="botao" id="salas-salvar">Salvar salas</button></div>`;
+  $('#ficha .fechar').onclick = fecharFicha;
+  $('#salas-cancelar').onclick = fecharFicha;
+  $('#salas-salvar').onclick = async (e) => {
+    e.target.disabled = true; e.target.textContent = 'Salvando…';
+    for (const inp of document.querySelectorAll('[data-sala]')) {
+      const id = Number(inp.dataset.sala), sala = inp.value.trim() || null, t = estado.turmas.find(x => x.id === id);
+      if ((t.sala || null) === sala) continue;
+      const { error } = await db.from('turmas').update({ sala }).eq('id', id);
+      if (error) { e.target.disabled = false; e.target.textContent = 'Salvar salas'; $('#msg-salas').textContent = 'Não foi possível salvar: ' + error.message; return $('#msg-salas').classList.remove('escondido'); }
+      t.sala = sala;
+    }
+    fecharFicha(); paginaHorarios();
+  };
+}
+
+// ---------- Ler o Excel (uma aba por turma, ou vários quadros numa aba só) ----------
+const DIA_DO_TEXTO = { SEG: 1, SEGUNDA: 1, TER: 2, TERCA: 2, QUA: 3, QUARTA: 3, QUI: 4, QUINTA: 4, SEX: 5, SEXTA: 5, SAB: 6, SABADO: 6, DOM: 7, DOMINGO: 7 };
+function diaDoTexto(v) { const t = semAcento(String(v || '')).replace(/-?FEIRA/, '').replace(/[^A-Z]/g, ''); return DIA_DO_TEXTO[t] || null; }
+function turmaDoTexto(v, estrito = true) {
+  const t = semAcento(String(v || '')).replace(/[ªº°]/g, ' ').replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!t) return null;
+  if (/^(TURMA )?CURSINHO$/.test(t) || (!estrito && /CURSINHO/.test(t))) return estado.turmas.find(x => !x.serie)?.id || null;
+  const m = estrito ? t.match(/^(?:TURMA )?([123]) ?(?:SERIE |ANO )?([AB])$/) : t.match(/\b([123]) ?(?:SERIE |ANO )?([AB])\b/);
+  if (!m) return null;
+  return estado.turmas.find(x => Number(x.serie) === Number(m[1]) && String(x.letra).toUpperCase() === m[2])?.id || null;
+}
+function horaDaCelula(v) {
+  if (typeof v === 'number') { const frac = v % 1; return frac > 0 || v === 0 ? { ini: Math.round(frac * 1440) } : null; }
+  const achados = [...String(v || '').matchAll(/(\d{1,2})[:hH](\d{2})/g)].map(m => Number(m[1]) * 60 + Number(m[2]));
+  return achados.length ? { ini: achados[0], fim: achados[1] } : null;
+}
+function lerHorarioExcel(wb) {
+  const avisos = [], blocos = [];
+  for (const nomeAba of wb.SheetNames) {
+    const linhas = XLSX.utils.sheet_to_json(wb.Sheets[nomeAba], { header: 1, raw: true, defval: '' });
+    for (let r = 0; r < linhas.length; r++) {
+      const diasCol = {}; linhas[r].forEach((v, c) => { const d = diaDoTexto(v); if (d) diasCol[c] = d; });
+      if (Object.keys(diasCol).length < 3) continue;          // não é a linha de cabeçalho (SEG, TER, …)
+      // turma: célula acima do cabeçalho (até 4 linhas) ou o nome da aba
+      let turma = null, sala = null;
+      for (let k = r - 1; k >= Math.max(0, r - 4); k--) {
+        for (const v of linhas[k]) {
+          if (!turma) turma = turmaDoTexto(v);
+          const tx = String(v).trim();
+          if (!sala && /^sala\b/i.test(tx)) sala = (/^sala\s*:/i.test(tx) ? tx.replace(/^sala\s*:\s*/i, '') : tx).split(/\s[·|]\s/)[0].trim() || null;
+        }
+      }
+      if (!turma) turma = turmaDoTexto(nomeAba, false);
+      const colHora = Math.min(...Object.keys(diasCol).map(Number)) - 1;
+      const aulas = [];
+      for (let k = r + 1; k < linhas.length; k++) {
+        const lin = linhas[k];
+        if (Object.keys(lin).filter(c => diaDoTexto(lin[c])).length >= 3) break;   // começou outro quadro
+        const rotulo = semAcento(String(lin[Math.max(colHora, 0)] ?? ''));
+        if (/INTERVALO|ALMOCO|LANCHE|RECREIO/.test(rotulo)) continue;
+        const h = horaDaCelula(lin[Math.max(colHora, 0)]);
+        if (!h) continue;
+        for (const [c, d] of Object.entries(diasCol)) {
+          const prof = String(lin[c] ?? '').replace(/\s+/g, ' ').trim();
+          if (!prof || /^[-–—.]+$/.test(prof)) continue;
+          aulas.push({ dia: d, ini: h.ini, fim: h.fim && h.fim > h.ini ? h.fim : h.ini + DURACAO_AULA, prof: prof.toLocaleUpperCase('pt-BR') });
+        }
+      }
+      if (!turma) { avisos.push(`Aba "${nomeAba}": não reconheci a turma do quadro da linha ${r + 1}. Escreva a turma (ex.: 1ª A) acima do cabeçalho.`); continue; }
+      if (blocos.some(b => b.turma === turma)) { avisos.push(`A ${nomeTurma(turma)} aparece mais de uma vez; usei só a primeira (aba "${blocos.find(b => b.turma === turma).aba}").`); continue; }
+      blocos.push({ turma, sala, aba: nomeAba, aulas });
+    }
+  }
+  // junta grafias do mesmo professor (HELCIO e HÉLCIO viram HÉLCIO)
+  const variantes = new Map();
+  blocos.forEach(b => b.aulas.forEach(a => {
+    const k = chaveProf(a.prof), m = variantes.get(k) || new Map(); m.set(a.prof, (m.get(a.prof) || 0) + 1); variantes.set(k, m);
+  }));
+  const unificados = [];
+  const acentos = (x) => x.normalize('NFD').length - x.length;
+  const melhor = new Map([...variantes].map(([k, m]) => {
+    const opcoes = [...m.entries()].sort((x, y) => acentos(y[0]) - acentos(x[0]) || y[1] - x[1]);
+    if (opcoes.length > 1) unificados.push(`${opcoes.map(o => o[0]).join(' / ')} → ${opcoes[0][0]}`);
+    return [k, opcoes[0][0]];
+  }));
+  blocos.forEach(b => b.aulas.forEach(a => { a.prof = melhor.get(chaveProf(a.prof)); }));
+  // mesmo professor em duas turmas no mesmo horário
+  const conflitos = [], vistos = new Map();
+  blocos.forEach(b => b.aulas.forEach(a => {
+    const k = `${a.dia}|${a.ini}|${chaveProf(a.prof)}`;
+    if (vistos.has(k) && vistos.get(k) !== b.turma) conflitos.push(`${a.prof}: ${DIAS_CURTO[a.dia]} ${hm(a.ini)} na ${nomeTurma(vistos.get(k))} e na ${nomeTurma(b.turma)}`);
+    else vistos.set(k, b.turma);
+  }));
+  return { blocos, avisos, unificados, conflitos };
+}
+
+function subirHorario() {
+  $('#fundo-ficha').classList.remove('escondido');
+  $('#ficha').classList.add('largo');
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2>Subir horário (Excel)</h2><span class="etiqueta">ano letivo ${ANO_LETIVO} · substitui o horário atual</span></div>
+      <button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao">
+      <p style="margin-top:0">O arquivo pode ter <strong>uma aba para cada turma</strong> (como a planilha modelo) ou vários quadros numa aba só. Em cada quadro:</p>
+      <ul class="hor-regras">
+        <li>a turma escrita acima do quadro (ex.: <strong>1ª A</strong> ou <strong>1ª Série A</strong>);</li>
+        <li>uma linha de cabeçalho com <strong>HORÁRIO</strong> e os dias (<strong>SEG, TER, QUA, QUI, SEX, SAB</strong>);</li>
+        <li>uma linha por aula, com a hora de início (ou "07:00 – 07:50") e o nome do professor em cada dia;</li>
+        <li>linhas de <strong>INTERVALO</strong> e <strong>ALMOÇO</strong> são ignoradas.</li>
+      </ul>
+      <div class="barra"><input type="file" id="hor-arquivo" accept=".xlsx,.xls"><button class="botao leve pequeno" id="hor-baixar-modelo">Baixar planilha modelo</button></div>
+    </div>
+    <div id="hor-previa"></div>
+    <div id="msg-hor" class="aviso erro escondido" style="margin:0 24px 14px"></div>
+    <div class="rodape-ficha"><button class="botao leve" id="hor-cancelar">Cancelar</button><button class="botao" id="hor-confirmar" disabled>Substituir horário</button></div>`;
+  $('#ficha .fechar').onclick = fecharFicha;
+  $('#hor-cancelar').onclick = fecharFicha;
+  $('#hor-baixar-modelo').onclick = async () => baixarModeloHorario(await carregarHorario().catch(() => []));
+  let lido = null;
+  const erro = (m) => { $('#msg-hor').textContent = m; $('#msg-hor').classList.remove('escondido'); };
+  $('#hor-arquivo').onchange = async (e) => {
+    $('#msg-hor').classList.add('escondido'); $('#hor-confirmar').disabled = true; lido = null;
+    const arq = e.target.files[0]; if (!arq) return;
+    $('#hor-previa').innerHTML = '<div class="carregando">Lendo a planilha…</div>';
+    try {
+      await carregarScript(XLSX_URL);
+      lido = lerHorarioExcel(XLSX.read(await arq.arrayBuffer()));
+    } catch (err) { $('#hor-previa').innerHTML = ''; return erro('Não consegui ler o arquivo: ' + err.message); }
+    const total = lido.blocos.reduce((s, b) => s + b.aulas.length, 0);
+    if (!total) { $('#hor-previa').innerHTML = ''; return erro('Não encontrei nenhuma aula. Confira se o arquivo segue o formato acima.' + (lido.avisos.length ? ' ' + lido.avisos.join(' ') : '')); }
+    const profs = new Map(); lido.blocos.forEach(b => b.aulas.forEach(a => profs.set(a.prof, (profs.get(a.prof) || 0) + 1)));
+    const atual = await carregarHorario().catch(() => []);
+    $('#hor-previa').innerHTML = `<div class="secao">
+      <div class="tiles">
+        <div class="tile"><span>Turmas</span><strong>${lido.blocos.length}</strong></div>
+        <div class="tile"><span>Aulas por semana</span><strong>${total}</strong></div>
+        <div class="tile"><span>Professores</span><strong>${profs.size}</strong></div>
+        <div class="tile ${lido.conflitos.length ? 'ruim' : ''}"><span>Choques de horário</span><strong>${lido.conflitos.length}</strong></div>
+      </div>
+      <table class="hor-lista" style="margin-top:14px"><thead><tr><th>Turma</th><th>Aba do Excel</th><th>Aulas</th><th>Sala no Excel</th></tr></thead><tbody>
+        ${lido.blocos.map(b => `<tr><td><strong>${esc(nomeTurma(b.turma))}</strong></td><td>${esc(b.aba)}</td><td>${b.aulas.length}</td><td>${esc(b.sala || '') || '<span class="vazio">—</span>'}</td></tr>`).join('')}
+      </tbody></table>
+      ${lido.conflitos.length ? `<div class="aviso erro"><strong>Professor em duas turmas ao mesmo tempo</strong> (confira no Excel; dá para salvar assim mesmo):<br>${lido.conflitos.map(esc).join('<br>')}</div>` : ''}
+      ${lido.unificados.length ? `<div class="aviso">Juntei grafias diferentes do mesmo professor:<br>${lido.unificados.map(esc).join('<br>')}</div>` : ''}
+      ${lido.avisos.length ? `<div class="aviso erro">${lido.avisos.map(esc).join('<br>')}</div>` : ''}
+      <h3 style="margin-top:18px">Professores encontrados</h3>
+      <div class="hor-chips">${[...profs].sort((x, y) => x[0].localeCompare(y[0])).map(([p, n]) => `<span class="hor-chip"><span class="hor-bolinha" style="${estiloCor(p)}"></span>${esc(p)} <small>${n}</small></span>`).join('')}</div>
+      ${atual.length ? `<div class="aviso erro" style="margin-top:16px">Ao confirmar, as ${atual.length} aulas do horário atual serão trocadas por estas.</div>` : ''}
+    </div>`;
+    $('#hor-confirmar').disabled = false;
+    $('#hor-confirmar').textContent = `Salvar ${total} aulas`;
+  };
+  $('#hor-confirmar').onclick = async (e) => {
+    if (!lido) return;
+    e.target.disabled = true; e.target.textContent = 'Salvando…';
+    const linhas = lido.blocos.flatMap(b => b.aulas.map(a => ({ turma_id: b.turma, dia: a.dia, inicio: hm(a.ini), fim: hm(a.fim), professor: a.prof })));
+    const { error } = await db.rpc('substituir_horario', { p_ano: ANO_LETIVO, p_linhas: linhas });
+    if (error) { e.target.disabled = false; e.target.textContent = 'Tentar de novo'; return erro('Não foi possível salvar: ' + error.message); }
+    // salas que vieram no Excel (só preenche onde a turma ainda não tem sala)
+    for (const b of lido.blocos) {
+      const t = estado.turmas.find(x => x.id === b.turma);
+      if (b.sala && !t.sala) { const r = await db.from('turmas').update({ sala: b.sala }).eq('id', t.id); if (!r.error) t.sala = b.sala; }
+    }
+    fecharFicha();
+    estado.hor = { visao: 'turma', turma: lido.blocos[0].turma, prof: null, momento: null };
+    paginaHorarios();
+  };
+}
+
+// ---------- Planilha modelo (formatada, já com o horário atual quando houver) ----------
+async function baixarModeloHorario(aulas) {
+  try { await carregarScript(EXCELJS_URL); } catch (e) { return alert('Não consegui carregar o gerador de Excel. Verifique a internet e tente de novo.'); }
+  const VERDE = 'FF1F6B3A', VERDE_ESCURO = 'FF154D29', VERDE_CLARO = 'FFE8F3EC', CINZA = 'FFF1F3F2', BORDA = { style: 'thin', color: { argb: 'FFC9D3CD' } };
+  const bordas = { top: BORDA, left: BORDA, bottom: BORDA, right: BORDA };
+  const slots = montarSlots(aulas);
+  const dias = [1, 2, 3, 4, 5, 6];
+  const wb = new ExcelJS.Workbook(); wb.creator = 'Sistema ITA/IME'; wb.created = new Date();
+
+  // aba de instruções
+  const ins = wb.addWorksheet('Como preencher', { properties: { tabColor: { argb: VERDE } }, views: [{ showGridLines: false }] });
+  ins.columns = [{ width: 4 }, { width: 100 }];
+  ins.mergeCells('B2:B2');
+  Object.assign(ins.getCell('B2'), { value: `Horário de aulas ${ANO_LETIVO} · como preencher` });
+  ins.getCell('B2').font = { bold: true, size: 18, color: { argb: VERDE } };
+  ['Cada aba é uma turma. Não mude o nome da turma escrito no topo da aba (ex.: 1ª Série A).',
+   'Em cada aula, escreva só o nome (ou apelido) do professor, sempre do mesmo jeito. Ex.: HÉLCIO.',
+   'Aula vaga: deixe a célula em branco.',
+   'Para mudar os horários das aulas, edite a coluna HORÁRIO no formato 07:00 – 07:50.',
+   'As linhas de INTERVALO e ALMOÇO servem só para organizar: o sistema ignora essas linhas.',
+   'A linha "Sala" é opcional: se preenchida, o sistema usa para as turmas que ainda não têm sala.',
+   'Quando terminar, vá em Horários de aula → Subir horário (Excel). O sistema mostra uma prévia antes de salvar.']
+    .forEach((t, i) => { const c = ins.getCell(`B${4 + i}`); c.value = `${i + 1}.  ${t}`; c.font = { size: 12 }; c.alignment = { wrapText: true, vertical: 'middle' }; ins.getRow(4 + i).height = 24; });
+
+  const turmas = estado.turmas.filter(t => t.serie || aulas.some(a => a.turma === t.id));
+  for (const t of turmas) {
+    const ws = wb.addWorksheet(nomeCurtoTurma(t).replace(/[\\/*?:[\]]/g, ''), {
+      properties: { tabColor: { argb: VERDE } },
+      views: [{ state: 'frozen', ySplit: 4, xSplit: 1, showGridLines: false }],
+      pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 1, horizontalCentered: true,
+        margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 } },
+    });
+    ws.columns = [{ width: 17 }, ...dias.map(() => ({ width: 19 }))];
+    const ult = String.fromCharCode(65 + dias.length);
+    ws.mergeCells(`A1:${ult}1`);
+    Object.assign(ws.getCell('A1'), { value: t.nome });
+    ws.getCell('A1').font = { bold: true, size: 18, color: { argb: 'FFFFFFFF' } };
+    ws.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE } };
+    ws.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
+    ws.getRow(1).height = 34;
+    ws.mergeCells(`A2:${ult}2`);
+    ws.getCell('A2').value = t.sala && /^sala\b/i.test(t.sala) ? t.sala : `Sala: ${t.sala || ''}`;
+    ws.getCell('A2').font = { italic: true, size: 11, color: { argb: 'FF5F6B64' } };
+    ws.getCell('A2').alignment = { vertical: 'middle', horizontal: 'center' };
+    ws.getRow(2).height = 20;
+    ws.getRow(3).height = 6;
+    const cab = ws.getRow(4);
+    ['HORÁRIO', ...dias.map(d => DIAS_CURTO[d].replace('Á', 'A'))].forEach((v, i) => {
+      const c = cab.getCell(i + 1); c.value = v;
+      c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_ESCURO } };
+      c.alignment = { horizontal: 'center', vertical: 'middle' }; c.border = bordas;
+    });
+    cab.height = 24;
+    let r = 5;
+    slots.forEach((s, i) => {
+      const p = pausaEntre(slots[i - 1], s);
+      if (p) {
+        ws.mergeCells(`A${r}:${ult}${r}`);
+        const c = ws.getCell(`A${r}`); c.value = `${p.nome.toUpperCase()}   ${hm(p.ini)} – ${hm(p.fim)}`;
+        c.font = { italic: true, bold: true, size: 9, color: { argb: 'FF7A857F' } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CINZA } };
+        c.alignment = { horizontal: 'center', vertical: 'middle' }; c.border = bordas;
+        ws.getRow(r).height = 16; r++;
+      }
+      const lin = ws.getRow(r);
+      const ch = lin.getCell(1); ch.value = `${hm(s.ini)} – ${hm(s.fim)}`;
+      ch.font = { bold: true, size: 11, color: { argb: VERDE_ESCURO } };
+      ch.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_CLARO } };
+      ch.alignment = { horizontal: 'center', vertical: 'middle' }; ch.border = bordas;
+      dias.forEach((d, j) => {
+        const a = aulas.find(x => x.turma === t.id && x.dia === d && x.ini === s.ini);
+        const c = lin.getCell(j + 2); c.value = a ? a.prof : null;
+        c.font = { bold: true, size: 11, color: { argb: 'FF1D2420' } };
+        c.alignment = { horizontal: 'center', vertical: 'middle' }; c.border = bordas;
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: j % 2 ? 'FFFFFFFF' : 'FFFAFBFA' } };
+      });
+      lin.height = 26; r++;
+    });
+    ws.getCell(`A${r + 1}`).value = `Sistema ITA/IME · horário ${ANO_LETIVO} · gerado em ${new Date().toLocaleDateString('pt-BR')}`;
+    ws.getCell(`A${r + 1}`).font = { size: 8, italic: true, color: { argb: 'FF9AA39E' } };
+  }
+  const buf = await wb.xlsx.writeBuffer();
+  const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  const a = document.createElement('a'); a.href = url; a.download = `horario_${ANO_LETIVO}.xlsx`; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
 function carregarScript(url) {
   return new Promise((ok, falha) => {
     if (document.querySelector(`script[src="${url}"]`)) return ok();
