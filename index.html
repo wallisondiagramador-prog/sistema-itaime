@@ -72,6 +72,21 @@
   .pessoa { background: var(--branco); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; text-align: left; padding: 0; }
   .pessoa:hover { border-color: var(--verde); }
   .pessoa { position: relative; }
+  .pessoa.sel { border-color: var(--verde); box-shadow: 0 0 0 3px var(--verde-claro); }
+  .marca-sel { position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--borda);
+    background: var(--branco); display: grid; place-items: center; font-size: 13px; font-weight: 700; color: transparent; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .sel .marca-sel { background: var(--verde); border-color: var(--verde); color: #fff; }
+  td .marca-sel { position: static; display: inline-grid; vertical-align: middle; margin-right: 8px; box-shadow: none; }
+  tbody tr.sel { background: var(--verde-claro); }
+  .barra-massa { position: sticky; bottom: 12px; z-index: 5; margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    background: var(--branco); border: 1px solid var(--verde); border-radius: 12px; padding: 10px 14px; box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+  .barra-massa .espaco { flex: 1; }
+  .botao:disabled { opacity: .55; cursor: not-allowed; }
+  .barra-massa .qtd-sel { font-weight: 700; margin-right: 6px; }
+  .nomes-massa { max-height: 140px; overflow: auto; font-size: 13px; color: var(--suave); background: var(--fundo); border-radius: 8px; padding: 8px 10px; line-height: 1.5; }
+  .opcao-modo { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--borda); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; }
+  .opcao-modo input { width: auto; margin-top: 3px; }
+  .opcao-modo small { display: block; color: var(--suave); margin-top: 2px; }
   /* balãozinho discreto com o número de ocorrências do aluno */
   .balao-oc { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; font-size: 11px; font-weight: 700; line-height: 1;
     background: rgba(255,255,255,.92); color: var(--erro); border: 1px solid #f3b8b2; vertical-align: middle; margin-left: 6px; }
@@ -548,6 +563,11 @@ async function paginaTurma(turmaId) {
     .map(m => estado.alunos.get(m.aluno_id)).filter(Boolean);
   $('#conteudo').innerHTML = `<div class="carregando">Carregando fotos…</div>`;
   await carregarFotos(lista.map(a => a.id));
+  // seleção para ações em massa (fica guardada só enquanto estiver nesta turma)
+  if (!estado.selecao || estado.selecao.turma !== turmaId) estado.selecao = { turma: turmaId, ativo: false, ids: new Set() };
+  const S = estado.selecao;
+  [...S.ids].forEach(id => { if (!lista.some(a => a.id === id)) S.ids.delete(id); });
+  const selecionando = veTudo() && S.ativo;
 
   $('#conteudo').innerHTML = `
     <div class="barra">
@@ -560,19 +580,172 @@ async function paginaTurma(turmaId) {
         <button data-visao="lista" class="${estado.visao === 'lista' ? 'ativa' : ''}">Lista</button>
       </div>
       <button class="botao leve" id="imprimir">Imprimir</button>
-      ${veTudo() ? '<button class="botao" id="novo-aluno">+ Novo aluno</button>' : ''}
+      ${veTudo() ? `<button class="botao leve" id="selecionar">${selecionando ? 'Concluir seleção' : 'Selecionar'}</button>
+        <button class="botao" id="novo-aluno">+ Novo aluno</button>` : ''}
     </div>
-    <div id="alunos-turma"></div>`;
+    ${selecionando ? '<p class="subtitulo">Clique nos alunos para marcar. Depois escolha a ação na barra de baixo.</p>' : ''}
+    <div id="alunos-turma"></div>
+    ${selecionando ? '<div class="barra-massa" id="barra-massa"></div>' : ''}`;
   if ($('#novo-aluno')) $('#novo-aluno').onclick = () => novoAluno(turmaId);
   $('#voltar').onclick = () => irPara('turmas');
   $('#imprimir').onclick = () => imprimirCarometro(turma, lista);
   document.querySelectorAll('[data-visao]').forEach(b => b.onclick = () => { estado.visao = b.dataset.visao; paginaTurma(turmaId); });
-  const desenhar = () => {
-    const f = semAcento($('#filtro').value.trim());
-    desenharAlunos(lista.filter(a => !f || semAcento(a.nome).includes(f)), '#alunos-turma');
+  if ($('#selecionar')) $('#selecionar').onclick = () => { S.ativo = !S.ativo; if (!S.ativo) S.ids.clear(); paginaTurma(turmaId); };
+  const visiveis = () => { const f = semAcento($('#filtro').value.trim()); return lista.filter(a => !f || semAcento(a.nome).includes(f)); };
+  const escolhidos = () => lista.filter(a => S.ids.has(a.id));   // na ordem da turma
+  const barra = () => {
+    if (!selecionando) return;
+    const n = S.ids.size, off = n ? '' : 'disabled';
+    $('#barra-massa').innerHTML = `
+      <span class="qtd-sel">${n} ${n === 1 ? 'aluno selecionado' : 'alunos selecionados'}</span>
+      <button class="botao leve pequeno" id="sel-todos">Selecionar todos</button>
+      <button class="botao leve pequeno" id="sel-limpar" ${off}>Limpar</button>
+      <span class="espaco"></span>
+      <button class="botao pequeno" id="massa-turma" ${off}>Mudar de turma…</button>
+      <button class="botao pequeno" id="massa-oc" ${off}>Adicionar ocorrência…</button>
+      <button class="botao perigo pequeno" id="massa-desist" ${off}>Marcar desistência…</button>`;
+    $('#sel-todos').onclick = () => { visiveis().forEach(a => S.ids.add(a.id)); desenhar(); };
+    $('#sel-limpar').onclick = () => { S.ids.clear(); desenhar(); };
+    const depois = () => { S.ids.clear(); paginaTurma(turmaId); };
+    $('#massa-turma').onclick = () => massaMudarTurma(escolhidos(), turma, depois);
+    $('#massa-oc').onclick = () => massaOcorrencia(escolhidos(), turma, depois);
+    $('#massa-desist').onclick = () => massaDesistencia(escolhidos(), turma, depois);
   };
+  const sel = selecionando ? { ids: S.ids, alternar: (id) => { S.ids.has(id) ? S.ids.delete(id) : S.ids.add(id); barra(); } } : null;
+  const desenhar = () => { desenharAlunos(visiveis(), '#alunos-turma', false, sel); barra(); };
   $('#filtro').oninput = desenhar;
   desenhar();
+}
+
+// =====================================================================
+// AÇÕES EM MASSA (alunos selecionados na turma) — só admin e coordenação
+// =====================================================================
+const nomesMassa = (alunos) => `<div class="nomes-massa">${alunos.map(a => esc(a.nome)).join(' · ')}</div>`;
+function abrirModalMassa(titulo, alunos, turma, corpo, rotulo, perigo = false) {
+  $('#fundo-ficha').classList.remove('escondido');
+  $('#ficha').classList.remove('largo');
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2>${titulo}</h2>
+      <span class="etiqueta">${alunos.length} ${alunos.length === 1 ? 'aluno' : 'alunos'} · ${esc(turma.nome)}</span></div>
+      <button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao">${nomesMassa(alunos)}</div>
+    <div class="secao" id="massa-corpo">${corpo}</div>
+    <div id="msg-massa" class="aviso erro escondido" style="margin:0 24px 14px"></div>
+    <div class="rodape-ficha" id="massa-rodape">
+      <button class="botao leve" id="massa-cancelar">Cancelar</button>
+      <button class="botao ${perigo ? 'perigo' : ''}" id="massa-ok">${rotulo}</button></div>`;
+  $('#ficha .fechar').onclick = fecharFicha;
+  $('#massa-cancelar').onclick = fecharFicha;
+}
+const erroMassa = (m) => { $('#msg-massa').textContent = m; $('#msg-massa').classList.remove('escondido'); };
+// roda a ação aluno por aluno, mostrando o andamento; devolve a lista de quem deu erro
+async function rodarEmMassa(alunos, botao, fazer) {
+  const falhas = [];
+  botao.disabled = true; $('#massa-cancelar').disabled = true;
+  for (let i = 0; i < alunos.length; i++) {
+    botao.textContent = `Fazendo ${i + 1} de ${alunos.length}…`;
+    const { error } = await fazer(alunos[i]);
+    if (error) falhas.push({ aluno: alunos[i], erro: error.message });
+  }
+  return falhas;
+}
+function resultadoMassa(texto, falhas, depois) {
+  $('#massa-corpo').innerHTML = `<div class="aviso">${texto}</div>
+    ${falhas.length ? `<div class="aviso erro">Não deu certo para ${falhas.length}:<br>${falhas.map(f => `<strong>${esc(f.aluno.nome)}</strong>: ${esc(f.erro)}`).join('<br>')}</div>` : ''}`;
+  $('#massa-rodape').innerHTML = '<button class="botao" id="massa-fechar">Fechar</button>';
+  $('#msg-massa').classList.add('escondido');
+  $('#massa-fechar').onclick = () => { fecharFicha(); depois(); };
+  $('#ficha .fechar').onclick = () => { fecharFicha(); depois(); };
+}
+
+function massaMudarTurma(alunos, turma, depois) {
+  const prox = ANO_LETIVO + 1;
+  abrirModalMassa('Mudar de turma', alunos, turma, `
+    <label class="opcao-modo"><input type="radio" name="massa-modo" value="agora" checked>
+      <span><strong>Mudar agora, em ${ANO_LETIVO}</strong><small>Troca de turma durante o ano. As notas já lançadas continuam no histórico de cada aluno.</small></span></label>
+    <label class="opcao-modo"><input type="radio" name="massa-modo" value="proximo">
+      <span><strong>Matricular em ${prox} (virada do ano)</strong><small>A turma de ${ANO_LETIVO} fica guardada como está. A nova matrícula aparece quando o sistema passar para ${prox}.</small></span></label>
+    <div class="form-edicao" style="margin-top:10px">
+      <div><label for="massa-destino">Nova turma</label><select id="massa-destino"><option value="">Escolha…</option>
+        ${estado.turmas.map(t => `<option value="${t.id}">${esc(t.nome)}</option>`).join('')}</select></div>
+      <div id="massa-caixa-motivo"><label for="massa-motivo">Motivo (opcional)</label><input type="text" id="massa-motivo" placeholder="Ex.: remanejamento de turmas"></div>
+    </div>`, `Mudar ${alunos.length} ${alunos.length === 1 ? 'aluno' : 'alunos'}`);
+  document.querySelectorAll('[name="massa-modo"]').forEach(r => r.onchange = () =>
+    $('#massa-caixa-motivo').classList.toggle('escondido', r.value === 'proximo' && r.checked));
+  $('#massa-ok').onclick = async (e) => {
+    const modo = document.querySelector('[name="massa-modo"]:checked').value;
+    const destino = Number($('#massa-destino').value);
+    if (!destino) return erroMassa('Escolha a nova turma.');
+    const nomeDestino = nomeTurma(destino);
+    if (modo === 'agora') {
+      if (destino === turma.id) return erroMassa('Os alunos já estão nesta turma. Escolha outra.');
+      const motivo = $('#massa-motivo').value.trim() || null;
+      const falhas = await rodarEmMassa(alunos, e.target, (a) => db.rpc('mudar_turma', { p_aluno: a.id, p_turma: destino, p_ano: ANO_LETIVO, p_motivo: motivo }));
+      await recarregarMatriculas();
+      estado.desemp = null;
+      const ok = alunos.length - falhas.length;
+      return resultadoMassa(`${ok} ${ok === 1 ? 'aluno foi' : 'alunos foram'} para a ${esc(nomeDestino)}.`, falhas, depois);
+    }
+    // virada do ano: cria (ou corrige) a matrícula do ano seguinte, sem mexer na deste ano
+    e.target.disabled = true; e.target.textContent = 'Salvando…';
+    const { data: ult, error: e1 } = await db.from('matriculas').select('ordem').eq('turma_id', destino).eq('ano_letivo', prox)
+      .order('ordem', { ascending: false, nullsFirst: false }).limit(1);
+    if (e1) { e.target.disabled = false; e.target.textContent = 'Tentar de novo'; return erroMassa('Não foi possível salvar: ' + e1.message); }
+    const base = (ult && ult[0] && ult[0].ordem) || 0;
+    const linhas = alunos.map((a, i) => ({ aluno_id: a.id, turma_id: destino, ano_letivo: prox, situacao: 'ativo', ordem: base + i + 1 }));
+    const { error } = await db.from('matriculas').upsert(linhas, { onConflict: 'aluno_id,ano_letivo' });
+    if (error) { e.target.disabled = false; e.target.textContent = 'Tentar de novo'; return erroMassa('Não foi possível salvar: ' + error.message); }
+    resultadoMassa(`${alunos.length} ${alunos.length === 1 ? 'aluno matriculado' : 'alunos matriculados'} na ${esc(nomeDestino)} em ${prox}.
+      Em ${ANO_LETIVO} ${alunos.length === 1 ? 'ele continua' : 'eles continuam'} na ${esc(turma.nome)} até a virada do sistema.`, [], depois);
+  };
+}
+
+function massaOcorrencia(alunos, turma, depois) {
+  abrirModalMassa('Adicionar ocorrência', alunos, turma, `
+    <p class="subtitulo" style="margin-top:0">A mesma ocorrência será registrada para cada aluno selecionado (uma para cada um, na ficha de cada um).</p>
+    <div class="form-edicao">
+      <div><label for="mo-data">Data</label><input type="date" id="mo-data" value="${hojeLocal()}"></div>
+      <div class="largo"><label for="mo-descricao">O que aconteceu</label><textarea id="mo-descricao" rows="4"></textarea></div>
+      <div class="largo"><label for="mo-providencia">Providência tomada</label><input type="text" id="mo-providencia" list="mo-lista-prov" placeholder="Ex.: Advertência verbal">
+        <datalist id="mo-lista-prov">${PROVIDENCIAS.map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>
+      <label class="marcar"><input type="checkbox" id="mo-avisado"> Responsáveis avisados</label>
+      <div id="mo-caixa-aviso" class="escondido"><label for="mo-data-aviso">Avisados em</label><input type="date" id="mo-data-aviso"></div>
+      <label class="marcar"><input type="checkbox" id="mo-resolvida"> Já foi resolvida</label>
+    </div>`, `Registrar para ${alunos.length} ${alunos.length === 1 ? 'aluno' : 'alunos'}`);
+  $('#mo-avisado').onchange = () => {
+    $('#mo-caixa-aviso').classList.toggle('escondido', !$('#mo-avisado').checked);
+    if ($('#mo-avisado').checked && !$('#mo-data-aviso').value) $('#mo-data-aviso').value = hojeLocal();
+  };
+  $('#massa-ok').onclick = async (e) => {
+    const descricao = $('#mo-descricao').value.trim();
+    if (!descricao) return erroMassa('Descreva o que aconteceu.');
+    if (!$('#mo-data').value) return erroMassa('Informe a data da ocorrência.');
+    const avisado = $('#mo-avisado').checked;
+    const linhas = alunos.map(a => ({ aluno_id: a.id, data: $('#mo-data').value, descricao, providencia: $('#mo-providencia').value.trim() || null,
+      responsavel_avisado: avisado, data_aviso: avisado ? ($('#mo-data-aviso').value || null) : null, resolvida: $('#mo-resolvida').checked }));
+    e.target.disabled = true; e.target.textContent = 'Registrando…';
+    const { error } = await db.from('ocorrencias').insert(linhas);   // tudo de uma vez: ou grava para todos, ou para nenhum
+    if (error) { e.target.disabled = false; e.target.textContent = 'Tentar de novo'; return erroMassa('Não foi possível registrar: ' + error.message); }
+    alunos.forEach(a => estado.contOc.set(a.id, (estado.contOc.get(a.id) || 0) + 1));
+    resultadoMassa(`Ocorrência registrada para ${alunos.length} ${alunos.length === 1 ? 'aluno' : 'alunos'}.`, [], depois);
+  };
+}
+
+function massaDesistencia(alunos, turma, depois) {
+  abrirModalMassa('Marcar desistência', alunos, turma, `
+    <p class="subtitulo" style="margin-top:0">Os alunos saem da turma e das planilhas, mas cadastro, notas e histórico continuam guardados. Dá para reativar depois, um a um, pela ficha.</p>
+    <div class="form-edicao">
+      <div><label for="md-data">Data da saída</label><input type="date" id="md-data" value="${hojeLocal()}"></div>
+      <div class="largo"><label for="md-motivo">Motivo (opcional)</label><input type="text" id="md-motivo"></div>
+    </div>`, `Confirmar desistência de ${alunos.length}`, true);
+  $('#massa-ok').onclick = async (e) => {
+    const p_data = $('#md-data').value || hojeLocal(), p_motivo = $('#md-motivo').value.trim() || null;
+    const falhas = await rodarEmMassa(alunos, e.target, (a) => db.rpc('marcar_desistente', { p_aluno: a.id, p_ano: ANO_LETIVO, p_motivo, p_data }));
+    await recarregarMatriculas();
+    estado.desemp = null;
+    const ok = alunos.length - falhas.length;
+    resultadoMassa(`${ok} ${ok === 1 ? 'aluno marcado' : 'alunos marcados'} como desistente.`, falhas, depois);
+  };
 }
 
 // Monta a folha do carômetro (foto, nome, nascimento e telefone) e abre a janela de impressão
@@ -598,7 +771,8 @@ function imprimirQuandoCarregar() {
   Promise.race([carregadas, limite]).then(() => window.print());
 }
 
-function desenharAlunos(alunos, onde, mostrarTurma = false) {
+// sel = { ids: Set, alternar(id) } → modo seleção: clicar marca/desmarca em vez de abrir a ficha
+function desenharAlunos(alunos, onde, mostrarTurma = false, sel = null) {
   const turmaDe = (id) => {
     const m = estado.matriculas.find(m => m.aluno_id === id);
     const nome = estado.turmas.find(t => t.id === m?.turma_id)?.nome || '';
@@ -607,14 +781,19 @@ function desenharAlunos(alunos, onde, mostrarTurma = false) {
   if (!alunos.length) { $(onde).innerHTML = '<p class="subtitulo">Nenhum aluno encontrado.</p>'; return; }
   $(onde).innerHTML = estado.visao === 'carometro'
     ? `<div class="carometro">${alunos.map(a => `
-        <button class="pessoa" data-aluno="${a.id}">${htmlFoto(a)}${balaoOc(a.id)}
+        <button class="pessoa${sel && sel.ids.has(a.id) ? ' sel' : ''}" data-aluno="${a.id}">${htmlFoto(a)}${balaoOc(a.id)}${sel ? '<span class="marca-sel">✓</span>' : ''}
           <div class="legenda">${esc(a.nome)}${mostrarTurma ? `<span>${esc(turmaDe(a.id))}</span>` : ''}</div>
         </button>`).join('')}</div>`
     : `<table><thead><tr><th>Nome</th>${mostrarTurma ? '<th>Turma</th>' : ''}<th>Telefone</th><th>E-mail</th></tr></thead><tbody>
-        ${alunos.map(a => `<tr class="clicavel" data-aluno="${a.id}"><td>${esc(a.nome)}${balaoOc(a.id)}</td>${mostrarTurma ? `<td>${esc(turmaDe(a.id))}</td>` : ''}
+        ${alunos.map(a => `<tr class="clicavel${sel && sel.ids.has(a.id) ? ' sel' : ''}" data-aluno="${a.id}"><td>${sel ? '<span class="marca-sel">✓</span>' : ''}${esc(a.nome)}${balaoOc(a.id)}</td>${mostrarTurma ? `<td>${esc(turmaDe(a.id))}</td>` : ''}
           <td>${esc(telefone(a.telefone))}</td><td>${esc(a.email || '')}</td></tr>`).join('')}
        </tbody></table>`;
-  document.querySelectorAll(`${onde} [data-aluno]`).forEach(el => el.onclick = () => abrirFicha(Number(el.dataset.aluno)));
+  document.querySelectorAll(`${onde} [data-aluno]`).forEach(el => el.onclick = () => {
+    const id = Number(el.dataset.aluno);
+    if (!sel) return abrirFicha(id);
+    sel.alternar(id);
+    el.classList.toggle('sel', sel.ids.has(id));
+  });
 }
 
 function paginaBusca() {
@@ -1492,7 +1671,8 @@ async function paginaCiclo(cicloId) {
       : `<td><button class="botao pequeno" data-criar="${nm}|${materia}|${turmaId}">+ Criar planilha</button></td>`;
   };
   $('#conteudo').innerHTML = `
-    <div class="barra"><button class="botao leve" id="voltar">← Ciclos</button><h1>${esc(ciclo.nome)}</h1></div>
+    <div class="barra"><button class="botao leve" id="voltar">← Ciclos</button><h1>${esc(ciclo.nome)}</h1><div class="espaco"></div>
+      ${estado.papel === 'admin' ? '<button class="botao leve" id="apagar-ciclo">Apagar ciclo…</button>' : ''}</div>
     ${['NM1', 'NM2', 'NM3'].map(nm => `
       <h2>${NMS[nm]} <span class="etiqueta">${MULT[nm] === 1 ? 'mantém a nota' : '× ' + fmt(MULT[nm])}</span></h2>
       <div class="rolavel"><table>
@@ -1500,6 +1680,7 @@ async function paginaCiclo(cicloId) {
         <tbody>${MATERIAS.map(m => `<tr><td><strong>${m}</strong></td>${TURMAS_NOTAS.map(t => celula(nm, m, t)).join('')}</tr>`).join('')}</tbody>
       </table></div>`).join('')}`;
   $('#voltar').onclick = () => irPara('notas');
+  if ($('#apagar-ciclo')) $('#apagar-ciclo').onclick = () => apagarCiclo(ciclo, planilhas.length, linhas.filter(x => x.nota_real != null).length);
   document.querySelectorAll('[data-planilha]').forEach(b => b.onclick = () => irPara('planilha', Number(b.dataset.planilha)));
   document.querySelectorAll('[data-importar]').forEach(b => b.onclick = () => {
     const [nm, materia, turma] = b.dataset.importar.split('|');
@@ -1509,6 +1690,41 @@ async function paginaCiclo(cicloId) {
     const [nm, materia, turma] = b.dataset.criar.split('|');
     criarPlanilha(ciclo, nm, materia, Number(turma), planilhas);
   });
+}
+
+// ---------- Apagar um ciclo inteiro (só administrador) ----------
+function apagarCiclo(ciclo, nPlanilhas, nNotas) {
+  $('#fundo-ficha').classList.remove('escondido');
+  $('#ficha').classList.remove('largo');
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2>Apagar ciclo</h2><span class="etiqueta">${esc(ciclo.nome)} · ${ciclo.ano_letivo}</span></div>
+      <button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao">
+      <div class="aviso erro">Isto apaga <strong>para sempre</strong> o ciclo e tudo o que está dentro dele:
+        ${nPlanilhas} ${nPlanilhas === 1 ? 'planilha' : 'planilhas'}, ${nNotas} ${nNotas === 1 ? 'nota lançada' : 'notas lançadas'}, os links dos professores,
+        as 2ª chamadas e as pendências. As notas somem também do boletim, dos comparativos e do desempenho. Não dá para desfazer.</div>
+      <p style="margin-top:16px">Para confirmar, digite o nome do ciclo: <strong>${esc(ciclo.nome)}</strong></p>
+      <input type="text" id="confirma-ciclo" autocomplete="off" placeholder="${esc(ciclo.nome)}">
+    </div>
+    <div id="msg-apagar-ciclo" class="aviso erro escondido" style="margin:0 24px 14px"></div>
+    <div class="rodape-ficha"><button class="botao leve" id="cancelar-apagar">Cancelar</button>
+      <button class="botao perigo" id="confirmar-apagar" disabled>Apagar ciclo</button></div>`;
+  $('#ficha .fechar').onclick = fecharFicha;
+  $('#cancelar-apagar').onclick = fecharFicha;
+  $('#confirma-ciclo').oninput = () => { $('#confirmar-apagar').disabled = $('#confirma-ciclo').value.trim() !== ciclo.nome.trim(); };
+  $('#confirma-ciclo').focus();
+  $('#confirmar-apagar').onclick = async (e) => {
+    e.target.disabled = true; e.target.textContent = 'Apagando…';
+    const { data, error } = await db.from('ciclos').delete().eq('id', ciclo.id).select('id');
+    if (error || !data || !data.length) {
+      e.target.disabled = false; e.target.textContent = 'Apagar ciclo';
+      $('#msg-apagar-ciclo').textContent = error ? 'Não foi possível apagar: ' + error.message : 'O ciclo não foi apagado (sem permissão). Só o administrador pode apagar.';
+      return $('#msg-apagar-ciclo').classList.remove('escondido');
+    }
+    estado.desemp = null;
+    fecharFicha();
+    irPara('notas', undefined, 'replace');
+  };
 }
 
 // ---------- Criar planilha: escolher os professores ----------
