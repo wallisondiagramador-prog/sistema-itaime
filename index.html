@@ -126,6 +126,17 @@
   .linha-acao select, .linha-acao input { flex: 1 1 160px; min-width: 140px; }
   .campo-foto { display: flex; gap: 16px; align-items: center; }
   .campo-foto .foto, .campo-foto .sem-foto { width: 96px; height: 96px; border-radius: 10px; object-fit: cover; flex-shrink: 0; font-size: 26px; }
+  .ocorrencia { padding: 12px 0; border-top: 1px solid var(--borda); }
+  .ocorrencia:first-of-type { border-top: 0; padding-top: 0; }
+  .oc-topo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .oc-topo .espaco { flex: 1; }
+  .ocorrencia small { display: block; color: var(--suave); margin-top: 4px; }
+  .form-edicao .marcar { display: flex; gap: 8px; align-items: center; margin-top: 30px; color: var(--texto); font-size: 14px; }
+  .form-edicao .marcar input { width: auto; }
+  .imp-ocorrencia .campo-imp { margin: 10px 0; font-size: 11pt; }
+  .imp-ocorrencia .campo-imp b { display: block; font-size: 9pt; color: #555; font-weight: 600; text-transform: uppercase; }
+  .imp-assinaturas { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 28px; margin-top: 70px; font-size: 9.5pt; text-align: center; }
+  .imp-assinaturas div { border-top: 1px solid #000; padding-top: 6px; }
   .acoes-ficha { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .form-edicao { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 16px; }
   .form-edicao label { margin: 8px 0 4px; font-size: 12.5px; color: var(--suave); }
@@ -141,7 +152,7 @@
   .caixa-link { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--branco); border: 1px solid var(--borda); border-radius: 12px; padding: 14px; margin-bottom: 18px; }
   .caixa-link input { flex: 1; min-width: 260px; }
   .linha-prof { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 8px; }
-  .status { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+  .status { white-space: nowrap; display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
   .status.aberta { background: var(--verde-claro); color: var(--verde-escuro); }
   .status.fechada { background: #eceff1; color: var(--suave); }
   .status.vermelho { background: #fdecea; color: var(--erro); }
@@ -220,6 +231,7 @@
         <button data-pagina="turmas" class="ativa">Turmas</button>
         <button data-pagina="notas">Notas</button>
         <button data-pagina="busca">Buscar aluno</button>
+        <button data-pagina="ocorrencias" id="nav-ocorrencias" class="escondido">Ocorrências</button>
         <button data-pagina="professores" id="nav-professores" class="escondido">Professores</button>
         <button data-pagina="equipe" id="nav-equipe" class="escondido">Equipe</button>
       </nav>
@@ -382,6 +394,7 @@ async function iniciar() {
   $('#papel-usuario').textContent = NOMES_PAPEL[papel];
   $('#nav-equipe').classList.toggle('escondido', papel !== 'admin');
   $('#nav-professores').classList.toggle('escondido', !veTudo());
+  $('#nav-ocorrencias').classList.toggle('escondido', !veTudo());
   mostrar('#tela-sistema');
   $('#conteudo').innerHTML = '<div class="carregando">Carregando turmas…</div>';
 
@@ -418,7 +431,7 @@ function irPara(pagina, extra, modo) {
   const menu = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' }[pagina] || pagina;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === menu));
   ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe,
-     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores })[pagina](extra);
+     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias })[pagina](extra);
 }
 
 window.addEventListener('popstate', (e) => {
@@ -579,14 +592,16 @@ async function abrirFicha(id) {
   $('#fundo-ficha').classList.remove('escondido');
   $('#ficha').innerHTML = '<div class="carregando">Carregando ficha…</div>';
 
-  let completo = null, responsaveis = [], pendencias = [];
+  let completo = null, responsaveis = [], pendencias = [], ocorrencias = [];
   if (veTudo()) {
-    const [a, r, p] = await Promise.all([
+    const [a, r, p, o] = await Promise.all([
       db.from('alunos').select('*').eq('id', id).single(),
       db.from('aluno_responsavel').select('responsaveis(*)').eq('aluno_id', id),
       db.from('pendencias').select('campo, problema, valor').eq('aluno_id', id).eq('resolvida', false),
+      db.from('ocorrencias').select('*').eq('aluno_id', id).order('data', { ascending: false }),
     ]);
     completo = a.data; responsaveis = (r.data || []).map(x => x.responsaveis).filter(Boolean); pendencias = p.data || [];
+    ocorrencias = (o.data || []).sort((x, y) => (y.data + y.id).localeCompare(x.data + x.id));
   }
   const a = completo || basico;
   // notas em qualquer turma (continuam aparecendo depois de mudar de turma ou desistir)
@@ -640,6 +655,9 @@ async function abrirFicha(id) {
     ${topo(`<div class="acoes-ficha"><button class="botao" id="ver-boletim">Boletim</button>
       ${veTudo() ? '<button class="botao leve" id="editar-aluno">Editar</button>' : ''}</div>`)}
     ${matriculaHtml}
+    ${veTudo() ? `<div class="secao"><h3>Ocorrências (${ocorrencias.length})</h3>
+      ${ocorrencias.length ? ocorrencias.map(htmlOcorrencia).join('') : '<p class="subtitulo" style="margin:0">Nenhuma ocorrência registrada.</p>'}
+      <div class="linha-acao"><button class="botao leve" id="nova-ocorrencia">+ Registrar ocorrência</button></div></div>` : ''}
     <div class="secao"><h3>Contato</h3><div class="campos">
       ${campo('Telefone', telefone(a.telefone))}${campo('E-mail', a.email)}
       ${a.data_nascimento !== undefined ? campo('Data de nascimento', data(a.data_nascimento)) : ''}
@@ -661,6 +679,12 @@ async function abrirFicha(id) {
   $('#ficha .fechar').onclick = fecharFicha;
   $('#ver-boletim').onclick = () => mostrarBoletim(a, notasAluno || [], topo, id);
   if ($('#editar-aluno')) $('#editar-aluno').onclick = () => mostrarEdicao(id, a, responsaveis, matricula, topo);
+  const voltarFicha = () => abrirFicha(id);
+  if ($('#nova-ocorrencia')) $('#nova-ocorrencia').onclick = () => formOcorrencia(id, null, voltarFicha);
+  document.querySelectorAll('[data-oc-editar]').forEach(b => b.onclick = () =>
+    formOcorrencia(id, ocorrencias.find(o => o.id === Number(b.dataset.ocEditar)), voltarFicha));
+  document.querySelectorAll('[data-oc-imprimir]').forEach(b => b.onclick = () =>
+    imprimirOcorrencia(ocorrencias.find(o => o.id === Number(b.dataset.ocImprimir)), a.nome, turma?.nome || ''));
 
   // ----- ações da matrícula -----
   const acao = async (botao, chamada) => {
@@ -845,6 +869,168 @@ function mostrarEdicao(id, a, responsaveis, matricula, topo) {
     await recarregarMatriculas();
     await abrirFicha(alunoId);
     if (avisoFoto) alert(avisoFoto);
+  };
+}
+
+// ---------- Ocorrências (só admin e coordenação) ----------
+const PROVIDENCIAS = ['Conversa com o aluno', 'Advertência verbal', 'Advertência escrita', 'Contato com a família', 'Reunião com a família', 'Suspensão'];
+const hojeLocal = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+function htmlOcorrencia(o) {
+  return `<div class="ocorrencia">
+    <div class="oc-topo"><strong>${esc(data(o.data))}</strong>
+      <span class="status ${o.resolvida ? 'fechada' : 'vermelho'}">${o.resolvida ? 'resolvida' : 'em aberto'}</span>
+      <span class="status ${o.responsavel_avisado ? 'aberta' : 'fechada'}">${o.responsavel_avisado ? `família avisada${o.data_aviso ? ' em ' + esc(data(o.data_aviso)) : ''}` : 'família não avisada'}</span>
+      <span class="espaco"></span>
+      <button class="botao leve pequeno" data-oc-editar="${o.id}">Editar</button>
+      <button class="botao leve pequeno" data-oc-imprimir="${o.id}">Imprimir</button></div>
+    <div>${esc(o.descricao)}</div>
+    ${o.providencia ? `<small><strong>Providência:</strong> ${esc(o.providencia)}</small>` : ''}
+    <small>Registrada por ${esc(o.registrado_por || '—')}</small></div>`;
+}
+// alunoId = null → escolher o aluno no próprio formulário; o = null → nova ocorrência
+function formOcorrencia(alunoId, o, voltar) {
+  const novo = !o;
+  o = o || { data: hojeLocal(), descricao: '', providencia: '', responsavel_avisado: false, data_aviso: '', resolvida: false };
+  const aluno = alunoId ? estado.alunos.get(alunoId) : null;
+  const ativos = estado.matriculas.filter(m => m.situacao === 'ativo').map(m => estado.alunos.get(m.aluno_id)).filter(Boolean)
+    .sort((x, y) => x.nome.localeCompare(y.nome));
+  $('#fundo-ficha').classList.remove('escondido');
+  $('#ficha').classList.remove('largo');
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2>${novo ? 'Registrar ocorrência' : 'Editar ocorrência'}</h2>
+      ${aluno ? `<span class="etiqueta">${esc(aluno.nome)}${alunoId ? ' · ' + esc(nomeTurma(estado.matriculas.find(m => m.aluno_id === alunoId)?.turma_id)) : ''}</span>` : ''}</div>
+      <button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao"><div class="form-edicao">
+      ${aluno ? '' : `<div class="largo"><label for="oc-aluno">Aluno</label><input type="text" id="oc-aluno" list="oc-lista-alunos" placeholder="Digite o nome do aluno">
+        <datalist id="oc-lista-alunos">${ativos.map(x => `<option value="${esc(x.nome)}">${esc(nomeTurma(estado.matriculas.find(m => m.aluno_id === x.id)?.turma_id))}</option>`).join('')}</datalist></div>`}
+      <div><label for="oc-data">Data</label><input type="date" id="oc-data" value="${esc(o.data || '')}"></div>
+      <div class="largo"><label for="oc-descricao">O que aconteceu</label><textarea id="oc-descricao" rows="4">${esc(o.descricao || '')}</textarea></div>
+      <div class="largo"><label for="oc-providencia">Providência tomada</label><input type="text" id="oc-providencia" list="oc-lista-prov" value="${esc(o.providencia || '')}" placeholder="Ex.: Advertência verbal">
+        <datalist id="oc-lista-prov">${PROVIDENCIAS.map(x => `<option value="${esc(x)}">`).join('')}</datalist></div>
+      <label class="marcar"><input type="checkbox" id="oc-avisado" ${o.responsavel_avisado ? 'checked' : ''}> Responsável avisado</label>
+      <div id="oc-caixa-aviso" class="${o.responsavel_avisado ? '' : 'escondido'}"><label for="oc-data-aviso">Avisado em</label><input type="date" id="oc-data-aviso" value="${esc(o.data_aviso || '')}"></div>
+      <label class="marcar"><input type="checkbox" id="oc-resolvida" ${o.resolvida ? 'checked' : ''}> Já foi resolvida</label>
+    </div></div>
+    <div id="msg-oc" class="aviso erro escondido" style="margin:0 24px 14px"></div>
+    <div class="rodape-ficha">
+      ${novo ? '' : '<button class="botao leve" id="oc-apagar" style="margin-right:auto">Apagar…</button>'}
+      <button class="botao leve" id="oc-cancelar">Cancelar</button>
+      <button class="botao" id="oc-salvar">${novo ? 'Registrar' : 'Salvar'}</button>
+    </div>`;
+  $('#ficha .fechar').onclick = fecharFicha;
+  $('#oc-cancelar').onclick = voltar;
+  $('#oc-avisado').onchange = () => {
+    $('#oc-caixa-aviso').classList.toggle('escondido', !$('#oc-avisado').checked);
+    if ($('#oc-avisado').checked && !$('#oc-data-aviso').value) $('#oc-data-aviso').value = hojeLocal();
+  };
+  const erro = (m) => { $('#msg-oc').textContent = m; $('#msg-oc').classList.remove('escondido'); $('#oc-salvar').disabled = false; };
+  $('#oc-salvar').onclick = async () => {
+    $('#msg-oc').classList.add('escondido');
+    let quem = alunoId;
+    if (!quem) {
+      const nome = semAcento($('#oc-aluno').value.trim());
+      const achado = ativos.find(x => semAcento(x.nome) === nome);
+      if (!achado) return erro('Escolha o aluno na lista (comece a digitar o nome).');
+      quem = achado.id;
+    }
+    const descricao = $('#oc-descricao').value.trim();
+    if (!descricao) return erro('Descreva o que aconteceu.');
+    if (!$('#oc-data').value) return erro('Informe a data da ocorrência.');
+    const avisado = $('#oc-avisado').checked;
+    const dados = { aluno_id: quem, data: $('#oc-data').value, descricao, providencia: $('#oc-providencia').value.trim() || null,
+      responsavel_avisado: avisado, data_aviso: avisado ? ($('#oc-data-aviso').value || null) : null, resolvida: $('#oc-resolvida').checked };
+    $('#oc-salvar').disabled = true;
+    const { error } = novo ? await db.from('ocorrencias').insert(dados) : await db.from('ocorrencias').update(dados).eq('id', o.id);
+    if (error) return erro('Não foi possível salvar: ' + error.message);
+    voltar();
+  };
+  if ($('#oc-apagar')) $('#oc-apagar').onclick = async (e) => {
+    if (e.target.dataset.confirmar !== '1') {
+      e.target.dataset.confirmar = '1'; e.target.textContent = 'Clique de novo para apagar de vez'; e.target.classList.add('perigo'); return;
+    }
+    const { error } = await db.from('ocorrencias').delete().eq('id', o.id);
+    if (error) return erro('Não foi possível apagar: ' + error.message);
+    voltar();
+  };
+}
+// Termo da ocorrência para imprimir e colher assinaturas
+function imprimirOcorrencia(o, nomeAluno, nomeTurmaAluno) {
+  $('#impressao').innerHTML = `<div class="imp-ocorrencia">
+    <div class="imp-topo"><h1>REGISTRO DE OCORRÊNCIA</h1><span>ITA-IME · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+    <div class="campo-imp"><b>Aluno</b>${esc(nomeAluno)}${nomeTurmaAluno ? ' · ' + esc(nomeTurmaAluno) : ''}</div>
+    <div class="campo-imp"><b>Data</b>${esc(data(o.data))}</div>
+    <div class="campo-imp"><b>O que aconteceu</b>${esc(o.descricao).replace(/\n/g, '<br>')}</div>
+    <div class="campo-imp"><b>Providência tomada</b>${esc(o.providencia || '—')}</div>
+    <div class="campo-imp"><b>Responsável avisado</b>${o.responsavel_avisado ? 'Sim' + (o.data_aviso ? ', em ' + esc(data(o.data_aviso)) : '') : 'Não'}</div>
+    <div class="campo-imp"><b>Situação</b>${o.resolvida ? 'Resolvida' : 'Em aberto'}</div>
+    <div class="imp-assinaturas"><div>Aluno</div><div>Responsável</div><div>Coordenação</div></div></div>`;
+  setTimeout(() => window.print(), 100);
+}
+// Página com todas as ocorrências
+async function paginaOcorrencias() {
+  if (!veTudo()) return irPara('turmas');
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando ocorrências…</div>';
+  const { data: lista, error } = await db.from('ocorrencias').select('*').order('data', { ascending: false }).limit(2000);
+  if (error) return erroNaTela(error);
+  const todas = (lista || []).sort((x, y) => (y.data + String(y.id).padStart(9, '0')).localeCompare(x.data + String(x.id).padStart(9, '0')));
+  const turmaDe = (alunoId) => estado.matriculas.find(m => m.aluno_id === alunoId);
+  const f = estado.filtroOc || (estado.filtroOc = { turma: '', situacao: 'abertas', nome: '' });
+  $('#conteudo').innerHTML = `
+    <div class="barra"><h1>Ocorrências</h1><div class="espaco"></div>
+      <button class="botao leve" id="oc-imprimir-lista">Imprimir lista</button>
+      <button class="botao" id="oc-nova">+ Registrar ocorrência</button></div>
+    <p class="subtitulo">Visível só para admin e coordenação. Clique no nome do aluno para abrir a ficha.</p>
+    <div class="barra">
+      <select id="oc-f-turma"><option value="">Todas as turmas</option>${estado.turmas.map(t => `<option value="${t.id}" ${String(t.id) === f.turma ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select>
+      <select id="oc-f-situacao">
+        <option value="abertas" ${f.situacao === 'abertas' ? 'selected' : ''}>Em aberto</option>
+        <option value="todas" ${f.situacao === 'todas' ? 'selected' : ''}>Todas</option>
+        <option value="resolvidas" ${f.situacao === 'resolvidas' ? 'selected' : ''}>Resolvidas</option>
+        <option value="sem-aviso" ${f.situacao === 'sem-aviso' ? 'selected' : ''}>Família não avisada</option></select>
+      <input type="search" id="oc-f-nome" placeholder="Filtrar por nome" value="${esc(f.nome)}" style="max-width:280px">
+    </div>
+    <div id="oc-tabela"></div>`;
+  let visiveis = [];
+  const desenhar = () => {
+    f.turma = $('#oc-f-turma').value; f.situacao = $('#oc-f-situacao').value; f.nome = $('#oc-f-nome').value;
+    const busca = semAcento(f.nome.trim());
+    visiveis = todas.filter(o => {
+      const m = turmaDe(o.aluno_id), al = estado.alunos.get(o.aluno_id);
+      if (f.turma && String(m?.turma_id) !== f.turma) return false;
+      if (f.situacao === 'abertas' && o.resolvida) return false;
+      if (f.situacao === 'resolvidas' && !o.resolvida) return false;
+      if (f.situacao === 'sem-aviso' && o.responsavel_avisado) return false;
+      if (busca && !semAcento(al?.nome || '').includes(busca)) return false;
+      return true;
+    });
+    $('#oc-tabela').innerHTML = !visiveis.length ? '<p class="subtitulo">Nenhuma ocorrência com esses filtros.</p>' : `
+      <div class="rolavel"><table>
+        <thead><tr><th>Data</th><th>Aluno</th><th>Turma</th><th>O que aconteceu</th><th>Providência</th><th>Família</th><th>Situação</th></tr></thead>
+        <tbody>${visiveis.map(o => { const m = turmaDe(o.aluno_id), al = estado.alunos.get(o.aluno_id);
+          return `<tr><td>${esc(data(o.data))}</td>
+            <td><button class="botao leve pequeno" data-aluno="${o.aluno_id}">${esc(al?.nome || 'Aluno ' + o.aluno_id)}</button></td>
+            <td>${esc(nomeTurma(m?.turma_id))}${m?.situacao === 'desistente' ? ' <span class="vazio">(desistente)</span>' : ''}</td>
+            <td>${esc(o.descricao)}</td><td>${esc(o.providencia || '—')}</td>
+            <td>${o.responsavel_avisado ? `avisada${o.data_aviso ? ' ' + esc(data(o.data_aviso)) : ''}` : '<span class="status vermelho">não avisada</span>'}</td>
+            <td><span class="status ${o.resolvida ? 'fechada' : 'vermelho'}">${o.resolvida ? 'resolvida' : 'em aberto'}</span></td></tr>`; }).join('')}</tbody>
+      </table></div>`;
+    document.querySelectorAll('#oc-tabela [data-aluno]').forEach(b => b.onclick = () => abrirFicha(Number(b.dataset.aluno)));
+  };
+  ['#oc-f-turma', '#oc-f-situacao'].forEach(s => $(s).onchange = desenhar);
+  $('#oc-f-nome').oninput = desenhar;
+  desenhar();
+  $('#oc-nova').onclick = () => formOcorrencia(null, null, () => { fecharFicha(); paginaOcorrencias(); });
+  $('#oc-imprimir-lista').onclick = () => {
+    const filtros = [f.turma ? nomeTurma(Number(f.turma)) : 'todas as turmas',
+      { abertas: 'em aberto', todas: 'todas', resolvidas: 'resolvidas', 'sem-aviso': 'família não avisada' }[f.situacao]];
+    $('#impressao').innerHTML = `
+      <div class="imp-topo"><h1>OCORRÊNCIAS</h1><span>${esc(filtros.join(' · '))} · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+      <table class="imp-tabela"><thead><tr><th>Data</th><th>Aluno</th><th>Turma</th><th>O que aconteceu</th><th>Providência</th><th>Família</th><th>Situação</th></tr></thead>
+      <tbody>${visiveis.map(o => { const m = turmaDe(o.aluno_id);
+        return `<tr><td>${esc(data(o.data))}</td><td>${esc(estado.alunos.get(o.aluno_id)?.nome || '')}</td><td>${esc(nomeTurma(m?.turma_id))}</td>
+          <td>${esc(o.descricao)}</td><td>${esc(o.providencia || '—')}</td><td>${o.responsavel_avisado ? 'avisada' : 'não avisada'}</td><td>${o.resolvida ? 'resolvida' : 'em aberto'}</td></tr>`; }).join('')}</tbody></table>
+      <p class="imp-rodape">${visiveis.length} ocorrência(s)</p>`;
+    setTimeout(() => window.print(), 100);
   };
 }
 
