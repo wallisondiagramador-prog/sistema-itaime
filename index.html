@@ -124,6 +124,8 @@
   .botao.perigo:hover { background: #8f1c13; }
   .linha-acao { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
   .linha-acao select, .linha-acao input { flex: 1 1 160px; min-width: 140px; }
+  .campo-foto { display: flex; gap: 16px; align-items: center; }
+  .campo-foto .foto, .campo-foto .sem-foto { width: 96px; height: 96px; border-radius: 10px; object-fit: cover; flex-shrink: 0; font-size: 26px; }
   .acoes-ficha { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .form-edicao { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 16px; }
   .form-edicao label { margin: 8px 0 4px; font-size: 12.5px; color: var(--suave); }
@@ -393,24 +395,37 @@ async function iniciar() {
   estado.turmas = t.data;
   estado.matriculas = m.data;
   estado.alunos = new Map(a.data.map(x => [x.id, x]));
-  irPara('turmas');
+  irPara('turmas', undefined, 'replace');
 }
 
 // depois de mudar turma / desistente: recarrega as matrículas e redesenha a página aberta
 async function recarregarMatriculas() {
   const { data } = await db.from('matriculas').select('aluno_id, turma_id, ordem, situacao, data_saida, motivo_saida').eq('ano_letivo', ANO_LETIVO);
   if (data) estado.matriculas = data;
-  if (estado.pagina) irPara(...estado.pagina);
+  if (estado.pagina) irPara(estado.pagina[0], estado.pagina[1], 'nada');
 }
 
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => irPara(b.dataset.pagina));
-function irPara(pagina, extra) {
+// cada tela fica guardada no histórico do navegador: o botão "Voltar" do navegador volta para a tela anterior do sistema
+function irPara(pagina, extra, modo) {
+  const mesma = estado.pagina && estado.pagina[0] === pagina && estado.pagina[1] === extra;
+  modo = modo || (mesma ? 'replace' : 'push');
+  try {
+    if (modo === 'push') history.pushState({ pagina, extra }, '');
+    else if (modo === 'replace') history.replaceState({ pagina, extra }, '');
+  } catch (e) { /* navegador sem histórico: segue normal */ }
   estado.pagina = [pagina, extra];
   const menu = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' }[pagina] || pagina;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === menu));
   ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe,
      notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores })[pagina](extra);
 }
+
+window.addEventListener('popstate', (e) => {
+  if (!e.state || !e.state.pagina || !estado.turmas.length) return;
+  fecharFicha();
+  irPara(e.state.pagina, e.state.extra, 'nada');
+});
 
 // =====================================================================
 // FOTOS: ficam num espaço privado; pedimos links temporários (1 hora)
@@ -442,7 +457,9 @@ function paginaTurmas() {
   const desistentes = estado.matriculas.filter(m => m.situacao === 'desistente')
     .map(m => ({ m, a: estado.alunos.get(m.aluno_id) })).filter(x => x.a).sort((x, y) => x.a.nome.localeCompare(y.a.nome));
   $('#conteudo').innerHTML = `
-    <h1>Turmas ${ANO_LETIVO}</h1>
+    <div class="barra"><h1>Turmas ${ANO_LETIVO}</h1><div class="espaco"></div>
+      ${veTudo() ? `<button class="botao leve" id="importar-alunos">Importar alunos (Excel)</button>
+      <button class="botao" id="novo-aluno">+ Novo aluno</button>` : ''}</div>
     <p class="subtitulo">${ativos} alunos matriculados. Clique numa turma para ver o carômetro.</p>
     <div class="grade-turmas">
       ${estado.turmas.map(t => `
@@ -458,6 +475,8 @@ function paginaTurmas() {
       </div>` : ''}`;
   document.querySelectorAll('[data-turma]').forEach(b => b.onclick = () => irPara('turma', Number(b.dataset.turma)));
   document.querySelectorAll('.lista-desistentes [data-aluno]').forEach(b => b.onclick = () => abrirFicha(Number(b.dataset.aluno)));
+  if ($('#novo-aluno')) $('#novo-aluno').onclick = () => novoAluno();
+  if ($('#importar-alunos')) $('#importar-alunos').onclick = importarAlunos;
 }
 
 async function paginaTurma(turmaId) {
@@ -480,8 +499,10 @@ async function paginaTurma(turmaId) {
         <button data-visao="lista" class="${estado.visao === 'lista' ? 'ativa' : ''}">Lista</button>
       </div>
       <button class="botao leve" id="imprimir">Imprimir</button>
+      ${veTudo() ? '<button class="botao" id="novo-aluno">+ Novo aluno</button>' : ''}
     </div>
     <div id="alunos-turma"></div>`;
+  if ($('#novo-aluno')) $('#novo-aluno').onclick = () => novoAluno(turmaId);
   $('#voltar').onclick = () => irPara('turmas');
   $('#imprimir').onclick = () => imprimirCarometro(turma, lista);
   document.querySelectorAll('[data-visao]').forEach(b => b.onclick = () => { estado.visao = b.dataset.visao; paginaTurma(turmaId); });
@@ -577,6 +598,7 @@ async function abrirFicha(id) {
     mudou_turma: `Mudou da ${esc(nomeTurma(x.de_turma))} para a ${esc(nomeTurma(x.para_turma))}`,
     desistente: `Marcado como desistente (estava na ${esc(nomeTurma(x.de_turma))})`,
     reativado: `Reativado na ${esc(nomeTurma(x.para_turma))}`,
+    matriculado: `Matriculado na ${esc(nomeTurma(x.para_turma))}`,
   })[x.tipo] + (x.motivo ? ` — ${esc(x.motivo)}` : '');
   const opcoesTurma = (marcada) => estado.turmas.map(t => `<option value="${t.id}" ${t.id === marcada ? 'selected' : ''}>${esc(t.nome)}</option>`).join('');
   // data de hoje no fuso do computador (toISOString daria a data em UTC, que vira o dia às 21h)
@@ -720,9 +742,11 @@ function mostrarBoletim(a, notas, topo, id) {
   };
 }
 
-// Edição do cadastro (admin e coordenação)
+// Formulário do aluno (admin e coordenação): editar um aluno (id) ou cadastrar um novo (id = null)
 function mostrarEdicao(id, a, responsaveis, matricula, topo) {
-  const ativo = matricula && matricula.situacao === 'ativo';
+  const novo = id == null;
+  const ativo = novo || (matricula && matricula.situacao === 'ativo');
+  const turmaAtual = matricula?.turma_id;
   const ent = (nome, rotulo, valor, tipo = 'text', extra = '') =>
     `<div class="${extra}"><label for="ed-${nome}">${rotulo}</label><input type="${tipo}" id="ed-${nome}" value="${esc(valor || '')}"></div>`;
   const blocoResp = (r, i) => `
@@ -734,13 +758,23 @@ function mostrarEdicao(id, a, responsaveis, matricula, topo) {
       ${ent(`r${i}-cep`, 'CEP', cep(r.cep))}
       ${ent(`r${i}-cidade`, 'Cidade', r.cidade)}
     </div></div>`;
+  const fotoAtual = !novo && estado.fotos.get(id);
   $('#ficha').innerHTML = `
-    ${topo('<div class="acoes-ficha"><span class="subtitulo" style="margin:0">Editando cadastro</span></div>')}
+    ${novo ? `<div class="modal-topo"><div><h2>Novo aluno</h2><span class="subtitulo" style="margin:0">Preencha o que tiver; só o nome e a turma são obrigatórios.</span></div>
+      <button class="fechar" aria-label="Fechar">×</button></div>`
+      : topo('<div class="acoes-ficha"><span class="subtitulo" style="margin:0">Editando cadastro</span></div>')}
+    <div class="secao"><h3>Foto</h3>
+      <div class="campo-foto">
+        <div id="previa-foto">${fotoAtual ? `<img class="foto" src="${esc(fotoAtual)}" alt="">` : `<div class="sem-foto">${esc(iniciais(a.nome || '') || '?')}</div>`}</div>
+        <div><label class="botao leve" for="ed-foto" style="display:inline-block;margin:0">${fotoAtual ? 'Trocar foto' : 'Escolher foto'}</label>
+          <input type="file" id="ed-foto" accept="image/jpeg,image/png,image/webp" class="escondido">
+          <p class="subtitulo" style="margin:6px 0 0">JPG ou PNG. A foto é ajustada automaticamente para ficar leve.</p></div>
+      </div></div>
     <div class="secao"><h3>Aluno</h3><div class="form-edicao">
       ${ent('nome', 'Nome completo', a.nome, 'text', 'largo')}
-      ${ativo ? `<div><label for="ed-turma">Turma (${ANO_LETIVO})</label><select id="ed-turma">${estado.turmas.map(t =>
-        `<option value="${t.id}" ${t.id === matricula.turma_id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select></div>
-        <div id="motivo-turma-caixa" class="escondido"><label for="ed-motivo-turma">Motivo da mudança de turma</label><input type="text" id="ed-motivo-turma" placeholder="Opcional"></div>` : ''}
+      ${ativo ? `<div><label for="ed-turma">Turma (${ANO_LETIVO})</label><select id="ed-turma">${novo && !turmaAtual ? '<option value="">Escolha a turma…</option>' : ''}${estado.turmas.map(t =>
+        `<option value="${t.id}" ${t.id === turmaAtual ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select></div>
+        ${novo ? '' : `<div id="motivo-turma-caixa" class="escondido"><label for="ed-motivo-turma">Motivo da mudança de turma</label><input type="text" id="ed-motivo-turma" placeholder="Opcional"></div>`}` : ''}
       ${ent('nascimento', 'Data de nascimento', a.data_nascimento, 'date')}
       ${ent('telefone', 'Telefone', telefone(a.telefone), 'tel')}
       ${ent('email', 'E-mail', a.email, 'email')}
@@ -756,22 +790,29 @@ function mostrarEdicao(id, a, responsaveis, matricula, topo) {
     <div id="msg-edicao" class="aviso erro escondido" style="margin:0 24px 14px"></div>
     <div class="rodape-ficha">
       <button class="botao leve" id="cancelar-edicao">Cancelar</button>
-      <button class="botao" id="salvar-edicao">Salvar alterações</button>
+      <button class="botao" id="salvar-edicao">${novo ? 'Cadastrar aluno' : 'Salvar alterações'}</button>
     </div>`;
   $('#ficha .fechar').onclick = fecharFicha;
   $('#ficha').scrollTop = 0;
   let novos = responsaveis.length;
+  let fotoEscolhida = null;
+  $('#ed-foto').onchange = (e) => {
+    fotoEscolhida = e.target.files[0] || null;
+    if (fotoEscolhida) $('#previa-foto').innerHTML = `<img class="foto" src="${URL.createObjectURL(fotoEscolhida)}" alt="">`;
+  };
   $('#add-resp').onclick = () => { $('#lista-resp').insertAdjacentHTML('beforeend', blocoResp({}, novos++)); };
-  if ($('#ed-turma')) $('#ed-turma').onchange = () =>
-    $('#motivo-turma-caixa').classList.toggle('escondido', Number($('#ed-turma').value) === matricula.turma_id);
-  $('#cancelar-edicao').onclick = () => abrirFicha(id);
+  if (!novo && $('#ed-turma')) $('#ed-turma').onchange = () =>
+    $('#motivo-turma-caixa').classList.toggle('escondido', Number($('#ed-turma').value) === turmaAtual);
+  $('#cancelar-edicao').onclick = () => novo ? fecharFicha() : abrirFicha(id);
   $('#salvar-edicao').onclick = async (e) => {
+    const botao = e.target, rotulo = botao.textContent;
     const v = (k) => $('#ed-' + k).value;
-    const erro = (m) => { $('#msg-edicao').textContent = m; $('#msg-edicao').classList.remove('escondido'); e.target.disabled = false; };
+    const erro = (m) => { $('#msg-edicao').textContent = m; $('#msg-edicao').classList.remove('escondido'); botao.disabled = false; botao.textContent = rotulo; };
     if (!v('nome').trim()) return erro('O nome do aluno não pode ficar vazio.');
+    if (novo && !v('turma')) return erro('Escolha a turma do aluno.');
     const email = v('email').trim();
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return erro('O e-mail parece incompleto. Confira e tente de novo.');
-    e.target.disabled = true; e.target.textContent = 'Salvando…';
+    botao.disabled = true; botao.textContent = 'Salvando…';
     const dados = { nome: v('nome'), data_nascimento: v('nascimento'), telefone: v('telefone'), email, rg: v('rg'), cpf: v('cpf'),
       endereco: v('endereco'), bairro: v('bairro'), cep: v('cep'), cidade: v('cidade'), observacao: $('#ed-observacao').value };
     const resps = [...document.querySelectorAll('#lista-resp .resp')].map(div => {
@@ -779,19 +820,214 @@ function mostrarEdicao(id, a, responsaveis, matricula, topo) {
       return { id: div.dataset.resp ? Number(div.dataset.resp) : null, nome: campo('nome'), telefone: campo('telefone'),
         endereco: campo('endereco'), bairro: campo('bairro'), cep: campo('cep'), cidade: campo('cidade') };
     });
-    const { error } = await db.rpc('editar_aluno', { p_aluno: id, p_dados: dados, p_resps: resps });
-    if (error) { e.target.textContent = 'Salvar alterações'; return erro('Não foi possível salvar: ' + error.message); }
-    if ($('#ed-turma') && Number($('#ed-turma').value) !== matricula.turma_id) {
-      const r = await db.rpc('mudar_turma', { p_aluno: id, p_turma: Number($('#ed-turma').value), p_ano: ANO_LETIVO, p_motivo: $('#ed-motivo-turma').value.trim() || null });
-      if (r.error) { e.target.textContent = 'Salvar alterações'; return erro('O cadastro foi salvo, mas não consegui mudar a turma: ' + r.error.message); }
+    let alunoId = id;
+    if (novo) {
+      const { data: idNovo, error } = await db.rpc('cadastrar_aluno', { p_dados: dados, p_resps: resps, p_turma: Number(v('turma')), p_ano: ANO_LETIVO, p_fonte: 'Cadastro manual' });
+      if (error) return erro('Não foi possível cadastrar: ' + error.message);
+      alunoId = idNovo;
+    } else {
+      const { error } = await db.rpc('editar_aluno', { p_aluno: id, p_dados: dados, p_resps: resps });
+      if (error) return erro('Não foi possível salvar: ' + error.message);
+      if ($('#ed-turma') && Number($('#ed-turma').value) !== turmaAtual) {
+        const r = await db.rpc('mudar_turma', { p_aluno: id, p_turma: Number($('#ed-turma').value), p_ano: ANO_LETIVO, p_motivo: $('#ed-motivo-turma').value.trim() || null });
+        if (r.error) return erro('O cadastro foi salvo, mas não consegui mudar a turma: ' + r.error.message);
+      }
     }
-    // atualiza o nome/contato usados nas listas
-    const { data: novo } = await db.from('alunos_basico').select('*').eq('id', id).single();
-    if (novo) estado.alunos.set(id, novo);
+    let avisoFoto = '';
+    if (fotoEscolhida) {
+      botao.textContent = 'Enviando foto…';
+      const r = await enviarFoto(alunoId, dados.nome, fotoEscolhida);
+      if (r) avisoFoto = r;
+    }
+    // atualiza o nome/contato/foto usados nas listas
+    const { data: atual } = await db.from('alunos_basico').select('*').eq('id', alunoId).single();
+    if (atual) { estado.alunos.set(alunoId, atual); if (fotoEscolhida) { estado.fotos.delete(alunoId); await carregarFotos([alunoId]); } }
     await recarregarMatriculas();
-    abrirFicha(id);
+    await abrirFicha(alunoId);
+    if (avisoFoto) alert(avisoFoto);
   };
 }
+
+// ---------- Fotos: reduz no próprio navegador e envia para o espaço de fotos ----------
+const nomeArquivo = (nome) => semAcento(nome).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+async function reduzirFoto(arquivo, lado = 800) {
+  const img = await createImageBitmap(arquivo);
+  const escala = Math.min(1, lado / Math.max(img.width, img.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.width * escala); c.height = Math.round(img.height * escala);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return await new Promise(ok => c.toBlob(ok, 'image/jpeg', 0.85));
+}
+// devolve null se deu certo, ou o texto do problema
+async function enviarFoto(alunoId, nome, arquivo) {
+  let blob;
+  try { blob = await reduzirFoto(arquivo); }
+  catch { return `Não consegui abrir a foto "${arquivo.name}". Use uma foto JPG ou PNG.`; }
+  const caminho = `${nomeArquivo(nome)}_${alunoId}.jpg`;
+  const { error } = await db.storage.from('fotos').upload(caminho, blob, { upsert: true, contentType: 'image/jpeg' });
+  if (error) return 'O cadastro foi salvo, mas a foto não foi enviada: ' + error.message;
+  const { error: e2 } = await db.from('alunos').update({ foto: 'fotos/' + caminho }).eq('id', alunoId);
+  if (e2) return 'A foto foi enviada, mas não consegui ligá-la ao aluno: ' + e2.message;
+  estado.fotos.delete(alunoId);
+  const b = estado.alunos.get(alunoId); if (b) b.foto = 'fotos/' + caminho;
+  await carregarFotos([alunoId]);
+  return null;
+}
+
+// ---------- Cadastro manual ----------
+function novoAluno(turmaId = null) {
+  $('#fundo-ficha').classList.remove('escondido');
+  mostrarEdicao(null, {}, [{}], { turma_id: turmaId, situacao: 'ativo' }, null);
+}
+
+// ---------- Cadastro pela planilha (Excel) ----------
+const COLUNAS_ALUNOS = ['NOME', 'TURMA', 'DATA DE NASCIMENTO', 'TELEFONE', 'EMAIL', 'RG', 'CPF', 'ENDEREÇO', 'BAIRRO', 'CEP', 'CIDADE',
+  'RESPONSÁVEL', 'TELEFONE DO RESPONSÁVEL', 'OBSERVAÇÃO', 'FOTO'];
+const chaveTurma = (t) => semAcento(String(t || '')).replace(/SERIE|ANO/g, '').replace(/[^A-Z0-9]/g, '');
+function dataDaPlanilha(v) {
+  if (v === '' || v == null) return { ok: '' };
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  if (v instanceof Date && !isNaN(v)) return { ok: iso(new Date(v.getTime() + 12 * 3600000)) };
+  if (typeof v === 'number') return { ok: iso(new Date(Math.round((v - 25569) * 86400000) + 12 * 3600000)) };
+  const t = String(v).trim();
+  let m = t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);
+  if (m) { const ano = m[3].length === 2 ? (Number(m[3]) > 30 ? '19' : '20') + m[3] : m[3];
+    return { ok: `${ano}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` }; }
+  m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return { ok: `${m[1]}-${m[2]}-${m[3]}` };
+  return { erro: `data de nascimento "${t}" não reconhecida (use dd/mm/aaaa)` };
+}
+function dataDaPlanilhaValida(v) {
+  const r = dataDaPlanilha(v);
+  if (!r.ok) return r;
+  const [a, m, d] = r.ok.split('-').map(Number), dt = new Date(a, m - 1, d);
+  if (dt.getFullYear() !== a || dt.getMonth() !== m - 1 || dt.getDate() !== d || a < 1950 || a > new Date().getFullYear())
+    return { erro: `data de nascimento "${String(v).trim()}" não existe (use dd/mm/aaaa)` };
+  return r;
+}
+function importarAlunos() {
+  $('#fundo-ficha').classList.remove('escondido');
+  $('#ficha').classList.add('largo');
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2>Importar alunos pela planilha</h2>
+      <span class="subtitulo" style="margin:0">Uma linha por aluno. Só NOME e TURMA são obrigatórios.</span></div>
+      <button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao">
+      <p style="margin-top:0"><strong>1.</strong> Baixe o modelo, preencha e salve.
+        <button class="botao leve pequeno" id="modelo-alunos">Baixar modelo</button></p>
+      <p><strong>2.</strong> Escolha a planilha preenchida: <input type="file" id="planilha-alunos" accept=".xlsx,.xls,.csv"></p>
+      <p style="margin-bottom:0"><strong>3.</strong> (Opcional) Escolha as fotos — pode selecionar várias de uma vez:
+        <input type="file" id="fotos-alunos" accept="image/jpeg,image/png,image/webp" multiple></p>
+      <p class="subtitulo" style="margin:6px 0 0">A foto é ligada ao aluno pelo nome do arquivo escrito na coluna FOTO
+        (ex.: <em>joao.jpg</em>). Se a coluna estiver vazia, o sistema procura uma foto com o nome do aluno (ex.: <em>joao_pedro_silva.jpg</em>).</p>
+    </div>
+    <div id="previa-importacao"></div>`;
+  $('#ficha .fechar').onclick = fecharFicha;
+  let linhas = [], fotos = [];
+  $('#modelo-alunos').onclick = async () => {
+    await carregarScript(XLSX_URL);
+    const ws = XLSX.utils.aoa_to_sheet([COLUNAS_ALUNOS,
+      ['Exemplo da Silva', '1ª Série A', '25/06/2010', '(86) 99999-0000', 'exemplo@gmail.com', '1234567', '000.000.000-00',
+       'Rua Exemplo, 100', 'Centro', '64000-000', 'Teresina', 'Maria da Silva', '(86) 98888-0000', '', 'exemplo.jpg']]);
+    ws['!cols'] = COLUNAS_ALUNOS.map(c => ({ wch: Math.max(14, c.length + 2) }));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Alunos');
+    XLSX.writeFile(wb, 'modelo_alunos.xlsx');
+  };
+  const analisar = () => {
+    const nomesExistentes = new Set([...estado.alunos.values()].map(x => semAcento(x.nome).replace(/\s+/g, ' ').trim()));
+    const turmaPor = new Map(estado.turmas.map(t => [chaveTurma(t.nome), t]));
+    const vistos = new Set();
+    const fotoPor = new Map(fotos.map(f => [f.name.toLowerCase(), f]));
+    const fotoPorNome = new Map(fotos.map(f => [nomeArquivo(f.name.replace(/\.[^.]+$/, '')), f]));
+    return linhas.map((l, i) => {
+      const nome = String(l.NOME || '').trim().replace(/\s+/g, ' ');
+      const chave = semAcento(nome);
+      const turma = turmaPor.get(chaveTurma(l.TURMA));
+      const nasc = dataDaPlanilhaValida(l['DATA DE NASCIMENTO']);
+      const nomeFoto = String(l.FOTO || '').trim();
+      const foto = nomeFoto ? fotoPor.get(nomeFoto.toLowerCase()) || fotoPor.get(nomeFoto.toLowerCase() + '.jpg') : fotoPorNome.get(nomeArquivo(nome));
+      const problemas = [];
+      if (!nome) problemas.push('sem nome');
+      if (!turma) problemas.push(l.TURMA ? `turma "${l.TURMA}" não encontrada` : 'sem turma');
+      if (nasc.erro) problemas.push(nasc.erro);
+      if (nome && nomesExistentes.has(chave)) problemas.push('já está cadastrado');
+      if (nome && vistos.has(chave)) problemas.push('aparece duas vezes na planilha');
+      vistos.add(chave);
+      return { linha: i + 2, nome, turma, nasc: nasc.ok, foto, nomeFoto, problemas, l };
+    });
+  };
+  const desenhar = () => {
+    if (!linhas.length) { $('#previa-importacao').innerHTML = ''; return; }
+    const r = analisar();
+    const bons = r.filter(x => !x.problemas.length);
+    $('#previa-importacao').innerHTML = `
+      <div class="secao"><h3>Conferência (${r.length} linhas)</h3>
+        <div class="rolavel"><table>
+          <thead><tr><th class="num">Linha</th><th>Nome</th><th>Turma</th><th>Nascimento</th><th>Foto</th><th>Situação</th></tr></thead>
+          <tbody>${r.map(x => `<tr class="${x.problemas.length ? 'com-erro' : ''}"><td class="num">${x.linha}</td><td>${esc(x.nome || '—')}</td>
+            <td>${esc(x.turma?.nome || String(x.l.TURMA || '—'))}</td><td>${esc(data(x.nasc) || '—')}</td>
+            <td>${x.foto ? '✓ ' + esc(x.foto.name) : x.nomeFoto ? `<span class="vazio">${esc(x.nomeFoto)} não escolhida</span>` : '<span class="vazio">sem foto</span>'}</td>
+            <td>${x.problemas.length ? `<span class="motivo" style="margin:0">${esc(x.problemas.join('; '))}</span>` : 'pronto'}</td></tr>`).join('')}</tbody>
+        </table></div>
+        ${r.length - bons.length ? `<p class="subtitulo">${r.length - bons.length} linha(s) em vermelho não serão cadastradas. Corrija a planilha e escolha de novo, ou cadastre só as que estão prontas.</p>` : ''}
+      </div>
+      <div id="msg-importar-alunos" class="aviso escondido" style="margin:0 24px 14px"></div>
+      <div class="rodape-ficha"><button class="botao leve" id="fechar-importar">Cancelar</button>
+        <button class="botao" id="cadastrar-todos" ${bons.length ? '' : 'disabled'}>Cadastrar ${bons.length} aluno${bons.length === 1 ? '' : 's'}</button></div>`;
+    $('#fechar-importar').onclick = fecharFicha;
+    $('#cadastrar-todos').onclick = async (e) => {
+      const botao = e.target; botao.disabled = true;
+      const msg = $('#msg-importar-alunos'); msg.classList.remove('escondido', 'erro');
+      const falhas = []; let feitos = 0, fotosOk = 0;
+      for (const x of bons) {
+        botao.textContent = `Cadastrando ${feitos + 1} de ${bons.length}…`;
+        const l = x.l, t = (k) => String(l[k] ?? '').trim();
+        const dados = { nome: x.nome, data_nascimento: x.nasc, telefone: t('TELEFONE'), email: t('EMAIL'), rg: t('RG'), cpf: t('CPF'),
+          endereco: t('ENDEREÇO'), bairro: t('BAIRRO'), cep: t('CEP'), cidade: t('CIDADE'), observacao: t('OBSERVAÇÃO') };
+        const resps = t('RESPONSÁVEL') ? [{ nome: t('RESPONSÁVEL'), telefone: t('TELEFONE DO RESPONSÁVEL') }] : [];
+        const { data: idNovo, error } = await db.rpc('cadastrar_aluno', { p_dados: dados, p_resps: resps, p_turma: x.turma.id, p_ano: ANO_LETIVO, p_fonte: 'Planilha de alunos' });
+        if (error) { falhas.push(`${x.nome}: ${error.message}`); continue; }
+        feitos++;
+        const { data: basico } = await db.from('alunos_basico').select('*').eq('id', idNovo).single();
+        if (basico) estado.alunos.set(idNovo, basico);
+        if (x.foto) {
+          const r = await enviarFoto(idNovo, x.nome, x.foto);
+          if (r) falhas.push(`${x.nome}: ${r}`); else fotosOk++;
+        }
+      }
+      await recarregarMatriculas();
+      botao.textContent = 'Concluído';
+      msg.classList.toggle('erro', falhas.length > 0);
+      msg.innerHTML = `<strong>${feitos} aluno${feitos === 1 ? '' : 's'} cadastrado${feitos === 1 ? '' : 's'}</strong>${fotosOk ? `, ${fotosOk} com foto` : ''}.`
+        + (falhas.length ? `<br>Não deu certo:<br>${falhas.map(esc).join('<br>')}` : '');
+      $('#fechar-importar').textContent = 'Fechar';
+    };
+  };
+  $('#planilha-alunos').onchange = async (e) => {
+    const arq = e.target.files[0]; if (!arq) return;
+    try {
+      await carregarScript(XLSX_URL);
+      const wb = XLSX.read(await arq.arrayBuffer(), { cellDates: true });
+      const brutas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+      // aceita os títulos com ou sem acento / maiúsculas
+      linhas = brutas.map(r => {
+        const o = {};
+        for (const [k, v] of Object.entries(r)) {
+          const kk = semAcento(k).trim().replace(/\s+/g, ' ');
+          const certo = COLUNAS_ALUNOS.find(c => semAcento(c) === kk) || (kk === 'E-MAIL' ? 'EMAIL' : kk === 'ENDERECO' ? 'ENDEREÇO' : k);
+          o[certo] = v;
+        }
+        return o;
+      }).filter(o => String(o.NOME || '').trim() && String(o.NOME).trim() !== 'Exemplo da Silva');
+      if (!linhas.length) $('#previa-importacao').innerHTML = '<div class="secao"><div class="aviso erro">Não encontrei alunos na planilha. Confira se a primeira linha tem os títulos do modelo (NOME, TURMA…).</div></div>';
+      else desenhar();
+    } catch (err) {
+      $('#previa-importacao').innerHTML = `<div class="secao"><div class="aviso erro">Não consegui ler a planilha: ${esc(err.message)}</div></div>`;
+    }
+  };
+  $('#fotos-alunos').onchange = (e) => { fotos = [...e.target.files]; desenhar(); };
+}
+
 function fecharFicha() { $('#fundo-ficha').classList.add('escondido'); $('#ficha').classList.remove('largo'); }
 $('#fundo-ficha').onclick = (e) => { if (e.target.id === 'fundo-ficha') fecharFicha(); };
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharFicha(); });
