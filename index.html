@@ -121,6 +121,17 @@
   .nota.salvo { border-color: var(--verde); background: var(--verde-claro); }
   .nota.invalido { border-color: var(--erro); background: #fdecea; }
   .acima { color: var(--erro); font-weight: 700; }
+  /* comparação com a nota de corte */
+  .ok-corte { background: var(--verde-claro); color: var(--verde-escuro); font-weight: 700; }
+  .sob-corte { background: #fdecea; color: var(--erro); font-weight: 700; }
+  .tabela-cortes input.nota { width: 70px; }
+  .legenda-corte { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--suave); margin: 8px 0 12px; }
+  .legenda-corte span { display: inline-flex; gap: 6px; align-items: center; }
+  .legenda-corte i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; }
+  .graficos { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+  .grafico { border: 1px solid var(--borda); border-radius: 10px; padding: 8px 10px 4px; background: var(--branco); }
+  .grafico h4 { margin: 0 0 2px; font-size: 13px; }
+  .grafico svg { width: 100%; height: auto; display: block; }
   td.num, th.num { text-align: center; }
   td.forte { font-weight: 700; }
   .pendente { color: var(--suave); font-size: 13px; font-style: italic; }
@@ -196,6 +207,10 @@
     .imp-topo h1 { font-size: 16pt; margin: 0; color: var(--verde); }
     .imp-topo span { font-size: 9pt; color: #444; }
     .imp-boletim h2 { font-size: 11pt; margin: 14px 0 6px; }
+    .imp-tabela td.ok-corte, .imp-tabela td.sob-corte { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .imp-graficos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; break-inside: avoid; }
+    .imp-graficos .grafico { border: 1px solid #bbb; border-radius: 4px; padding: 4px; break-inside: avoid; }
+    .imp-graficos h4 { font-size: 8.5pt; margin: 0; }
     .imp-grade { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
     .imp-aluno { border: 1px solid #bbb; border-radius: 6px; overflow: hidden; break-inside: avoid; }
     .imp-aluno .foto, .imp-aluno .sem-foto { aspect-ratio: 1 / 1; width: 100%; font-size: 22pt; }
@@ -241,6 +256,7 @@
       <nav>
         <button data-pagina="turmas" class="ativa">Turmas</button>
         <button data-pagina="notas">Notas</button>
+        <button data-pagina="comparativos">Comparativos</button>
         <button data-pagina="busca">Buscar aluno</button>
         <button data-pagina="ocorrencias" id="nav-ocorrencias" class="escondido">Ocorrências</button>
         <button data-pagina="professores" id="nav-professores" class="escondido">Professores</button>
@@ -443,7 +459,7 @@ function irPara(pagina, extra, modo) {
   const menu = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' }[pagina] || pagina;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === menu));
   ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe,
-     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias })[pagina](extra);
+     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias, comparativos: paginaComparativos })[pagina](extra);
 }
 
 window.addEventListener('popstate', (e) => {
@@ -695,7 +711,7 @@ async function abrirFicha(id, aba) {
       ${a.observacao ? `<div class="secao"><h3>Observação</h3><div>${esc(a.observacao)}</div></div>` : ''}
     ` : `<div class="secao"><p class="subtitulo" style="margin:0">Documentos, endereço e responsável ficam visíveis só para a coordenação.</p></div>`}`;
   $('#ficha .fechar').onclick = fecharFicha;
-  $('#ver-boletim').onclick = () => mostrarBoletim(a, notasAluno || [], topo, id);
+  $('#ver-boletim').onclick = async () => { await carregarCortes(); mostrarBoletim(a, notasAluno || [], topo, id); };
   if ($('#editar-aluno')) $('#editar-aluno').onclick = () => mostrarEdicao(id, a, responsaveis, matricula, topo);
   const abrirOcorrencias = () => mostrarOcorrencias({ a, basico, ocorrencias, topo, id, responsaveis, nomeTurmaAluno: turma?.nome || '' });
   if ($('#ver-ocorrencias')) $('#ver-ocorrencias').onclick = abrirOcorrencias;
@@ -761,12 +777,19 @@ function mostrarBoletim(a, notas, topo, id) {
         </table></div>`).join('')}
       <p class="subtitulo" style="margin:12px 0 0">Nota em destaque = nota final (com multiplicador, no máximo 10). Quando é diferente, a nota real aparece embaixo.</p>
     </div>
+    ${ciclos.length ? `<div class="secao"><h3>Evolução e notas de corte</h3>
+      <div class="barra" style="margin:0 0 10px">${seletorVestibular('evo-vest')}</div>
+      <div id="evolucao"></div></div>` : ''}
     <div class="rodape-ficha">
       ${ciclos.length ? '<button class="botao leve" id="imprimir-boletim">Imprimir boletim</button>' : ''}
       <button class="botao" id="voltar-ficha">Voltar à ficha</button>
     </div>`;
   $('#ficha .fechar').onclick = fecharFicha;
   $('#voltar-ficha').onclick = () => abrirFicha(id);
+  const vestEscolhido = () => Number($('#evo-vest')?.value) || null;
+  const desenharEvolucao = () => { if ($('#evolucao')) $('#evolucao').innerHTML = htmlEvolucao(ciclos, vestEscolhido()); };
+  if ($('#evo-vest')) $('#evo-vest').onchange = () => { estado.vestibular = vestEscolhido(); desenharEvolucao(); };
+  desenharEvolucao();
   if ($('#imprimir-boletim')) $('#imprimir-boletim').onclick = () => {
     const turmaAtual = nomeTurma(estado.matriculas.find(m => m.aluno_id === id)?.turma_id);
     $('#impressao').innerHTML = `<div class="imp-boletim">
@@ -776,7 +799,9 @@ function mostrarBoletim(a, notas, topo, id) {
         <tbody>${c.linhas.map(l => `<tr><td>${esc(l.materia)}</td>${c.nms.map(nm => {
           const n = l.nm[nm]; return `<td class="n">${!n || n.nota_multiplicada == null ? '—' : `<strong>${fmt(n.nota_multiplicada)}</strong>${n.nota_real != null && Number(n.nota_real) !== Number(n.nota_multiplicada) ? ` <small>(real ${fmt(n.nota_real)})</small>` : ''}`}</td>`;
         }).join('')}</tr>`).join('')}</tbody></table>`).join('')}
-      <p class="imp-rodape">Nota final com multiplicador (no máximo 10); entre parênteses, a nota real quando diferente.</p></div>`;
+      <p class="imp-rodape">Nota final com multiplicador (no máximo 10); entre parênteses, a nota real quando diferente.</p>
+      <h2>Comparativo com a nota de corte${vestEscolhido() ? ' do ' + esc(nomeVestibular(vestEscolhido())) : ''}</h2>
+      ${htmlEvolucao(ciclos, vestEscolhido(), true)}</div>`;
     setTimeout(() => window.print(), 100);
   };
 }
@@ -2149,6 +2174,205 @@ async function paginaProfessores() {
       aviso(`${lista.length} professores importados.`);
     } catch (err) { aviso('Não consegui ler o arquivo: ' + err.message, true); }
   };
+}
+
+// =====================================================================
+// COMPARATIVOS E NOTAS DE CORTE
+// Cada vestibular tem uma nota de corte por matéria. Comparamos com a nota
+// final (com multiplicador) de NM1 e NM2.
+// =====================================================================
+// 1ª fase = Provão (NM2); 2ª fase = NM1 (ITA) e NM3 (IME). Sempre Matemática, Física, Química e Inglês.
+const MATERIAS_CORTE = ['Matemática', 'Física', 'Química', 'Inglês'];
+const FASES = { 1: { nome: '1ª fase', prova: 'Provão (NM2)', nms: ['NM2'] }, 2: { nome: '2ª fase', prova: 'NM1 e NM3', nms: ['NM1', 'NM3'] } };
+const faseDoNm = (nm) => nm === 'NM2' ? 1 : 2;
+async function carregarCortes(forcar) {
+  if (estado.cortes && !forcar) return estado.cortes;
+  const [v, c] = await Promise.all([
+    db.from('vestibulares').select('*').order('ordem').order('nome'),
+    db.from('notas_corte').select('*'),
+  ]);
+  estado.cortes = { vestibulares: v.data || [], nota: new Map((c.data || []).map(x => [x.vestibular_id + '|' + x.fase + '|' + x.materia, Number(x.nota)])) };
+  if (estado.vestibular && !estado.cortes.vestibulares.some(x => x.id === estado.vestibular)) estado.vestibular = null;
+  if (!estado.vestibular && estado.cortes.vestibulares.length) estado.vestibular = estado.cortes.vestibulares[0].id;
+  return estado.cortes;
+}
+const corteDe = (vestId, fase, materia) => estado.cortes?.nota.get(vestId + '|' + fase + '|' + materia) ?? null;
+const nomeVestibular = (id) => estado.cortes?.vestibulares.find(v => v.id === id)?.nome || '';
+function seletorVestibular(idCampo) {
+  const vs = estado.cortes?.vestibulares || [];
+  if (!vs.length) return '<span class="subtitulo" style="margin:0">Nenhum vestibular cadastrado (página Comparativos).</span>';
+  return `<label for="${idCampo}" style="margin:0">Comparar com</label>
+    <select id="${idCampo}" style="max-width:200px">${vs.map(v => `<option value="${v.id}" ${v.id === estado.vestibular ? 'selected' : ''}>${esc(v.nome)}</option>`).join('')}</select>`;
+}
+// classe da célula: verde se alcançou o corte, vermelho se ficou abaixo, nada se não há corte ou nota
+function classeCorte(nota, corte) {
+  if (nota == null || corte == null) return '';
+  return Number(nota) >= corte ? 'ok-corte' : 'sob-corte';
+}
+const legendaCorte = (vest) => `<div class="legenda-corte">
+  <span><i class="ok-corte"></i> alcançou o corte${vest ? ' do ' + esc(nomeVestibular(vest)) : ''}</span>
+  <span><i class="sob-corte"></i> abaixo do corte</span><span>— sem nota ou sem corte cadastrado</span></div>`;
+
+// Gráfico pequeno de uma matéria: NM1 e NM2 ciclo a ciclo, com a linha tracejada do corte
+function graficoMateria(materia, ciclos, corte, nms) {
+  const L = 270, A = 160, esq = 40, dir = 26, topo = 20, base = 32;
+  const n = ciclos.length, larg = L - esq - dir, alt = A - topo - base;
+  const x = (i) => esq + (n === 1 ? larg / 2 : (larg * i) / (n - 1));
+  const y = (v) => topo + alt - (alt * Math.max(0, Math.min(10, v))) / 10;
+  const cores = { NM1: '#1f6f43', NM2: '#2f6fb5', NM3: '#8e44ad' };
+  const valor = (c, nm) => { const v = c.linhas.find(l => l.materia === materia)?.nm[nm]?.nota_multiplicada; return v == null ? null : Number(v); };
+  const linhas = nms.map(nm => {
+    const outro = nms.find(x => x !== nm);
+    // o número fica acima do ponto mais alto e abaixo do mais baixo, para não encavalar
+    const pts = ciclos.map((c, i) => { const v = valor(c, nm); if (v == null) return null; const o = outro ? valor(c, outro) : null;
+      const embaixo = o != null && (v < o || (v === o && nm === nms[1])); return [x(i), y(v), v, embaixo]; });
+    const seg = []; let atual = [];
+    pts.forEach(p => { if (p) atual.push(p); else if (atual.length) { seg.push(atual); atual = []; } });
+    if (atual.length) seg.push(atual);
+    return seg.map(sg => `<polyline fill="none" stroke="${cores[nm]}" stroke-width="2" points="${sg.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}"/>`).join('')
+      + pts.filter(Boolean).map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.2" fill="${corte != null && p[2] < corte ? '#c0392b' : cores[nm]}"/>`
+        + `<text x="${p[0].toFixed(1)}" y="${(p[3] ? p[1] + 14 : p[1] - 7).toFixed(1)}" font-size="9" text-anchor="middle" fill="${cores[nm]}">${fmt(p[2])}</text>`).join('');
+  }).join('');
+  const grade = [0, 5, 10].map(v => `<line x1="${esq - 14}" x2="${L - 2}" y1="${y(v)}" y2="${y(v)}" stroke="#e3e7e4"/><text x="${esq - 18}" y="${y(v) + 3}" font-size="9" text-anchor="end" fill="#7a857e">${v}</text>`).join('');
+  const linhaCorte = corte == null ? '' : `<line x1="${esq - 14}" x2="${L - 2}" y1="${y(corte)}" y2="${y(corte)}" stroke="#c0392b" stroke-dasharray="5 4" stroke-width="1.4"/>
+    <text x="${L - 2}" y="${y(corte) - 3}" font-size="9" text-anchor="end" fill="#c0392b">corte ${fmt(corte)}</text>`;
+  const rotulos = ciclos.map((c, i) => `<text x="${x(i).toFixed(1)}" y="${A - base + 14}" font-size="9" text-anchor="middle" fill="#5b6660">${esc(c.nome.length > 12 ? c.nome.slice(0, 11) + '…' : c.nome)}</text>`).join('');
+  return `<div class="grafico"><h4>${esc(materia)}</h4><svg viewBox="0 0 ${L} ${A}" role="img" aria-label="Evolução em ${esc(materia)}">${grade}${linhaCorte}${linhas}${rotulos}
+     <g font-size="9">${nms.map((nm, k) => `<rect x="${esq - 14 + k * 44}" y="${A - 11}" width="10" height="3" fill="${cores[nm]}"/><text x="${esq + k * 44}" y="${A - 8}" fill="#5b6660">${nm}</text>`).join('')}</g></svg></div>`;
+}
+// Evolução do aluno no Boletim: 1ª fase (Provão) e 2ª fase (NM1 e NM3), um gráfico por matéria
+function htmlEvolucao(ciclos, vest, impressao) {
+  const blocos = [1, 2].map(fase => {
+    const nms = FASES[fase].nms;
+    const materias = MATERIAS_CORTE.filter(m => ciclos.some(c => c.linhas.some(l => l.materia === m && nms.some(nm => l.nm[nm]?.nota_multiplicada != null))));
+    if (!materias.length) return '';
+    return `<h4 style="margin:${impressao ? '6px 0 4px' : '14px 0 8px'}">Comparativo da ${FASES[fase].nome} · ${FASES[fase].prova}</h4>
+      <div class="${impressao ? 'imp-graficos' : 'graficos'}">${materias.map(m => graficoMateria(m, ciclos, vest ? corteDe(vest, fase, m) : null, nms)).join('')}</div>`;
+  }).join('');
+  if (!blocos) return '<p class="subtitulo" style="margin:0">Ainda não há notas de Provão, NM1 ou NM3 em Matemática, Física, Química ou Inglês.</p>';
+  return `${impressao ? '' : legendaCorte(vest)}${blocos}
+    ${impressao ? '' : '<p class="subtitulo" style="margin:10px 0 0">Bolinha vermelha = nota abaixo do corte. A linha tracejada é o corte do vestibular escolhido naquela fase.</p>'}`;
+}
+
+async function paginaComparativos() {
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando…</div>';
+  const [, ciclosR] = await Promise.all([carregarCortes(true), db.from('ciclos').select('*').eq('ano_letivo', ANO_LETIVO).order('criado_em')]);
+  if (ciclosR.error) return erroNaTela(ciclosR.error);
+  const ciclos = ciclosR.data || [];
+  const f = estado.filtroComp || (estado.filtroComp = { turma: TURMAS_NOTAS[0], ciclo: ciclos.at(-1)?.id || null, nm: 'NM2' });
+  if (!ciclos.some(c => c.id === f.ciclo)) f.ciclo = ciclos.at(-1)?.id || null;
+  const pode = veTudo();
+  const { vestibulares } = estado.cortes;
+  $('#conteudo').innerHTML = `
+    <h1>Comparativos ${ANO_LETIVO}</h1>
+    <p class="subtitulo">Comparativo da 1ª fase = Provão (NM2). Comparativo da 2ª fase = NM1 e NM3. Sempre Matemática, Física, Química e Inglês, com a nota final (com multiplicador).</p>
+    <h2>Notas de corte</h2>
+    ${vestibulares.length ? `<div class="rolavel"><table class="tabela-cortes">
+      <thead><tr><th rowspan="2">Vestibular</th>${[1, 2].map(fs => `<th class="num" colspan="${MATERIAS_CORTE.length}">${FASES[fs].nome} · ${FASES[fs].prova}</th>`).join('')}${pode ? '<th rowspan="2"></th>' : ''}</tr>
+        <tr>${[1, 2].map(() => MATERIAS_CORTE.map(m => `<th class="num">${m}</th>`).join('')).join('')}</tr></thead>
+      <tbody>${vestibulares.map(v => `<tr><td><strong>${esc(v.nome)}</strong></td>
+        ${[1, 2].map(fs => MATERIAS_CORTE.map(m => `<td class="num">${pode ? `<input class="nota" inputmode="decimal" data-vest="${v.id}" data-fase="${fs}" data-materia="${esc(m)}" value="${corteDe(v.id, fs, m) == null ? '' : fmt(corteDe(v.id, fs, m))}" aria-label="Corte ${esc(v.nome)} ${FASES[fs].nome} ${esc(m)}">` : fmt(corteDe(v.id, fs, m))}</td>`).join('')).join('')}
+        ${pode ? `<td><button class="botao leve pequeno" data-apagar-vest="${v.id}">Remover</button></td>` : ''}</tr>`).join('')}</tbody></table></div>`
+      : '<p class="subtitulo">Nenhum vestibular cadastrado ainda.</p>'}
+    ${pode ? `<form class="barra" id="form-vest" style="margin-top:10px"><input type="text" id="nome-vest" placeholder="Novo vestibular (ex.: AFA)" required style="max-width:260px">
+      <button class="botao leve">+ Adicionar vestibular</button><span class="subtitulo" style="margin:0">Digite a nota de 0 a 10; ela é salva sozinha. Apague o número para tirar o corte.</span></form>
+      <div id="msg-corte" class="aviso erro escondido"></div>` : ''}
+    <h2>Ranking da turma</h2>
+    ${!ciclos.length ? '<p class="subtitulo">Crie um ciclo na página Notas para ver o ranking.</p>' : `
+    <div class="barra">
+      <select id="rk-turma">${TURMAS_NOTAS.map(t => `<option value="${t}" ${t === f.turma ? 'selected' : ''}>${esc(nomeTurma(t))}</option>`).join('')}</select>
+      <select id="rk-ciclo">${ciclos.map(c => `<option value="${c.id}" ${c.id === f.ciclo ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}</select>
+      <select id="rk-nm">${['NM2', 'NM1', 'NM3'].map(nm => `<option value="${nm}" ${nm === f.nm ? 'selected' : ''}>${FASES[faseDoNm(nm)].nome} · ${nm === 'NM2' ? 'Provão (NM2)' : NMS[nm]}</option>`).join('')}</select>
+      ${vestibulares.length ? seletorVestibular('rk-vest') : ''}
+      <div class="espaco"></div><button class="botao leve" id="rk-imprimir">Imprimir ranking</button>
+    </div><div id="ranking"></div>`}`;
+
+  // ----- notas de corte -----
+  document.querySelectorAll('.tabela-cortes input.nota').forEach(inp => inp.onchange = async () => {
+    const n = lerNota(inp.value);
+    inp.classList.remove('salvo', 'invalido');
+    if (Number.isNaN(n)) { inp.classList.add('invalido'); return; }
+    const vest = Number(inp.dataset.vest), fase = Number(inp.dataset.fase), materia = inp.dataset.materia;
+    const { error } = n == null
+      ? await db.from('notas_corte').delete().eq('vestibular_id', vest).eq('fase', fase).eq('materia', materia)
+      : await db.from('notas_corte').upsert({ vestibular_id: vest, fase, materia, nota: n }, { onConflict: 'vestibular_id,fase,materia' });
+    if (error) { inp.classList.add('invalido'); $('#msg-corte').textContent = 'Não foi possível salvar: ' + error.message; $('#msg-corte').classList.remove('escondido'); return; }
+    const chave = vest + '|' + fase + '|' + materia;
+    if (n == null) estado.cortes.nota.delete(chave); else estado.cortes.nota.set(chave, n);
+    inp.value = n == null ? '' : fmt(n); inp.classList.add('salvo');
+    desenharRanking();
+  });
+  document.querySelectorAll('[data-apagar-vest]').forEach(b => b.onclick = async () => {
+    if (b.dataset.confirmar !== '1') { b.dataset.confirmar = '1'; b.textContent = 'Clique de novo para remover'; b.classList.add('perigo'); return; }
+    const { error } = await db.from('vestibulares').delete().eq('id', Number(b.dataset.apagarVest));
+    if (error) { $('#msg-corte').textContent = 'Não foi possível remover: ' + error.message; $('#msg-corte').classList.remove('escondido'); return; }
+    paginaComparativos();
+  });
+  if ($('#form-vest')) $('#form-vest').onsubmit = async (e) => {
+    e.preventDefault();
+    const nome = $('#nome-vest').value.trim().toUpperCase();
+    if (!nome) return;
+    const ordem = Math.max(0, ...vestibulares.map(v => v.ordem)) + 1;
+    const { data, error } = await db.from('vestibulares').insert({ nome, ordem }).select().single();
+    if (error) { $('#msg-corte').textContent = /duplicate|unique/i.test(error.message) ? `O vestibular ${nome} já está cadastrado.` : 'Não foi possível adicionar: ' + error.message; $('#msg-corte').classList.remove('escondido'); return; }
+    estado.vestibular = data.id;
+    paginaComparativos();
+  };
+  if (!ciclos.length) return;
+
+  // ----- ranking -----
+  let linhas = [], materias = [];
+  const vest = () => Number($('#rk-vest')?.value) || null;
+  async function carregarRanking() {
+    f.turma = Number($('#rk-turma').value); f.ciclo = Number($('#rk-ciclo').value); f.nm = $('#rk-nm').value;
+    $('#ranking').innerHTML = '<div class="carregando">Carregando notas…</div>';
+    const { data, error } = await db.from('historico_notas').select('aluno_id, materia, nota_multiplicada')
+      .eq('ciclo_id', f.ciclo).eq('nm', f.nm).eq('turma_id', f.turma);
+    if (error) { $('#ranking').innerHTML = `<div class="aviso erro">Erro: ${esc(error.message)}</div>`; return; }
+    const ids = new Set(estado.matriculas.filter(m => m.turma_id === f.turma && m.situacao === 'ativo').map(m => m.aluno_id));
+    (data || []).forEach(r => ids.add(r.aluno_id));
+    materias = MATERIAS_CORTE.filter(m => (data || []).some(r => r.materia === m && r.nota_multiplicada != null));
+    linhas = [...ids].map(id => {
+      const notas = {};
+      (data || []).filter(r => r.aluno_id === id && r.nota_multiplicada != null).forEach(r => notas[r.materia] = Number(r.nota_multiplicada));
+      const vals = materias.map(m => notas[m]).filter(v => v != null);
+      return { id, nome: estado.alunos.get(id)?.nome || 'Aluno ' + id, notas, media: vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null };
+    }).sort((a, b) => (b.media ?? -1) - (a.media ?? -1) || a.nome.localeCompare(b.nome));
+    desenharRanking();
+  }
+  function desenharRanking() {
+    if (!$('#ranking') || !linhas.length && !materias.length && $('#ranking').innerHTML.includes('Carregando')) return;
+    const v = vest(), corte = (m) => corteDe(v, faseDoNm(f.nm), m);
+    if (!materias.length) { $('#ranking').innerHTML = '<p class="subtitulo">Ainda não há notas lançadas para essa turma, ciclo e NM.</p>'; return; }
+    const alcancou = (l) => materias.filter(m => l.notas[m] != null && corte(m) != null && l.notas[m] >= corte(m)).length;
+    const comCorte = materias.filter(m => corte(m) != null).length;
+    let pos = 0;
+    $('#ranking').innerHTML = `${legendaCorte(v)}<div class="rolavel"><table>
+      <thead><tr><th class="num">#</th><th>Aluno</th>${materias.map(m => `<th class="num">${m}${corte(m) != null ? `<br><small class="vazio">corte ${fmt(corte(m))}</small>` : ''}</th>`).join('')}
+        <th class="num">Média</th>${comCorte ? '<th class="num">Alcançou</th>' : ''}</tr></thead>
+      <tbody>${linhas.map(l => `<tr class="clicavel" data-aluno="${l.id}"><td class="num">${l.media == null ? '—' : ++pos}</td><td>${esc(l.nome)}${balaoOc(l.id)}</td>
+        ${materias.map(m => `<td class="num ${classeCorte(l.notas[m], corte(m))}">${fmt(l.notas[m])}</td>`).join('')}
+        <td class="num forte">${l.media == null ? '—' : fmt(Math.round(l.media * 100) / 100)}</td>
+        ${comCorte ? `<td class="num">${l.media == null ? '—' : alcancou(l) + ' de ' + comCorte}</td>` : ''}</tr>`).join('')}</tbody></table></div>`;
+    document.querySelectorAll('#ranking [data-aluno]').forEach(el => el.onclick = () => abrirFicha(Number(el.dataset.aluno)));
+  }
+  ['#rk-turma', '#rk-ciclo', '#rk-nm'].forEach(sel => $(sel).onchange = carregarRanking);
+  if ($('#rk-vest')) $('#rk-vest').onchange = () => { estado.vestibular = vest(); desenharRanking(); };
+  $('#rk-imprimir').onclick = () => {
+    const v = vest(), corte = (m) => corteDe(v, faseDoNm(f.nm), m); let pos = 0;
+    const ciclo = ciclos.find(c => c.id === f.ciclo);
+    $('#impressao').innerHTML = `<div class="imp-boletim">
+      <div class="imp-topo"><h1>RANKING · ${esc(nomeTurma(f.turma).toUpperCase())}</h1>
+        <span>${esc(ciclo?.nome || '')} · ${FASES[faseDoNm(f.nm)].nome} · ${f.nm === 'NM2' ? 'Provão (NM2)' : NMS[f.nm]}${v ? ' · corte ' + esc(nomeVestibular(v)) : ''} · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+      ${!materias.length ? '<p>Sem notas lançadas.</p>' : `<table class="imp-tabela"><thead><tr><th class="n">#</th><th>Aluno</th>
+        ${materias.map(m => `<th class="n">${m}${corte(m) != null ? `<br>corte ${fmt(corte(m))}` : ''}</th>`).join('')}<th class="n">Média</th></tr></thead>
+        <tbody>${linhas.map(l => `<tr><td class="n">${l.media == null ? '—' : ++pos}</td><td>${esc(l.nome)}</td>
+          ${materias.map(m => `<td class="n ${classeCorte(l.notas[m], corte(m))}">${fmt(l.notas[m])}</td>`).join('')}
+          <td class="n"><strong>${l.media == null ? '—' : fmt(Math.round(l.media * 100) / 100)}</strong></td></tr>`).join('')}</tbody></table>
+        <p class="imp-rodape">Verde = alcançou a nota de corte; vermelho = abaixo. Nota final com multiplicador (no máximo 10).</p>`}</div>`;
+    setTimeout(() => window.print(), 100);
+  };
+  carregarRanking();
 }
 
 // =====================================================================
