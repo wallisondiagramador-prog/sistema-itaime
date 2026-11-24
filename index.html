@@ -125,6 +125,25 @@
   .ok-corte { background: var(--verde-claro); color: var(--verde-escuro); font-weight: 700; }
   .sob-corte { background: #fdecea; color: var(--erro); font-weight: 700; }
   .tabela-cortes input.nota { width: 70px; }
+  /* painel de desempenho */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 10px 0 14px; }
+  .tile { background: var(--branco); border: 1px solid var(--borda); border-radius: 10px; padding: 10px 14px; }
+  .tile span { display: block; font-size: 12px; color: var(--suave); }
+  .tile strong { font-size: 24px; }
+  .tile.bom strong { color: var(--verde); } .tile.ruim strong { color: var(--erro); }
+  .grade-paineis { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 14px; }
+  .painel { background: var(--branco); border: 1px solid var(--borda); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+  .painel h3 { margin: 0 0 10px; font-size: 15px; } .painel h4 { margin: 10px 0 6px; font-size: 13px; color: var(--suave); }
+  .painel.individual { border: 2px solid #2a78d6; }
+  .graf { width: 100%; height: auto; display: block; }
+  .legenda-graf { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--suave); margin-bottom: 4px; }
+  .legenda-graf span { display: inline-flex; align-items: center; gap: 6px; } .legenda-graf i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .razao { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; margin: 1px 2px 1px 0; font-weight: 600; white-space: nowrap; }
+  .razao.bom { background: var(--verde-claro); color: var(--verde-escuro); }
+  .razao.ruim { background: #fdecea; color: var(--erro); }
+  .lista-alunos { max-height: 520px; overflow: auto; }
+  table.calor td { font-weight: 700; }
+  .filtros-desemp select { max-width: 200px; }
   .legenda-corte { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--suave); margin: 8px 0 12px; }
   .legenda-corte span { display: inline-flex; gap: 6px; align-items: center; }
   .legenda-corte i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; }
@@ -257,6 +276,7 @@
         <button data-pagina="turmas" class="ativa">Turmas</button>
         <button data-pagina="notas">Notas</button>
         <button data-pagina="comparativos">Comparativos</button>
+        <button data-pagina="desempenho">Desempenho</button>
         <button data-pagina="busca">Buscar aluno</button>
         <button data-pagina="ocorrencias" id="nav-ocorrencias" class="escondido">Ocorrências</button>
         <button data-pagina="professores" id="nav-professores" class="escondido">Professores</button>
@@ -459,7 +479,7 @@ function irPara(pagina, extra, modo) {
   const menu = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' }[pagina] || pagina;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === menu));
   ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe,
-     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias, comparativos: paginaComparativos })[pagina](extra);
+     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias, comparativos: paginaComparativos, desempenho: paginaDesempenho })[pagina](extra);
 }
 
 window.addEventListener('popstate', (e) => {
@@ -690,7 +710,8 @@ async function abrirFicha(id, aba) {
   $('#ficha').innerHTML = `
     ${topo(`<div class="acoes-ficha"><button class="botao" id="ver-boletim">Boletim</button>
       ${veTudo() ? `<button class="botao leve" id="editar-aluno">Editar</button>
-        <button class="botao leve" id="ver-ocorrencias">Ocorrências${balaoOc(id)}</button>` : ''}</div>`)}
+        <button class="botao leve" id="ver-ocorrencias">Ocorrências${balaoOc(id)}</button>` : ''}
+      <button class="botao leve" id="ver-desempenho">Desempenho</button></div>`)}
     ${matriculaHtml}
     <div class="secao"><h3>Contato</h3><div class="campos">
       ${campo('Telefone', telefone(a.telefone))}${campo('E-mail', a.email)}
@@ -715,6 +736,7 @@ async function abrirFicha(id, aba) {
   if ($('#editar-aluno')) $('#editar-aluno').onclick = () => mostrarEdicao(id, a, responsaveis, matricula, topo);
   const abrirOcorrencias = () => mostrarOcorrencias({ a, basico, ocorrencias, topo, id, responsaveis, nomeTurmaAluno: turma?.nome || '' });
   if ($('#ver-ocorrencias')) $('#ver-ocorrencias').onclick = abrirOcorrencias;
+  $('#ver-desempenho').onclick = () => { fecharFicha(); estado.desempAluno = id; irPara('desempenho', id); };
   if (aba === 'ocorrencias' && veTudo()) abrirOcorrencias();
 
   // ----- ações da matrícula -----
@@ -2373,6 +2395,289 @@ async function paginaComparativos() {
     setTimeout(() => window.print(), 100);
   };
   carregarRanking();
+}
+
+// =====================================================================
+// DESEMPENHO: visão geral (turmas, matérias, faixas de nota, provas),
+// destaques, quem precisa de auxílio e o desempenho individual.
+// Média = nota final (com multiplicador) das provas escolhidas (NM1, NM2, NM3).
+// =====================================================================
+const CORES_TURMA = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100']; // uma cor fixa por turma, na ordem de TURMAS_NOTAS
+const COR_REF = '#8a918d'; // cinza da referência (média da turma)
+const corTurma = (t) => CORES_TURMA[TURMAS_NOTAS.indexOf(t)] || COR_REF;
+const media = (vs) => { const v = vs.filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; };
+const r2 = (n) => n == null ? null : Math.round(n * 100) / 100;
+
+async function buscarTudo(fazer) { // passa de 1000 em 1000 (limite do Supabase)
+  const todos = [];
+  for (let de = 0; ; de += 1000) {
+    const { data, error } = await fazer().range(de, de + 999);
+    if (error) throw error;
+    todos.push(...(data || []));
+    if (!data || data.length < 1000) return todos;
+  }
+}
+async function carregarDesempenho(forcar) {
+  if (estado.desemp && !forcar && Date.now() - estado.desemp.quando < 120000) return estado.desemp;
+  const [ciclos, linhas, questoes] = await Promise.all([
+    db.from('ciclos').select('*').eq('ano_letivo', ANO_LETIVO).order('criado_em').then(r => { if (r.error) throw r.error; return r.data || []; }),
+    buscarTudo(() => db.from('historico_notas').select('aluno_id, planilha_id, ciclo_id, nm, materia, turma_id, nota_multiplicada')
+      .eq('ano_letivo', ANO_LETIVO).order('planilha_id').order('aluno_id')),
+    buscarTudo(() => db.from('questoes').select('planilha_id, professor').order('id')),
+    carregarCortes(),
+  ]);
+  const profs = new Map();
+  questoes.forEach(q => { const n = q.professor.replace(/ \(PDF\)$/, ''); if (/^(Documento|Provão|Qualitativa|2ª chamada|Redação)/.test(n)) return;
+    if (!profs.has(q.planilha_id)) profs.set(q.planilha_id, new Set()); profs.get(q.planilha_id).add(n); });
+  estado.desemp = { quando: Date.now(), ciclos, linhas: linhas.filter(l => l.nota_multiplicada != null).map(l => ({ ...l, nota: Number(l.nota_multiplicada) })), profs };
+  return estado.desemp;
+}
+
+// Resumo de cada aluno num ciclo: média por matéria, média geral, turma e comparação com o corte
+function resumoCiclo(d, cicloId, nms, vest) {
+  const porAluno = new Map();
+  d.linhas.forEach(l => {
+    if (l.ciclo_id !== cicloId || !nms.includes(l.nm)) return;
+    if (!porAluno.has(l.aluno_id)) porAluno.set(l.aluno_id, []);
+    porAluno.get(l.aluno_id).push(l);
+  });
+  const res = new Map();
+  porAluno.forEach((ls, id) => {
+    const porMateria = {};
+    MATERIAS.forEach(m => { const v = media(ls.filter(l => l.materia === m).map(l => l.nota)); if (v != null) porMateria[m] = v; });
+    const contagem = {}; ls.forEach(l => contagem[l.turma_id] = (contagem[l.turma_id] || 0) + 1);
+    const turma = Number(Object.entries(contagem).sort((a, b) => b[1] - a[1])[0][0]);
+    const abaixo = new Set(); let comparados = 0;
+    if (vest) ls.forEach(l => { if (!MATERIAS_CORTE.includes(l.materia)) return; const c = corteDe(vest, faseDoNm(l.nm), l.materia);
+      if (c == null) return; comparados++; if (l.nota < c) abaixo.add(l.materia); });
+    res.set(id, { id, turma, porMateria, media: media(Object.values(porMateria)), abaixo, comparados });
+  });
+  // posição dentro da turma
+  TURMAS_NOTAS.forEach(t => {
+    const lista = [...res.values()].filter(r => r.turma === t && r.media != null).sort((a, b) => b.media - a.media);
+    lista.forEach((r, i) => { r.pos = i + 1; r.total = lista.length; });
+  });
+  return res;
+}
+const nomeAluno = (id) => estado.alunos.get(id)?.nome || 'Aluno ' + id;
+
+// Destaques e auxílio, com os motivos de cada aluno
+function classificar(atual, anterior) {
+  const destaques = [], auxilio = [];
+  const deltas = new Map();
+  if (anterior) atual.forEach((r, id) => { const a = anterior.get(id); if (r.media != null && a?.media != null) deltas.set(id, r.media - a.media); });
+  const topEvolucao = new Set();
+  TURMAS_NOTAS.forEach(t => [...deltas].filter(([id, dl]) => atual.get(id).turma === t && dl > 0).sort((a, b) => b[1] - a[1]).slice(0, 5).forEach(([id]) => topEvolucao.add(id)));
+  atual.forEach(r => {
+    if (r.media == null) return;
+    const bons = [], ruins = [];
+    if (r.pos <= 5) bons.push(`${r.pos}º da turma`);
+    if (r.comparados && !r.abaixo.size) bons.push('Alcançou o corte');
+    if (topEvolucao.has(r.id)) bons.push(`Subiu ${fmt(r2(deltas.get(r.id)))}`);
+    const fortes = Object.entries(r.porMateria).filter(([, v]) => v >= 8);
+    if (fortes.length > 2) bons.push(`8 ou mais em ${fortes.length} matérias`);
+    else fortes.forEach(([m, v]) => bons.push(`${m} ${fmt(r2(v))}`));
+    if (r.media < 5) ruins.push(`Média ${fmt(r2(r.media))}`);
+    const fracas = Object.entries(r.porMateria).filter(([, v]) => v < 5);
+    if (fracas.length > 2) ruins.push(`Abaixo de 5 em ${fracas.length} matérias`);
+    else fracas.forEach(([m, v]) => ruins.push(`${m} ${fmt(r2(v))}`));
+    if (deltas.has(r.id) && deltas.get(r.id) <= -1) ruins.push(`Caiu ${fmt(r2(-deltas.get(r.id)))}`);
+    if (r.abaixo.size >= 2) ruins.push(`Abaixo do corte em ${r.abaixo.size}`);
+    if (r.total >= 10 && r.pos > r.total - 5) ruins.push(`${r.pos}º de ${r.total}`);
+    if (bons.length) destaques.push({ ...r, motivos: bons, delta: deltas.get(r.id) });
+    if (ruins.length) auxilio.push({ ...r, motivos: ruins, delta: deltas.get(r.id) });
+  });
+  destaques.sort((a, b) => b.motivos.length - a.motivos.length || b.media - a.media);
+  auxilio.sort((a, b) => b.motivos.length - a.motivos.length || a.media - b.media);
+  return { destaques, auxilio, deltas };
+}
+
+// ---------- gráficos (SVG desenhado à mão, com dica ao passar o mouse) ----------
+function graficoLinhas({ series, rotulos, alt = 230, larg = 620, legenda = true }) {
+  const esq = 34, dir = 96, topo = 14, base = 30, W = larg - esq - dir, H = alt - topo - base, n = rotulos.length;
+  const x = (i) => esq + (n === 1 ? W / 2 : (W * i) / (n - 1));
+  const y = (v) => topo + H - (H * v) / 10;
+  const grade = [0, 2.5, 5, 7.5, 10].map(v => `<line x1="${esq}" x2="${esq + W}" y1="${y(v)}" y2="${y(v)}" stroke="#e7ebe8"/>
+    <text x="${esq - 8}" y="${y(v) + 4}" font-size="11" text-anchor="end" fill="#5f6b64">${fmt(v)}</text>`).join('');
+  const eixo = rotulos.map((r, i) => `<text x="${x(i)}" y="${alt - 10}" font-size="11" text-anchor="middle" fill="#5f6b64">${esc(r)}</text>`).join('');
+  const linhas = series.map(s => {
+    const pts = s.valores.map((v, i) => v == null ? null : [x(i), y(v), v, i]);
+    let d = '', ini = true;
+    pts.forEach(p => { if (!p) { ini = true; return; } d += (ini ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); ini = false; });
+    const ult = pts.filter(Boolean).at(-1);
+    return `<path d="${d}" fill="none" stroke="${s.cor}" stroke-width="2" ${s.tracejado ? 'stroke-dasharray="5 4"' : ''}/>
+      ${pts.filter(Boolean).map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="${s.cor}" stroke="#fff" stroke-width="2"><title>${esc(s.nome)} · ${esc(rotulos[p[3]])}: ${fmt(r2(p[2]))}</title></circle>`).join('')}
+      ${ult ? `<text x="${ult[0] + 9}" y="${ult[1] + 4}" font-size="11" fill="#1d2420">${esc(s.nome)} ${fmt(r2(ult[2]))}</text>` : ''}`;
+  }).join('');
+  const leg = legenda ? `<div class="legenda-graf">${series.map(s => `<span><i style="background:${s.cor}"></i>${esc(s.nome)}</span>`).join('')}</div>` : '';
+  return `${leg}<svg viewBox="0 0 ${larg} ${alt}" class="graf" role="img">${grade}${eixo}${linhas}</svg>`;
+}
+function graficoBarras({ categorias, series, alt = 230, larg = 620, maxY = 10, rotular = [0], formato = fmt, legenda = true, eixoY = true }) {
+  const esq = eixoY ? 34 : 8, dir = 8, topo = 18, base = 30, W = larg - esq - dir, H = alt - topo - base;
+  const nG = categorias.length, nS = series.length, larG = W / nG, larB = Math.min(34, (larG * 0.7) / nS);
+  const y = (v) => topo + H - (H * Math.min(v, maxY)) / maxY;
+  const passos = maxY === 10 ? [0, 2.5, 5, 7.5, 10] : [0, maxY / 2, maxY].map(Math.round);
+  const grade = passos.map(v => `<line x1="${esq}" x2="${esq + W}" y1="${y(v)}" y2="${y(v)}" stroke="#e7ebe8"/>${eixoY ? `<text x="${esq - 8}" y="${y(v) + 4}" font-size="11" text-anchor="end" fill="#5f6b64">${fmt(v)}</text>` : ''}`).join('');
+  const barras = categorias.map((c, g) => {
+    const x0 = esq + g * larG + (larG - nS * larB - (nS - 1) * 2) / 2;
+    return series.map((s, k) => {
+      const v = s.valores[g]; if (v == null) return '';
+      const bx = x0 + k * (larB + 2), by = y(v), bh = topo + H - by, rr = Math.min(4, bh, larB / 2);
+      const d = `M${bx},${topo + H}V${by + rr}Q${bx},${by} ${bx + rr},${by}H${bx + larB - rr}Q${bx + larB},${by} ${bx + larB},${by + rr}V${topo + H}Z`;
+      return `<path d="${d}" fill="${s.cor}"><title>${esc(s.nome)} · ${esc(c)}: ${formato(v)}</title></path>
+        ${rotular.includes(k) ? `<text x="${bx + larB / 2}" y="${by - 5}" font-size="11" text-anchor="middle" fill="#1d2420">${formato(v)}</text>` : ''}`;
+    }).join('') + `<text x="${esq + g * larG + larG / 2}" y="${alt - 10}" font-size="11" text-anchor="middle" fill="#5f6b64">${esc(c)}</text>`;
+  }).join('');
+  const leg = legenda && nS > 1 ? `<div class="legenda-graf">${series.map(s => `<span><i style="background:${s.cor}"></i>${esc(s.nome)}</span>`).join('')}</div>` : '';
+  return `${leg}<svg viewBox="0 0 ${larg} ${alt}" class="graf" role="img">${grade}<line x1="${esq}" x2="${esq + W}" y1="${topo + H}" y2="${topo + H}" stroke="#b9c2bc"/>${barras}</svg>`;
+}
+// cor do mapa de calor: verde claro (nota baixa) até verde escuro (nota alta)
+function corCalor(v) {
+  const a = [232, 243, 236], b = [21, 77, 41], t = Math.max(0, Math.min(1, v / 10));
+  return `rgb(${a.map((c, i) => Math.round(c + (b[i] - c) * t)).join(',')})`;
+}
+const etiquetasMotivos = (ms, tipo) => ms.map(m => `<span class="razao ${tipo}">${esc(m)}</span>`).join(' ');
+
+async function paginaDesempenho(alunoInicial) {
+  $('#conteudo').innerHTML = '<div class="carregando">Calculando o desempenho…</div>';
+  let d;
+  try { d = await carregarDesempenho(); } catch (e) { return erroNaTela(e); }
+  const ciclosCom = d.ciclos.filter(c => d.linhas.some(l => l.ciclo_id === c.id));
+  if (!ciclosCom.length) { $('#conteudo').innerHTML = '<h1>Desempenho</h1><p class="subtitulo">Ainda não há notas lançadas neste ano.</p>'; return; }
+  const f = estado.filtroDesemp || (estado.filtroDesemp = { ciclo: ciclosCom.at(-1).id, turma: 0, provas: 'todas' });
+  if (!ciclosCom.some(c => c.id === f.ciclo)) f.ciclo = ciclosCom.at(-1).id;
+  const vs = estado.cortes.vestibulares;
+  $('#conteudo').innerHTML = `
+    <div class="barra"><h1 style="margin:0">Desempenho ${ANO_LETIVO}</h1><div class="espaco"></div>
+      <button class="botao leve" id="de-atualizar">Atualizar</button><button class="botao leve" id="de-imprimir">Imprimir relatório</button></div>
+    <p class="subtitulo">Média = nota final (com multiplicador) das provas escolhidas. Passe o mouse nos gráficos para ver os números.</p>
+    <div class="barra filtros-desemp">
+      <select id="de-ciclo" aria-label="Ciclo">${ciclosCom.map(c => `<option value="${c.id}" ${c.id === f.ciclo ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}</select>
+      <select id="de-turma" aria-label="Turma"><option value="0">Todas as turmas</option>${TURMAS_NOTAS.map(t => `<option value="${t}" ${t === f.turma ? 'selected' : ''}>${esc(nomeTurma(t))}</option>`).join('')}</select>
+      <select id="de-provas" aria-label="Provas">${[['todas', 'NM1 + NM2 + NM3'], ['NM1', 'Só NM1 · ITA'], ['NM2', 'Só NM2 · Provão'], ['NM3', 'Só NM3 · IME']].map(([v, t]) => `<option value="${v}" ${v === f.provas ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      ${vs.length ? seletorVestibular('de-vest') : ''}
+      <input type="text" id="de-busca" list="de-alunos" placeholder="Ver um aluno…" style="max-width:260px">
+      <datalist id="de-alunos">${[...estado.alunos.values()].filter(a => d.linhas.some(l => l.aluno_id === a.id)).sort((a, b) => a.nome.localeCompare(b.nome)).map(a => `<option value="${esc(a.nome)}">`).join('')}</datalist>
+    </div>
+    <div id="de-individual"></div>
+    <div id="de-geral"></div>`;
+  const nmsSel = () => f.provas === 'todas' ? ['NM1', 'NM2', 'NM3'] : [f.provas];
+  const vest = () => Number($('#de-vest')?.value) || null;
+
+  function desenhar() {
+    const nms = nmsSel(), v = vest();
+    const idx = ciclosCom.findIndex(c => c.id === f.ciclo);
+    const atual = resumoCiclo(d, f.ciclo, nms, v), anterior = idx > 0 ? resumoCiclo(d, ciclosCom[idx - 1].id, nms, v) : null;
+    const naTurma = (r) => !f.turma || r.turma === f.turma;
+    const avaliados = [...atual.values()].filter(r => naTurma(r) && r.media != null);
+    const { destaques, auxilio } = classificar(atual, anterior);
+    const dest = destaques.filter(naTurma), aux = auxilio.filter(naTurma);
+    estado.desempAtual = { atual, anterior, ciclosCom, nms, v, dest, aux };
+    const mediaGeral = media(avaliados.map(r => r.media));
+    // médias por turma em cada ciclo (linhas)
+    const resumos = ciclosCom.map(c => resumoCiclo(d, c.id, nms, null));
+    const serieTurmas = TURMAS_NOTAS.filter(t => !f.turma || t === f.turma).map(t => ({ nome: nomeTurma(t), cor: corTurma(t),
+      valores: resumos.map(rs => media([...rs.values()].filter(r => r.turma === t).map(r => r.media))) }));
+    // mapa de calor turma × matéria
+    const mats = MATERIAS.filter(m => avaliados.some(r => r.porMateria[m] != null));
+    const turmasVis = TURMAS_NOTAS.filter(t => !f.turma || t === f.turma);
+    const calor = turmasVis.map(t => ({ t, vals: mats.map(m => media([...atual.values()].filter(r => r.turma === t).map(r => r.porMateria[m]))) }));
+    // faixas de nota
+    const faixas = ['0 a 2', '2 a 4', '4 a 6', '6 a 8', '8 a 10'];
+    const cont = [0, 0, 0, 0, 0]; avaliados.forEach(r => cont[Math.min(4, Math.floor(r.media / 2))]++);
+    // provas (planilhas) do ciclo
+    const porPlan = new Map();
+    d.linhas.forEach(l => { if (l.ciclo_id !== f.ciclo || !nms.includes(l.nm) || (f.turma && l.turma_id !== f.turma)) return;
+      if (!porPlan.has(l.planilha_id)) porPlan.set(l.planilha_id, { ...l, notas: [] }); porPlan.get(l.planilha_id).notas.push(l.nota); });
+    const provas = [...porPlan.values()].map(p => ({ ...p, media: media(p.notas), min: Math.min(...p.notas), max: Math.max(...p.notas),
+      baixo: p.notas.filter(n => n < 5).length / p.notas.length, profs: [...(d.profs.get(p.planilha_id) || [])].join(', ') })).sort((a, b) => a.media - b.media);
+    const linhaAluno = (r, tipo) => `<tr class="clicavel" data-ver-aluno="${r.id}"><td>${esc(nomeAluno(r.id))}</td><td style="white-space:nowrap">${esc(nomeTurma(r.turma))}</td>
+      <td class="num forte">${fmt(r2(r.media))}</td><td>${etiquetasMotivos(r.motivos, tipo)}</td></tr>`;
+
+    $('#de-geral').innerHTML = `
+      <div class="tiles">
+        <div class="tile"><span>Alunos avaliados</span><strong>${avaliados.length}</strong></div>
+        <div class="tile"><span>Média geral</span><strong>${fmt(r2(mediaGeral))}</strong></div>
+        <div class="tile"><span>Média 5 ou mais</span><strong>${avaliados.length ? Math.round(100 * avaliados.filter(r => r.media >= 5).length / avaliados.length) + '%' : '—'}</strong></div>
+        <div class="tile bom"><span>Destaques</span><strong>${dest.length}</strong></div>
+        <div class="tile ruim"><span>Precisam de auxílio</span><strong>${aux.length}</strong></div>
+      </div>
+      <div class="grade-paineis">
+        <div class="painel"><h3>Média por turma, ciclo a ciclo</h3>${graficoLinhas({ series: serieTurmas, rotulos: ciclosCom.map(c => c.nome) })}</div>
+        <div class="painel"><h3>Quantos alunos em cada faixa de média</h3>${graficoBarras({ categorias: faixas, series: [{ nome: 'Alunos', cor: '#2a78d6', valores: cont }], maxY: Math.max(4, ...cont), formato: (n) => String(n), eixoY: false })}</div>
+      </div>
+      <div class="painel"><h3>Média por matéria${f.turma ? '' : ' em cada turma'}</h3>
+        <div class="rolavel"><table class="calor"><thead><tr><th>Turma</th>${mats.map(m => `<th class="num">${m}</th>`).join('')}</tr></thead>
+        <tbody>${calor.map(c => `<tr><td><strong>${esc(nomeTurma(c.t))}</strong></td>${c.vals.map((v, i) => v == null ? '<td class="num">—</td>' :
+          `<td class="num" style="background:${corCalor(v)};color:${v >= 6 ? '#fff' : '#1d2420'}" title="${esc(nomeTurma(c.t))} · ${mats[i]}: ${fmt(r2(v))}">${fmt(r2(v))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+        <p class="subtitulo" style="margin:8px 0 0">Quanto mais escuro o verde, maior a média. Use para ver em que matéria cada turma está mais forte ou mais fraca.</p></div>
+      <div class="grade-paineis">
+        <div class="painel"><h3>Destaques (${dest.length})</h3>${dest.length ? `<div class="rolavel lista-alunos"><table><thead><tr><th>Aluno</th><th>Turma</th><th class="num">Média</th><th>Por quê</th></tr></thead>
+          <tbody>${dest.map(r => linhaAluno(r, 'bom')).join('')}</tbody></table></div>` : '<p class="subtitulo">Nenhum destaque com esses filtros.</p>'}</div>
+        <div class="painel"><h3>Precisam de auxílio (${aux.length})</h3>${aux.length ? `<div class="rolavel lista-alunos"><table><thead><tr><th>Aluno</th><th>Turma</th><th class="num">Média</th><th>Por quê</th></tr></thead>
+          <tbody>${aux.map(r => linhaAluno(r, 'ruim')).join('')}</tbody></table></div>` : '<p class="subtitulo">Ninguém nessa lista com esses filtros.</p>'}</div>
+      </div>
+      <div class="painel"><h3>Provas do ciclo (da mais difícil para a mais fácil)</h3>
+        <div class="rolavel"><table><thead><tr><th>Turma</th><th>Prova</th><th>Professor(es)</th><th class="num">Alunos</th><th class="num">Média</th><th class="num">Menor</th><th class="num">Maior</th><th class="num">Abaixo de 5</th><th></th></tr></thead>
+        <tbody>${provas.map(p => `<tr><td>${esc(nomeTurma(p.turma_id))}</td><td>${p.nm} · ${esc(p.materia)}</td><td>${esc(p.profs || '—')}</td><td class="num">${p.notas.length}</td>
+          <td class="num forte">${fmt(r2(p.media))}</td><td class="num">${fmt(p.min)}</td><td class="num">${fmt(p.max)}</td><td class="num">${Math.round(p.baixo * 100)}%</td>
+          <td>${p.media < 4 ? '<span class="razao ruim">Muito difícil?</span>' : p.media > 8.5 ? '<span class="razao bom">Muito fácil?</span>' : ''}</td></tr>`).join('')}</tbody></table></div></div>`;
+    document.querySelectorAll('[data-ver-aluno]').forEach(el => el.onclick = () => mostrarIndividual(Number(el.dataset.verAluno)));
+    if (estado.desempAluno) mostrarIndividual(estado.desempAluno, true);
+  }
+
+  function mostrarIndividual(id, semRolar) {
+    estado.desempAluno = id;
+    const { atual, anterior, nms, v } = estado.desempAtual;
+    const r = atual.get(id);
+    const box = $('#de-individual');
+    if (!r) { box.innerHTML = `<div class="painel individual"><div class="barra"><h3 style="margin:0">${esc(nomeAluno(id))}</h3><div class="espaco"></div><button class="botao leve" id="de-fechar">Fechar</button></div><p class="subtitulo">Sem notas nesse ciclo com as provas escolhidas.</p></div>`;
+      $('#de-fechar').onclick = () => { estado.desempAluno = null; box.innerHTML = ''; }; return; }
+    const resumos = ciclosCom.map(c => resumoCiclo(d, c.id, nms, null));
+    const doAluno = resumos.map(rs => rs.get(id)?.media ?? null);
+    const daTurma = resumos.map(rs => media([...rs.values()].filter(x => x.turma === r.turma).map(x => x.media)));
+    const mats = MATERIAS.filter(m => r.porMateria[m] != null);
+    const turmaMat = mats.map(m => media([...atual.values()].filter(x => x.turma === r.turma).map(x => x.porMateria[m])));
+    const { destaques, auxilio } = classificar(atual, anterior);
+    const bons = destaques.find(x => x.id === id)?.motivos || [], ruins = auxilio.find(x => x.id === id)?.motivos || [];
+    const ant = anterior?.get(id)?.media;
+    const delta = ant != null ? r.media - ant : null;
+    box.innerHTML = `<div class="painel individual">
+      <div class="barra"><h3 style="margin:0">${esc(nomeAluno(id))} · ${esc(nomeTurma(r.turma))}</h3><div class="espaco"></div>
+        <button class="botao leve" id="de-ficha">Abrir ficha</button><button class="botao leve" id="de-fechar">Fechar</button></div>
+      <div class="tiles">
+        <div class="tile"><span>Média no ciclo</span><strong>${fmt(r2(r.media))}</strong></div>
+        <div class="tile"><span>Posição na turma</span><strong>${r.pos ? r.pos + 'º de ' + r.total : '—'}</strong></div>
+        <div class="tile"><span>Desde o ciclo anterior</span><strong>${delta == null ? '—' : (delta > 0 ? '▲ +' : delta < 0 ? '▼ ' : '') + fmt(r2(delta))}</strong></div>
+        <div class="tile"><span>Média da turma</span><strong>${fmt(r2(media([...atual.values()].filter(x => x.turma === r.turma).map(x => x.media))))}</strong></div>
+      </div>
+      ${bons.length || ruins.length ? `<p style="margin:4px 0 12px">${etiquetasMotivos(bons, 'bom')} ${etiquetasMotivos(ruins, 'ruim')}</p>` : ''}
+      <div class="grade-paineis">
+        <div><h4>Média ciclo a ciclo</h4>${graficoLinhas({ series: [{ nome: 'Aluno', cor: '#2a78d6', valores: doAluno }, { nome: 'Turma', cor: COR_REF, valores: daTurma, tracejado: true }], rotulos: ciclosCom.map(c => c.nome) })}</div>
+        <div><h4>Por matéria neste ciclo</h4>${graficoBarras({ categorias: mats, series: [{ nome: 'Aluno', cor: '#2a78d6', valores: mats.map(m => r.porMateria[m]) }, { nome: 'Média da turma', cor: COR_REF, valores: turmaMat }], formato: (n) => fmt(r2(n)) })}</div>
+      </div></div>`;
+    $('#de-fechar').onclick = () => { estado.desempAluno = null; box.innerHTML = ''; };
+    $('#de-ficha').onclick = () => abrirFicha(id);
+    if (!semRolar) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  $('#de-ciclo').onchange = () => { f.ciclo = Number($('#de-ciclo').value); desenhar(); };
+  $('#de-turma').onchange = () => { f.turma = Number($('#de-turma').value); desenhar(); };
+  $('#de-provas').onchange = () => { f.provas = $('#de-provas').value; desenhar(); };
+  if ($('#de-vest')) $('#de-vest').onchange = () => { estado.vestibular = vest(); desenhar(); };
+  $('#de-busca').onchange = () => { const a = [...estado.alunos.values()].find(x => x.nome === $('#de-busca').value); if (a) { $('#de-busca').value = ''; mostrarIndividual(a.id); } };
+  $('#de-atualizar').onclick = async () => { await carregarDesempenho(true); paginaDesempenho(); };
+  $('#de-imprimir').onclick = () => {
+    const { dest, aux } = estado.desempAtual, ciclo = ciclosCom.find(c => c.id === f.ciclo);
+    const tab = (lista) => lista.length ? `<table class="imp-tabela"><thead><tr><th>Aluno</th><th>Turma</th><th class="n">Média</th><th>Por quê</th></tr></thead>
+      <tbody>${lista.map(r => `<tr><td>${esc(nomeAluno(r.id))}</td><td>${esc(nomeTurma(r.turma))}</td><td class="n">${fmt(r2(r.media))}</td><td>${esc(r.motivos.join(' · '))}</td></tr>`).join('')}</tbody></table>` : '<p>Ninguém.</p>';
+    $('#impressao').innerHTML = `<div class="imp-boletim"><div class="imp-topo"><h1>DESEMPENHO · ${esc((ciclo?.nome || '').toUpperCase())}</h1>
+      <span>${f.turma ? esc(nomeTurma(f.turma)) : 'Todas as turmas'} · ${f.provas === 'todas' ? 'NM1 + NM2 + NM3' : f.provas}${vest() ? ' · corte ' + esc(nomeVestibular(vest())) : ''} · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+      <h2>Destaques (${dest.length})</h2>${tab(dest)}<h2>Precisam de auxílio (${aux.length})</h2>${tab(aux)}</div>`;
+    setTimeout(() => window.print(), 100);
+  };
+  desenhar();
+  if (alunoInicial) mostrarIndividual(Number(alunoInicial));
 }
 
 // =====================================================================
