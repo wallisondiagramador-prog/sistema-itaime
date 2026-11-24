@@ -124,6 +124,13 @@
   .botao.perigo:hover { background: #8f1c13; }
   .linha-acao { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
   .linha-acao select, .linha-acao input { flex: 1 1 160px; min-width: 140px; }
+  .acoes-ficha { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .form-edicao { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 16px; }
+  .form-edicao label { margin: 8px 0 4px; font-size: 12.5px; color: var(--suave); }
+  .form-edicao input, .form-edicao select, .form-edicao textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--borda); border-radius: 8px; background: var(--branco); font: inherit; }
+  .form-edicao .largo { grid-column: 1 / -1; }
+  .rodape-ficha { position: sticky; bottom: 0; background: var(--branco); border-top: 1px solid var(--borda); padding: 14px 24px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  .boletim td.num small { display: block; color: var(--suave); font-weight: 400; font-size: 11.5px; }
   .mov { font-size: 13.5px; padding: 6px 0; border-top: 1px solid var(--borda); }
   .mov:first-child { border-top: 0; }
   .mov small { color: var(--suave); }
@@ -164,6 +171,7 @@
     .imp-topo { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--verde); padding-bottom: 6px; margin-bottom: 10px; }
     .imp-topo h1 { font-size: 16pt; margin: 0; color: var(--verde); }
     .imp-topo span { font-size: 9pt; color: #444; }
+    .imp-boletim h2 { font-size: 11pt; margin: 14px 0 6px; }
     .imp-grade { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
     .imp-aluno { border: 1px solid #bbb; border-radius: 6px; overflow: hidden; break-inside: avoid; }
     .imp-aluno .foto, .imp-aluno .sem-foto { aspect-ratio: 1 / 1; width: 100%; font-size: 22pt; }
@@ -557,7 +565,7 @@ async function abrirFicha(id) {
       db.from('aluno_responsavel').select('responsaveis(*)').eq('aluno_id', id),
       db.from('pendencias').select('campo, problema, valor').eq('aluno_id', id).eq('resolvida', false),
     ]);
-    completo = a.data; responsaveis = (r.data || []).map(x => x.responsaveis); pendencias = p.data || [];
+    completo = a.data; responsaveis = (r.data || []).map(x => x.responsaveis).filter(Boolean); pendencias = p.data || [];
   }
   const a = completo || basico;
   // notas em qualquer turma (continuam aparecendo depois de mudar de turma ou desistir)
@@ -565,20 +573,12 @@ async function abrirFicha(id) {
     db.from('historico_notas').select('ciclo_id, ciclo, nm, materia, turma_id, nota_real, nota_multiplicada').eq('aluno_id', id).order('ciclo_id').order('nm'),
     db.from('movimentacoes').select('*').eq('aluno_id', id).order('feito_em'),
   ]);
-  const comNota = (notasAluno || []).filter(n => n.nota_real != null);
-  const notasHtml = comNota.length ? `
-    <div class="secao"><h3>Notas</h3><div class="rolavel"><table>
-      <thead><tr><th>Ciclo</th><th>NM</th><th>Matéria</th><th>Turma</th><th class="num">Nota real</th><th class="num">Com multiplicador</th></tr></thead>
-      <tbody>${comNota.map(n => `<tr><td>${esc(n.ciclo)}</td><td>${n.nm}</td><td>${esc(n.materia)}</td><td>${esc(nomeTurma(n.turma_id))}</td>
-        <td class="num">${fmt(n.nota_real)}</td><td class="num forte">${fmt(n.nota_multiplicada)}</td></tr>`).join('')}</tbody>
-    </table></div></div>` : '';
   const textoMov = (x) => ({
     mudou_turma: `Mudou da ${esc(nomeTurma(x.de_turma))} para a ${esc(nomeTurma(x.para_turma))}`,
     desistente: `Marcado como desistente (estava na ${esc(nomeTurma(x.de_turma))})`,
     reativado: `Reativado na ${esc(nomeTurma(x.para_turma))}`,
   })[x.tipo] + (x.motivo ? ` — ${esc(x.motivo)}` : '');
-  const outrasTurmas = estado.turmas.filter(t => t.id !== matricula?.turma_id || desistente)
-    .map(t => `<option value="${t.id}" ${desistente && t.id === matricula?.turma_id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('');
+  const opcoesTurma = (marcada) => estado.turmas.map(t => `<option value="${t.id}" ${t.id === marcada ? 'selected' : ''}>${esc(t.nome)}</option>`).join('');
   // data de hoje no fuso do computador (toISOString daria a data em UTC, que vira o dia às 21h)
   const hoje = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const matriculaHtml = !matricula ? '' : `
@@ -586,7 +586,7 @@ async function abrirFicha(id) {
       ${desistente ? `
         <div class="pendencia"><strong>Desistente</strong>${matricula.data_saida ? ` desde ${esc(data(matricula.data_saida))}` : ''}${matricula.motivo_saida ? ` — ${esc(matricula.motivo_saida)}` : ''}.
           Saiu da ${esc(turma?.nome || '')}; cadastro e notas continuam guardados.</div>
-        ${veTudo() ? `<div class="linha-acao"><select id="reativar-turma">${outrasTurmas}</select>
+        ${veTudo() ? `<div class="linha-acao"><select id="reativar-turma">${opcoesTurma(matricula.turma_id)}</select>
           <button class="botao" id="reativar">Reativar nesta turma</button></div>` : ''}
         ${estado.papel === 'admin' ? `<div class="linha-acao" style="margin-top:14px">
           <button class="botao leve" id="apagar">Apagar aluno definitivamente…</button></div>
@@ -596,31 +596,31 @@ async function abrirFicha(id) {
             <button class="botao leve" id="apagar-nao">Cancelar</button></div></div>` : ''}`
       : `<div>Turma atual: <strong>${esc(turma?.nome || '')}</strong></div>
         ${veTudo() ? `
-          <div class="linha-acao"><select id="nova-turma">${outrasTurmas}</select>
-            <input type="text" id="motivo-turma" placeholder="Motivo (opcional)">
-            <button class="botao" id="mudar-turma">Mudar de turma</button></div>
           <div class="linha-acao"><button class="botao leve" id="abrir-desistente">Marcar como desistente…</button></div>
           <div id="form-desistente" class="escondido">
             <div class="linha-acao"><input type="date" id="data-saida" value="${hoje}">
               <input type="text" id="motivo-saida" placeholder="Motivo (opcional)">
-              <button class="botao perigo" id="confirmar-desistente">Confirmar desistência</button></div>
+              <button class="botao perigo" id="confirmar-desistente">Confirmar desistência</button>
+              <button class="botao leve" id="cancelar-desistente">Cancelar</button></div>
             <p class="subtitulo" style="margin:6px 0 0">O aluno sai da turma e das planilhas. As notas e o cadastro ficam guardados; dá para reativar depois.</p>
           </div>` : ''}`}
       <div id="msg-matricula" class="aviso erro escondido"></div>
       ${(movs || []).length ? `<div style="margin-top:14px">${movs.map(x => `<div class="mov">${textoMov(x)}
         <br><small>${esc(data(x.data))}${x.feito_por ? ` · por ${esc(x.feito_por)}` : ''}</small></div>`).join('')}</div>` : ''}
     </div>`;
-  $('#ficha').innerHTML = `
+  const topo = (extra = '') => `
     <div class="modal-topo">
       ${htmlFoto(basico)}
-      <div><h2>${esc(a.nome)}</h2><span class="etiqueta">${desistente ? 'Desistente · era da ' : ''}${esc(turma?.nome || '')}</span></div>
+      <div><h2>${esc(a.nome)}</h2><span class="etiqueta">${desistente ? 'Desistente · era da ' : ''}${esc(turma?.nome || '')}</span>${extra}</div>
       <button class="fechar" aria-label="Fechar">×</button>
-    </div>
+    </div>`;
+  $('#ficha').innerHTML = `
+    ${topo(`<div class="acoes-ficha"><button class="botao" id="ver-boletim">Boletim</button>
+      ${veTudo() ? '<button class="botao leve" id="editar-aluno">Editar</button>' : ''}</div>`)}
     ${matriculaHtml}
-    ${notasHtml}
     <div class="secao"><h3>Contato</h3><div class="campos">
       ${campo('Telefone', telefone(a.telefone))}${campo('E-mail', a.email)}
-      ${completo ? campo('Data de nascimento', data(a.data_nascimento)) : ''}
+      ${a.data_nascimento !== undefined ? campo('Data de nascimento', data(a.data_nascimento)) : ''}
     </div></div>
     ${completo ? `
       <div class="secao"><h3>Documentos e endereço</h3><div class="campos">
@@ -637,6 +637,8 @@ async function abrirFicha(id) {
       ${a.observacao ? `<div class="secao"><h3>Observação</h3><div>${esc(a.observacao)}</div></div>` : ''}
     ` : `<div class="secao"><p class="subtitulo" style="margin:0">Documentos, endereço e responsável ficam visíveis só para a coordenação.</p></div>`}`;
   $('#ficha .fechar').onclick = fecharFicha;
+  $('#ver-boletim').onclick = () => mostrarBoletim(a, notasAluno || [], topo, id);
+  if ($('#editar-aluno')) $('#editar-aluno').onclick = () => mostrarEdicao(id, a, responsaveis, matricula, topo);
 
   // ----- ações da matrícula -----
   const acao = async (botao, chamada) => {
@@ -650,10 +652,8 @@ async function abrirFicha(id) {
     return true;
   };
   const depois = async () => { await recarregarMatriculas(); abrirFicha(id); };
-  if ($('#mudar-turma')) $('#mudar-turma').onclick = async (e) => {
-    if (await acao(e.target, () => db.rpc('mudar_turma', { p_aluno: id, p_turma: Number($('#nova-turma').value), p_ano: ANO_LETIVO, p_motivo: $('#motivo-turma').value.trim() || null }))) depois();
-  };
   if ($('#abrir-desistente')) $('#abrir-desistente').onclick = () => { $('#form-desistente').classList.remove('escondido'); $('#abrir-desistente').classList.add('escondido'); };
+  if ($('#cancelar-desistente')) $('#cancelar-desistente').onclick = () => { $('#form-desistente').classList.add('escondido'); $('#abrir-desistente').classList.remove('escondido'); };
   if ($('#confirmar-desistente')) $('#confirmar-desistente').onclick = async (e) => {
     if (await acao(e.target, () => db.rpc('marcar_desistente', { p_aluno: id, p_ano: ANO_LETIVO, p_motivo: $('#motivo-saida').value.trim() || null, p_data: $('#data-saida').value || hoje }))) depois();
   };
@@ -666,6 +666,130 @@ async function abrirFicha(id) {
     if (await acao(e.target, () => db.rpc('apagar_aluno', { p_aluno: id }))) {
       estado.alunos.delete(id); fecharFicha(); recarregarMatriculas();
     }
+  };
+}
+
+// Boletim: um quadro por ciclo, matérias nas linhas e NM1/NM2/NM3 nas colunas
+function montarBoletim(notas) {
+  const ciclos = [];
+  for (const n of notas) {
+    let c = ciclos.find(x => x.id === n.ciclo_id);
+    if (!c) ciclos.push(c = { id: n.ciclo_id, nome: n.ciclo, linhas: new Map(), nms: new Set() });
+    c.nms.add(n.nm);
+    const chave = n.materia;
+    if (!c.linhas.has(chave)) c.linhas.set(chave, { materia: n.materia, turmas: new Set(), nm: {} });
+    const l = c.linhas.get(chave); l.turmas.add(n.turma_id); l.nm[n.nm] = n;
+  }
+  ciclos.forEach(c => { c.nms = [...c.nms].sort(); c.linhas = [...c.linhas.values()].sort((x, y) => x.materia.localeCompare(y.materia, 'pt-BR')); });
+  return ciclos;
+}
+function mostrarBoletim(a, notas, topo, id) {
+  const ciclos = montarBoletim(notas.filter(n => n.nota_real != null || n.nota_multiplicada != null));
+  const celula = (n) => !n || n.nota_multiplicada == null ? '—'
+    : `<strong>${fmt(n.nota_multiplicada)}</strong>${n.nota_real != null && Number(n.nota_real) !== Number(n.nota_multiplicada) ? `<small>real ${fmt(n.nota_real)}</small>` : ''}`;
+  $('#ficha').innerHTML = `
+    ${topo()}
+    <div class="secao"><h3>Boletim</h3>
+      ${!ciclos.length ? '<p class="subtitulo" style="margin:0">Ainda não há notas lançadas para este aluno.</p>' : ciclos.map(c => `
+        <h4 style="margin:14px 0 8px">${esc(c.nome)}</h4>
+        <div class="rolavel"><table class="boletim">
+          <thead><tr><th>Matéria</th>${c.nms.map(nm => `<th class="num">${nm}</th>`).join('')}</tr></thead>
+          <tbody>${c.linhas.map(l => `<tr><td>${esc(l.materia)}${l.turmas.size > 1 || ![...l.turmas].includes(estado.matriculas.find(m => m.aluno_id === id)?.turma_id)
+              ? `<br><small class="vazio">${[...l.turmas].map(t => esc(nomeTurma(t))).join(', ')}</small>` : ''}</td>
+            ${c.nms.map(nm => `<td class="num">${celula(l.nm[nm])}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table></div>`).join('')}
+      <p class="subtitulo" style="margin:12px 0 0">Nota em destaque = nota final (com multiplicador, no máximo 10). Quando é diferente, a nota real aparece embaixo.</p>
+    </div>
+    <div class="rodape-ficha">
+      ${ciclos.length ? '<button class="botao leve" id="imprimir-boletim">Imprimir boletim</button>' : ''}
+      <button class="botao" id="voltar-ficha">Voltar à ficha</button>
+    </div>`;
+  $('#ficha .fechar').onclick = fecharFicha;
+  $('#voltar-ficha').onclick = () => abrirFicha(id);
+  if ($('#imprimir-boletim')) $('#imprimir-boletim').onclick = () => {
+    const turmaAtual = nomeTurma(estado.matriculas.find(m => m.aluno_id === id)?.turma_id);
+    $('#impressao').innerHTML = `<div class="imp-boletim">
+      <div class="imp-topo"><h1>BOLETIM · ${esc(a.nome)}</h1><span>${esc(turmaAtual || '')} · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+      ${ciclos.map(c => `<h2>${esc(c.nome)}</h2>
+        <table class="imp-tabela"><thead><tr><th>Matéria</th>${c.nms.map(nm => `<th class="n">${nm}</th>`).join('')}</tr></thead>
+        <tbody>${c.linhas.map(l => `<tr><td>${esc(l.materia)}</td>${c.nms.map(nm => {
+          const n = l.nm[nm]; return `<td class="n">${!n || n.nota_multiplicada == null ? '—' : `<strong>${fmt(n.nota_multiplicada)}</strong>${n.nota_real != null && Number(n.nota_real) !== Number(n.nota_multiplicada) ? ` <small>(real ${fmt(n.nota_real)})</small>` : ''}`}</td>`;
+        }).join('')}</tr>`).join('')}</tbody></table>`).join('')}
+      <p class="imp-rodape">Nota final com multiplicador (no máximo 10); entre parênteses, a nota real quando diferente.</p></div>`;
+    setTimeout(() => window.print(), 100);
+  };
+}
+
+// Edição do cadastro (admin e coordenação)
+function mostrarEdicao(id, a, responsaveis, matricula, topo) {
+  const ativo = matricula && matricula.situacao === 'ativo';
+  const ent = (nome, rotulo, valor, tipo = 'text', extra = '') =>
+    `<div class="${extra}"><label for="ed-${nome}">${rotulo}</label><input type="${tipo}" id="ed-${nome}" value="${esc(valor || '')}"></div>`;
+  const blocoResp = (r, i) => `
+    <div class="secao resp" data-resp="${r.id || ''}"><h3>${r.id ? 'Responsável' : 'Novo responsável'}</h3><div class="form-edicao">
+      ${ent(`r${i}-nome`, 'Nome', r.nome, 'text', 'largo')}
+      ${ent(`r${i}-telefone`, 'Telefone', telefone(r.telefone), 'tel')}
+      ${ent(`r${i}-endereco`, 'Endereço', r.endereco)}
+      ${ent(`r${i}-bairro`, 'Bairro', r.bairro)}
+      ${ent(`r${i}-cep`, 'CEP', cep(r.cep))}
+      ${ent(`r${i}-cidade`, 'Cidade', r.cidade)}
+    </div></div>`;
+  $('#ficha').innerHTML = `
+    ${topo('<div class="acoes-ficha"><span class="subtitulo" style="margin:0">Editando cadastro</span></div>')}
+    <div class="secao"><h3>Aluno</h3><div class="form-edicao">
+      ${ent('nome', 'Nome completo', a.nome, 'text', 'largo')}
+      ${ativo ? `<div><label for="ed-turma">Turma (${ANO_LETIVO})</label><select id="ed-turma">${estado.turmas.map(t =>
+        `<option value="${t.id}" ${t.id === matricula.turma_id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select></div>
+        <div id="motivo-turma-caixa" class="escondido"><label for="ed-motivo-turma">Motivo da mudança de turma</label><input type="text" id="ed-motivo-turma" placeholder="Opcional"></div>` : ''}
+      ${ent('nascimento', 'Data de nascimento', a.data_nascimento, 'date')}
+      ${ent('telefone', 'Telefone', telefone(a.telefone), 'tel')}
+      ${ent('email', 'E-mail', a.email, 'email')}
+    </div></div>
+    <div class="secao"><h3>Documentos e endereço</h3><div class="form-edicao">
+      ${ent('rg', 'RG', a.rg)}${ent('cpf', 'CPF', cpf(a.cpf))}
+      ${ent('endereco', 'Endereço', a.endereco, 'text', 'largo')}
+      ${ent('bairro', 'Bairro', a.bairro)}${ent('cep', 'CEP', cep(a.cep))}${ent('cidade', 'Cidade', a.cidade)}
+      <div class="largo"><label for="ed-observacao">Observação</label><textarea id="ed-observacao" rows="3">${esc(a.observacao || '')}</textarea></div>
+    </div></div>
+    <div id="lista-resp">${responsaveis.map(blocoResp).join('')}</div>
+    <div class="secao"><button class="botao leve" id="add-resp">+ Adicionar responsável</button></div>
+    <div id="msg-edicao" class="aviso erro escondido" style="margin:0 24px 14px"></div>
+    <div class="rodape-ficha">
+      <button class="botao leve" id="cancelar-edicao">Cancelar</button>
+      <button class="botao" id="salvar-edicao">Salvar alterações</button>
+    </div>`;
+  $('#ficha .fechar').onclick = fecharFicha;
+  $('#ficha').scrollTop = 0;
+  let novos = responsaveis.length;
+  $('#add-resp').onclick = () => { $('#lista-resp').insertAdjacentHTML('beforeend', blocoResp({}, novos++)); };
+  if ($('#ed-turma')) $('#ed-turma').onchange = () =>
+    $('#motivo-turma-caixa').classList.toggle('escondido', Number($('#ed-turma').value) === matricula.turma_id);
+  $('#cancelar-edicao').onclick = () => abrirFicha(id);
+  $('#salvar-edicao').onclick = async (e) => {
+    const v = (k) => $('#ed-' + k).value;
+    const erro = (m) => { $('#msg-edicao').textContent = m; $('#msg-edicao').classList.remove('escondido'); e.target.disabled = false; };
+    if (!v('nome').trim()) return erro('O nome do aluno não pode ficar vazio.');
+    const email = v('email').trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return erro('O e-mail parece incompleto. Confira e tente de novo.');
+    e.target.disabled = true; e.target.textContent = 'Salvando…';
+    const dados = { nome: v('nome'), data_nascimento: v('nascimento'), telefone: v('telefone'), email, rg: v('rg'), cpf: v('cpf'),
+      endereco: v('endereco'), bairro: v('bairro'), cep: v('cep'), cidade: v('cidade'), observacao: $('#ed-observacao').value };
+    const resps = [...document.querySelectorAll('#lista-resp .resp')].map(div => {
+      const campo = (k) => div.querySelector(`[id$="-${k}"]`).value;
+      return { id: div.dataset.resp ? Number(div.dataset.resp) : null, nome: campo('nome'), telefone: campo('telefone'),
+        endereco: campo('endereco'), bairro: campo('bairro'), cep: campo('cep'), cidade: campo('cidade') };
+    });
+    const { error } = await db.rpc('editar_aluno', { p_aluno: id, p_dados: dados, p_resps: resps });
+    if (error) { e.target.textContent = 'Salvar alterações'; return erro('Não foi possível salvar: ' + error.message); }
+    if ($('#ed-turma') && Number($('#ed-turma').value) !== matricula.turma_id) {
+      const r = await db.rpc('mudar_turma', { p_aluno: id, p_turma: Number($('#ed-turma').value), p_ano: ANO_LETIVO, p_motivo: $('#ed-motivo-turma').value.trim() || null });
+      if (r.error) { e.target.textContent = 'Salvar alterações'; return erro('O cadastro foi salvo, mas não consegui mudar a turma: ' + r.error.message); }
+    }
+    // atualiza o nome/contato usados nas listas
+    const { data: novo } = await db.from('alunos_basico').select('*').eq('id', id).single();
+    if (novo) estado.alunos.set(id, novo);
+    await recarregarMatriculas();
+    abrirFicha(id);
   };
 }
 function fecharFicha() { $('#fundo-ficha').classList.add('escondido'); $('#ficha').classList.remove('largo'); }
