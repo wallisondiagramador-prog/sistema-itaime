@@ -658,10 +658,12 @@ function alertaNotas(msg) {
 
 // Calcula a linha de um aluno: soma das questões, 2ª chamada, nota real e com multiplicador
 // aplica = false quando a coordenação desmarcou o multiplicador daquele aluno. A nota final nunca passa de 10.
+// NM2: nota real = média simples das colunas (Provão e Qualitativa), só quando todas estão lançadas.
 function calcularLinha(valores, segunda, nm, aplica = true) {
   const presentes = valores.filter(v => v != null);
   const soma = presentes.length ? Math.round(presentes.reduce((a, b) => a + b, 0) * 100) / 100 : null;
-  const real = segunda != null ? segunda : soma;
+  const media = valores.length && presentes.length === valores.length ? Math.round(soma / valores.length * 100) / 100 : null;
+  const real = segunda != null ? segunda : (nm === 'NM2' ? media : soma);
   const final = real == null ? null : Math.min(10, Math.round(real * (aplica ? MULT[nm] : 1) * 100) / 100);
   return { soma, real, final };
 }
@@ -856,8 +858,8 @@ async function paginaPlanilha(planilhaId) {
       ${pend.length ? `<span class="status vermelho">${pend.length} ${pend.length === 1 ? 'pendência' : 'pendências'}</span>` : ''}
       <button class="botao" id="imprimir-relatorio" style="margin-left:auto">Imprimir relatório</button></div>
     ${doc ? `<div class="caixa-link"><strong>Notas importadas de PDF.</strong>
-      ${editar ? '<button class="botao leve pequeno" id="reimportar">Importar PDF novamente</button>' : ''}
-      <span class="subtitulo" style="margin:0">Uma nova importação atualiza as notas e refaz a lista de pendências.</span></div>` : `
+      ${editar ? questoes.map(q => `<button class="botao leve pequeno" data-reimportar="${q.numero}">Importar ${esc(nomeColuna(q))}</button>`).join('') : ''}
+      <span class="subtitulo" style="margin:0">${p.nm === 'NM2' ? 'Nota real = (Provão + Qualitativa) ÷ 2, quando as duas estiverem lançadas. ' : ''}Importar de novo atualiza as notas e refaz as pendências daquela prova.</span></div>` : `
     <div class="caixa-link">
       <strong>Link dos professores:</strong>
       <input type="text" readonly value="${esc(linkPublico(p.token))}" id="link-publico">
@@ -875,7 +877,7 @@ async function paginaPlanilha(planilhaId) {
       <button data-vista="mult" class="${vista === 'mult' ? 'ativa' : ''}">Com multiplicador (× ${fmt(MULT[p.nm])})</button></div>` : ''}
     <div class="rolavel"><table id="tabela-notas" class="vista-${vista}">
       <thead><tr><th>Nº</th><th>Aluno</th>
-        ${questoes.map(q => `<th class="num col-prof">Q${q.numero}<br><small>${esc(q.professor)}</small></th>`).join('')}
+        ${questoes.map(q => `<th class="num col-prof">${doc ? `${esc(nomeColuna(q))}<br><small>PDF</small>` : `Q${q.numero}<br><small>${esc(q.professor)}</small>`}</th>`).join('')}
         ${doc ? '' : '<th class="num col-prof">Soma</th>'}<th class="num col-prof">2ª chamada</th><th class="num">Nota real</th>
         ${temMult ? `<th class="mult col-mult">Usar × ${fmt(MULT[p.nm])}?</th>` : ''}<th class="num col-mult">Nota final<br><small>máx. 10</small></th></tr></thead>
       <tbody>${alunos.map((a, i) => {
@@ -914,7 +916,7 @@ async function paginaPlanilha(planilhaId) {
     $('#ficha .fechar').onclick = fecharFicha;
     document.querySelectorAll('[data-imp]').forEach(b => b.onclick = () => { fecharFicha(); imprimirRelatorio(dados, b.dataset.imp === 'com'); });
   };
-  if ($('#reimportar')) $('#reimportar').onclick = () => importarPdf(ciclo, p.nm, p.materia, p.turma_id, p.id);
+  document.querySelectorAll('[data-reimportar]').forEach(b => b.onclick = () => importarPdf(ciclo, p.nm, p.materia, p.turma_id, p.id, Number(b.dataset.reimportar)));
   const copiar = async (txt, botao) => { try { await navigator.clipboard.writeText(txt); botao.textContent = 'Copiado!'; } catch { $('#link-publico').select(); } };
   if ($('#copiar-link')) $('#copiar-link').onclick = (e) => copiar(linkPublico(p.token), e.target);
   if ($('#copiar-msg')) $('#copiar-msg').onclick = (e) => copiar(mensagem, e.target);
@@ -930,25 +932,25 @@ async function paginaPlanilha(planilhaId) {
 
   // ----- Resolver pendências -----
   const falhou = (e) => { alertaNotas('Não foi possível salvar: ' + e.message); };
-  const lancarNota = async (aluno_id, nota, pendId) => {
-    const q = questoes[0];
+  const lancarNota = async (aluno_id, nota, pendId, questaoId) => {
+    const q = questoes.find(x => x.id === questaoId) || questoes[0];
     if (!q) return falhou({ message: 'planilha sem coluna de nota' });
     const { error: e1 } = await db.from('notas_questao').upsert({ aluno_id, questao_id: q.id, nota, atualizado_em: new Date().toISOString() });
     if (e1) return falhou(e1);
-    await db.from('pendencias_notas').delete().eq('planilha_id', p.id).eq('aluno_id', aluno_id);
+    await db.from('pendencias_notas').delete().eq('planilha_id', p.id).eq('aluno_id', aluno_id).eq('questao_id', q.id);
     if (pendId) await db.from('pendencias_notas').delete().eq('id', pendId);
     paginaPlanilha(p.id);
   };
   document.querySelectorAll('[data-usar]').forEach(b => b.onclick = () => {
     const x = pend.find(y => y.id === Number(b.dataset.usar));
-    lancarNota(x.aluno_id, Number(x.nota), x.id);
+    lancarNota(x.aluno_id, Number(x.nota), x.id, x.questao_id);
   });
   document.querySelectorAll('[data-lancar]').forEach(b => b.onclick = () => {
     const x = pend.find(y => y.id === Number(b.dataset.lancar));
     const destino = Number($(`[data-destino="${x.id}"]`).value);
     if (!destino) return alertaNotas('Escolha primeiro o aluno da turma que deve receber esta nota.');
     if (x.nota == null) return alertaNotas('Este item não tem nota válida no documento. Digite a nota direto na linha do aluno.');
-    lancarNota(destino, Number(x.nota), x.id);
+    lancarNota(destino, Number(x.nota), x.id, x.questao_id);
   });
   document.querySelectorAll('[data-descartar]').forEach(b => b.onclick = async () => {
     const { error: e } = await db.from('pendencias_notas').delete().eq('id', Number(b.dataset.descartar));
@@ -992,8 +994,9 @@ async function paginaPlanilha(planilhaId) {
     if (d.segunda) { v == null ? seg.delete(aluno) : seg.set(aluno, v); } else { valor.set(`${aluno}-${d.questao}`, v); }
     atualizarLinha(aluno);
     // nota digitada para um aluno com pendência = pendência resolvida
-    if (v != null && pendDoAluno(aluno).length) {
-      await db.from('pendencias_notas').delete().eq('planilha_id', p.id).eq('aluno_id', aluno);
+    const daColuna = pendDoAluno(aluno).filter(x => d.segunda || x.questao_id === Number(d.questao) || !x.questao_id);
+    if (v != null && daColuna.length) {
+      for (const x of daColuna) await db.from('pendencias_notas').delete().eq('id', x.id);
       paginaPlanilha(p.id);
     }
   });
@@ -1010,7 +1013,7 @@ function imprimirRelatorio({ p, ciclo, questoes, alunos, valor, seg, semM, doc, 
   const semNota = linhas.filter(l => l.c.real == null).length;
   const cab = comMult
     ? `<th class="n">Nº</th><th>Aluno</th><th class="n">Nota real</th><th class="n">Multiplicador</th><th class="n">Nota final</th>`
-    : `<th class="n">Nº</th><th>Aluno</th>${questoes.map(q => `<th class="n">${doc ? 'Nota do documento' : `Q${q.numero}<br>${esc(q.professor)}`}</th>`).join('')}
+    : `<th class="n">Nº</th><th>Aluno</th>${questoes.map(q => `<th class="n">${doc ? esc(nomeColuna(q)) : `Q${q.numero}<br>${esc(q.professor)}`}</th>`).join('')}
        ${doc ? '' : '<th class="n">Soma</th>'}<th class="n">2ª chamada</th><th class="n">Nota real</th>`;
   const corpo = linhas.map(({ a, i, c }) => comMult
     ? `<tr><td class="n">${i + 1}</td><td>${esc(a.nome)}</td><td class="n">${fmt(c.real)}</td>
@@ -1197,7 +1200,11 @@ function analisarImportacao(info, alunos, turmaId) {
   return { linhas, lancar, pendencias };
 }
 
-async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null) {
+// Colunas das planilhas de documento. NM2 tem duas provas; as outras, uma.
+const COLUNAS_NM2 = ['Provão (PDF)', 'Qualitativa (PDF)'];
+const nomeColuna = (q) => q.professor === 'Documento (PDF)' ? 'Nota do documento' : q.professor.replace(' (PDF)', '');
+
+async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null, coluna = null) {
   const alunos = estado.matriculas.filter(m => m.turma_id === turmaId && m.situacao === 'ativo')
     .map(m => estado.alunos.get(m.aluno_id)).filter(Boolean).sort((a, b) => a.nome.localeCompare(b.nome));
   $('#fundo-ficha').classList.remove('escondido');
@@ -1208,6 +1215,8 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null) {
       <button class="fechar" aria-label="Fechar">×</button></div>
     <div class="secao">
       <label for="arquivo-pdf">Escolha o PDF com o nome dos alunos e as notas</label>
+      ${nm === 'NM2' ? `<label for="qual-prova">Este PDF é</label>
+        <select id="qual-prova">${COLUNAS_NM2.map((c, i) => `<option value="${i + 1}" ${(coluna || 1) === i + 1 ? 'selected' : ''}>${c.replace(' (PDF)', '')}</option>`).join('')}</select>` : ''}
       <input type="file" id="arquivo-pdf" accept="application/pdf,.pdf">
       <p class="subtitulo" style="margin:8px 0 0">O arquivo é lido aqui no seu navegador. Só entra nota de aluno com o nome <strong>igual</strong> ao do sistema;
         os outros casos ficam em vermelho na planilha, com o motivo, para você corrigir.</p>
@@ -1229,8 +1238,15 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null) {
     const codPdf = (semAcento(info.turma).match(/(\d)([AB])I?$/) || []).slice(1).join('');
     if (codPdf && codPdf !== codigoTurma(nomeTurma(turmaId))) avisos.push(`O PDF é da turma <strong>${esc(info.turma)}</strong>, que parece ser a ${codPdf[0]}ª Série ${codPdf[1]}, não a ${esc(nomeTurma(turmaId))}.`);
     const tituloSA = semAcento(info.titulo);
-    const nmPdf = /\bIME\b/.test(tituloSA) ? 'NM3' : /\bITA\b/.test(tituloSA) ? 'NM1' : null;
-    if (nmPdf && nmPdf !== nm && nm !== 'NM2') avisos.push(`O título do PDF fala em <strong>${nmPdf === 'NM3' ? 'IME' : 'ITA'}</strong>, mas você está importando para ${nm}.`);
+    const provaPdf = /QUALITATIVA/.test(tituloSA) ? 2 : /PROVAO/.test(tituloSA) ? 1 : null;
+    const nmPdf = provaPdf ? 'NM2' : /\bIME\b/.test(tituloSA) ? 'NM3' : /\bITA\b/.test(tituloSA) ? 'NM1' : null;
+    const rotulo = { NM1: 'ITA (NM1)', NM2: 'Provão/Qualitativa (NM2)', NM3: 'IME (NM3)' };
+    if (nmPdf && nmPdf !== nm) avisos.push(`O título do PDF fala em <strong>${rotulo[nmPdf]}</strong>, mas você está importando para ${nm}.`);
+    if (nm === 'NM2' && provaPdf) {
+      // o título diz qual é a prova: se veio de um botão de outra prova, avisa; senão, já escolhe
+      if (coluna && coluna !== provaPdf) avisos.push(`O título do PDF indica <strong>${COLUNAS_NM2[provaPdf - 1].replace(' (PDF)', '')}</strong>, mas foi escolhido ${COLUNAS_NM2[coluna - 1].replace(' (PDF)', '')}. Confira o campo "Este PDF é".`);
+      else $('#qual-prova').value = String(provaPdf);
+    }
 
     const r = analisarImportacao(info, alunos, turmaId);
     const vermelhas = r.pendencias;
@@ -1258,30 +1274,35 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null) {
       const msg = $('#msg-importacao');
       $('#salvar-importacao').disabled = true;
       try {
-        // cria a planilha deste documento na primeira importação (uma única coluna: "Documento")
-        let pid = planilhaId, questaoId;
+        // cria a planilha na primeira importação: NM2 com as colunas Provão e Qualitativa; as outras com uma coluna
+        const numero = nm === 'NM2' ? Number($('#qual-prova').value) : 1;
+        const nomes = nm === 'NM2' ? COLUNAS_NM2 : ['Documento (PDF)'];
+        let pid = planilhaId;
         if (!pid) {
           const { data: p, error } = await db.from('planilhas').insert({ ciclo_id: ciclo.id, nm, materia, turma_id: turmaId, aberta: false }).select().single();
           if (error) throw error;
           pid = p.id;
-          const { data: q, error: e2 } = await db.from('questoes').insert({ planilha_id: pid, numero: 1, professor: 'Documento (PDF)' }).select().single();
-          if (e2) throw e2;
-          questaoId = q.id;
-        } else {
-          const { data: q, error } = await db.from('questoes').select('id').eq('planilha_id', pid).order('numero');
-          if (error) throw error;
-          questaoId = q[0].id;
         }
+        const { data: qs, error: eq } = await db.from('questoes').select('id, numero').eq('planilha_id', pid).order('numero');
+        if (eq) throw eq;
+        const faltam = nomes.map((professor, i) => ({ planilha_id: pid, numero: i + 1, professor })).filter(x => !qs.some(q => q.numero === x.numero));
+        if (faltam.length) {
+          const { data: novas, error: e2 } = await db.from('questoes').insert(faltam).select();
+          if (e2) throw e2;
+          qs.push(...novas);
+        }
+        const questaoId = qs.find(q => q.numero === numero).id;
+        const prefixo = nm === 'NM2' ? `[${nomes[numero - 1].replace(' (PDF)', '')}] ` : '';
         if (r.lancar.length) {
           const { error: e3 } = await db.from('notas_questao').upsert(
             r.lancar.map(x => ({ aluno_id: x.aluno_id, questao_id: questaoId, nota: x.nota, atualizado_em: new Date().toISOString() })));
           if (e3) throw e3;
         }
-        // a lista de pendências é refeita a cada importação
-        const { error: e4 } = await db.from('pendencias_notas').delete().eq('planilha_id', pid);
+        // a lista de pendências desta prova é refeita a cada importação (as da outra prova ficam)
+        const { error: e4 } = await db.from('pendencias_notas').delete().eq('planilha_id', pid).eq('questao_id', questaoId);
         if (e4) throw e4;
         if (vermelhas.length) {
-          const { error: e5 } = await db.from('pendencias_notas').insert(vermelhas.map(x => ({ planilha_id: pid, ...x })));
+          const { error: e5 } = await db.from('pendencias_notas').insert(vermelhas.map(x => ({ planilha_id: pid, questao_id: questaoId, ...x, motivo: prefixo + x.motivo })));
           if (e5) throw e5;
         }
         fecharFicha();
