@@ -1120,12 +1120,12 @@ function alertaNotas(msg) {
 
 // Calcula a linha de um aluno: soma das questões, 2ª chamada, nota real e com multiplicador
 // aplica = false quando a coordenação desmarcou o multiplicador daquele aluno. A nota final nunca passa de 10.
-// NM2: nota real = média simples das colunas (Provão e Qualitativa), só quando todas estão lançadas.
-function calcularLinha(valores, segunda, nm, aplica = true) {
+// NM2 e Linguagens (NM1/NM3): nota real = média simples das colunas, só quando todas estão lançadas.
+function calcularLinha(valores, segunda, nm, aplica = true, materia = '') {
   const presentes = valores.filter(v => v != null);
   const soma = presentes.length ? Math.round(presentes.reduce((a, b) => a + b, 0) * 100) / 100 : null;
   const media = valores.length && presentes.length === valores.length ? Math.round(soma / valores.length * 100) / 100 : null;
-  const real = segunda != null ? segunda : (nm === 'NM2' ? media : soma);
+  const real = segunda != null ? segunda : (nm === 'NM2' || materia === 'Linguagens' ? media : soma);
   const final = real == null ? null : Math.min(10, Math.round(real * (aplica ? MULT[nm] : 1) * 100) / 100);
   return { soma, real, final };
 }
@@ -1178,11 +1178,10 @@ async function paginaCiclo(cicloId) {
     return np ? ` <span class="status vermelho">${np} ${np === 1 ? 'pendência' : 'pendências'}</span>` : '';
   };
   const celula = (nm, materia, turmaId) => {
-    if (materia === 'Linguagens' && nm !== 'NM2') return '<td class="pendente">aguardando modelo (documento + redação)</td>';
     const doc = eDocumento(nm, materia);
     const p = planilhas.find(x => x.nm === nm && x.materia === materia && x.turma_id === turmaId);
     if (p) return `<td><button class="botao leve pequeno" data-planilha="${p.id}">${resumo(p.id)}</button>
-      ${doc ? '<span class="status fechada">PDF</span>' : `<span class="status ${p.aberta ? 'aberta' : 'fechada'}">${p.aberta ? 'aberta' : 'fechada'}</span>`}${selo(p.id)}</td>`;
+      ${doc ? '<span class="status fechada">PDF</span>' : `${eMisto(nm, materia) ? '<span class="status fechada">PDF + redação</span> ' : ''}<span class="status ${p.aberta ? 'aberta' : 'fechada'}">${p.aberta ? 'aberta' : 'fechada'}</span>`}${selo(p.id)}</td>`;
     if (!veTudo()) return '<td class="pendente">não criada</td>';
     return doc
       ? `<td><button class="botao leve pequeno" data-importar="${nm}|${materia}|${turmaId}">Importar PDF</button></td>`
@@ -1224,6 +1223,9 @@ async function criarPlanilha(ciclo, nm, materia, turmaId, planilhasDoCiclo) {
     sugestao = (profs || []).filter(p => semAcento(p.materia || '') === semAcento(materia) && (!p.turmas || codigoTurma(p.turmas).includes(cod)))
       .map(p => ({ nome: p.nome, email: p.email || '' }));
   }
+  sugestao = sugestao.filter(x => !/ \(PDF\)$/.test(x.nome));
+  const misto = eMisto(nm, materia);
+  if (misto) sugestao = sugestao.slice(0, 1);
   if (!sugestao.length) sugestao = [{ nome: '', email: '' }];
 
   const linha = (p) => `<div class="linha-prof">
@@ -1235,10 +1237,11 @@ async function criarPlanilha(ciclo, nm, materia, turmaId, planilhasDoCiclo) {
       <span class="etiqueta">${esc(materia)} · ${nm} · ${esc(nomeTurma(turmaId))} · ${esc(ciclo.nome)}</span></div>
       <button class="fechar" aria-label="Fechar">×</button></div>
     <div class="secao">
-      <h3>Professores (uma coluna/questão para cada um, na ordem)</h3>
+      <h3>${misto ? 'Professor da Redação' : 'Professores (uma coluna/questão para cada um, na ordem)'}</h3>
+      ${misto ? '<p class="subtitulo" style="margin-top:0">A planilha terá duas colunas: a nota do PDF da prova (você importa depois, dentro da planilha) e a Redação, lançada por este professor no link. Nota real = média das duas.</p>' : ''}
       <datalist id="lista-profs">${(profs || []).map(p => `<option value="${esc(p.nome)}">`).join('')}</datalist>
       <div id="linhas-prof">${sugestao.map(linha).join('')}</div>
-      <button type="button" class="botao leve pequeno" id="mais-prof">+ Adicionar professor</button>
+      ${misto ? '' : '<button type="button" class="botao leve pequeno" id="mais-prof">+ Adicionar professor</button>'}
     </div>
     <div class="secao"><button class="botao" id="gerar">Gerar planilha</button>
       <div id="msg-criar" class="aviso erro escondido"></div></div>`;
@@ -1252,7 +1255,7 @@ async function criarPlanilha(ciclo, nm, materia, turmaId, planilhasDoCiclo) {
     });
   };
   ligarLinhas();
-  $('#mais-prof').onclick = () => { $('#linhas-prof').insertAdjacentHTML('beforeend', linha({ nome: '', email: '' })); ligarLinhas(); };
+  if ($('#mais-prof')) $('#mais-prof').onclick = () => { $('#linhas-prof').insertAdjacentHTML('beforeend', linha({ nome: '', email: '' })); ligarLinhas(); };
   $('#gerar').onclick = async () => {
     const lista = [...document.querySelectorAll('.linha-prof')].map(l => ({
       nome: l.querySelector('.prof-nome').value.trim(), email: l.querySelector('.prof-email').value.trim().toLowerCase() || null,
@@ -1262,7 +1265,10 @@ async function criarPlanilha(ciclo, nm, materia, turmaId, planilhasDoCiclo) {
     $('#gerar').disabled = true;
     const { data: p, error } = await db.from('planilhas').insert({ ciclo_id: ciclo.id, nm, materia, turma_id: turmaId }).select().single();
     if (error) { msg.textContent = error.message; msg.classList.remove('escondido'); $('#gerar').disabled = false; return; }
-    const { error: e2 } = await db.from('questoes').insert(lista.map((x, i) => ({ planilha_id: p.id, numero: i + 1, professor: x.nome, professor_email: x.email })));
+    const colunas = misto
+      ? [{ planilha_id: p.id, numero: 1, professor: 'Documento (PDF)' }, { planilha_id: p.id, numero: 2, professor: lista[0].nome, professor_email: lista[0].email }]
+      : lista.map((x, i) => ({ planilha_id: p.id, numero: i + 1, professor: x.nome, professor_email: x.email }));
+    const { error: e2 } = await db.from('questoes').insert(colunas);
     if (e2) { msg.textContent = e2.message; msg.classList.remove('escondido'); $('#gerar').disabled = false; return; }
     fecharFicha();
     irPara('planilha', p.id);
@@ -1299,16 +1305,17 @@ async function paginaPlanilha(planilhaId) {
     ? `<input class="nota" inputmode="decimal" ${attrs} value="${v == null ? '' : String(v).replace('.', ',')}">`
     : (v == null ? '—' : fmt(v));
   const doc = eDocumento(p.nm, p.materia);
+  const misto = eMisto(p.nm, p.materia);
   const emails = questoes.map(q => q.professor_email).filter(Boolean);
   const titulo = `${p.materia} · ${p.nm} · ${nomeTurma(p.turma_id)} · ${ciclo.nome}`;
-  const mensagem = `Olá! A planilha de notas de ${titulo} está aberta.\nLance as notas da sua questão neste link (salva automaticamente):\n${linkPublico(p.token)}`;
+  const mensagem = `Olá! A planilha de notas de ${titulo} está aberta.\nLance as notas ${misto ? 'de Redação' : 'da sua questão'} neste link (salva automaticamente):\n${linkPublico(p.token)}`;
   // valor de cada coluna original; se houver 2ª chamada daquela prova, ela substitui
   const valoresDe = (a) => questoes.filter(q => !q.substitui_id).map(b => {
     const sub = questoes.find(x => x.substitui_id === b.id);
     return (sub ? valor.get(`${a}-${sub.id}`) : null) ?? valor.get(`${a}-${b.id}`) ?? null;
   });
   const temSegunda = p.nm !== 'NM2';   // na NM2 a 2ª chamada é por prova (colunas próprias)
-  const linhaDe = (a) => calcularLinha(valoresDe(a), temSegunda ? seg.get(a) ?? null : null, p.nm, !semM.has(a));
+  const linhaDe = (a) => calcularLinha(valoresDe(a), temSegunda ? seg.get(a) ?? null : null, p.nm, !semM.has(a), p.materia);
 
   // Pendências ligadas a um aluno da turma (aparecem na linha dele) e as soltas (nome do documento que não está na turma)
   const pendDoAluno = (id) => pend.filter(x => x.aluno_id === id);
@@ -1336,7 +1343,10 @@ async function paginaPlanilha(planilhaId) {
       <button class="botao leve pequeno" id="copiar-msg">Copiar mensagem (WhatsApp)</button>
       ${emails.length ? `<a class="botao leve pequeno" id="avisar" href="mailto:?bcc=${encodeURIComponent(emails.join(','))}&subject=${encodeURIComponent('Notas - ' + titulo)}&body=${encodeURIComponent(mensagem)}">Avisar por e-mail (${emails.length})</a>` : ''}
       ${editar ? `<button class="botao leve pequeno" id="abrir-fechar">${p.aberta ? 'Fechar lançamento' : 'Reabrir lançamento'}</button>` : ''}
-    </div>`}
+    </div>
+    ${misto ? `<div class="caixa-link"><strong>Nota da prova (PDF):</strong>
+      ${editar ? questoes.filter(colunaPdf).map(q => `<button class="botao leve pequeno" data-reimportar="${q.numero}">Importar PDF da prova</button>`).join('') : ''}
+      <span class="subtitulo" style="margin:0">Nota real = (PDF + Redação) ÷ 2, quando as duas estiverem lançadas. Depois × ${fmt(MULT[p.nm])}, no máximo 10. O professor de Redação não vê nem altera a coluna do PDF.</span></div>` : ''}`}
     ${soltas.length ? `<div class="caixa-erros"><h3>No documento, mas fora desta turma (${soltas.length}) — nota NÃO lançada</h3>
       ${soltas.map(x => `<div class="item"><strong>${esc(x.nome_documento || '')}</strong>${x.nota != null ? ` · nota ${fmt(x.nota)}` : ''}<br>${esc(x.motivo)}
         ${editar ? `<br><select data-destino="${x.id}">${opcoesAlunos}</select><button class="botao pequeno" data-lancar="${x.id}">Lançar para este aluno</button>${acoes(x)}` : ''}</div>`).join('')}</div>` : ''}
@@ -1346,14 +1356,14 @@ async function paginaPlanilha(planilhaId) {
       <button data-vista="mult" class="${vista === 'mult' ? 'ativa' : ''}">Com multiplicador (× ${fmt(MULT[p.nm])})</button></div>` : ''}
     <div class="rolavel"><table id="tabela-notas" class="vista-${vista}">
       <thead><tr><th>Nº</th><th>Aluno</th>
-        ${questoes.map(q => `<th class="num col-prof">${doc ? `${esc(nomeColuna(q))}<br><small>PDF</small>` : `Q${q.numero}<br><small>${esc(q.professor)}</small>`}</th>`).join('')}
-        ${doc ? '' : '<th class="num col-prof">Soma</th>'}${temSegunda ? '<th class="num col-prof">2ª chamada</th>' : ''}<th class="num">Nota real</th>
+        ${questoes.map(q => `<th class="num col-prof">${doc || colunaPdf(q) ? `${esc(misto ? 'Prova' : nomeColuna(q))}<br><small>PDF</small>` : `${misto ? 'Redação' : 'Q' + q.numero}<br><small>${esc(q.professor)}</small>`}</th>`).join('')}
+        ${doc || misto ? '' : '<th class="num col-prof">Soma</th>'}${temSegunda ? '<th class="num col-prof">2ª chamada</th>' : ''}<th class="num">Nota real</th>
         ${temMult ? `<th class="mult col-mult">Usar × ${fmt(MULT[p.nm])}?</th>` : ''}<th class="num col-mult">Nota final<br><small>máx. 10</small></th></tr></thead>
       <tbody>${alunos.map((a, i) => {
         const c = linhaDe(a.id);
         return `<tr data-linha="${a.id}" class="${pendDoAluno(a.id).length ? 'com-erro' : ''}"><td>${i + 1}</td><td>${esc(a.nome)}${motivos(a.id)}</td>
           ${questoes.map(q => `<td class="num col-prof">${cx(valor.get(`${a.id}-${q.id}`), `data-aluno="${a.id}" data-questao="${q.id}"`)}</td>`).join('')}
-          <td class="num col-prof ${c.soma > 10 ? 'acima' : ''} ${doc ? 'escondido' : ''}" data-soma>${fmt(c.soma)}</td>
+          <td class="num col-prof ${c.soma > 10 && !misto ? 'acima' : ''} ${doc || misto ? 'escondido' : ''}" data-soma>${fmt(c.soma)}</td>
           ${temSegunda ? `<td class="num col-prof">${cx(seg.get(a.id), `data-aluno="${a.id}" data-segunda="1"`)}</td>` : ''}
           <td class="num forte" data-real>${fmt(c.real)}</td>
           ${temMult ? `<td class="mult col-mult"><input type="checkbox" data-mult="${a.id}" ${semM.has(a.id) ? '' : 'checked'} ${editar ? '' : 'disabled'} title="Marcado = aplica o multiplicador"></td>` : ''}
@@ -1362,7 +1372,7 @@ async function paginaPlanilha(planilhaId) {
     ${editar ? `<p class="subtitulo" style="margin-top:14px">${doc ? 'Linhas em vermelho têm pendência: corrija e a marca some. Digitar a nota do aluno também resolve a pendência dele.'
       : 'A coordenação também pode corrigir qualquer nota aqui. Soma em vermelho = passou de 10.'}
       ${temMult ? ' Desmarque "Usar ×" para o aluno ficar com a nota real. A nota final nunca passa de 10.' : ''}
-      ${doc ? '' : '<button class="botao leve pequeno" id="mais-questao">+ Adicionar professor/questão</button>'}</p>` : ''}`;
+      ${doc || misto ? '' : '<button class="botao leve pequeno" id="mais-questao">+ Adicionar professor/questão</button>'}</p>` : ''}`;
 
   $('#voltar').onclick = () => irPara('ciclo', p.ciclo_id);
   document.querySelectorAll('.abas-planilha button').forEach(b => b.onclick = () => {
@@ -1371,7 +1381,7 @@ async function paginaPlanilha(planilhaId) {
     document.querySelectorAll('.abas-planilha button').forEach(x => x.classList.toggle('ativa', x === b));
   });
   $('#imprimir-relatorio').onclick = () => {
-    const dados = { p, ciclo, questoes, alunos, valor, seg, semM, doc, linhaDe, temSegunda };
+    const dados = { p, ciclo, questoes, alunos, valor, seg, semM, doc, linhaDe, temSegunda, misto };
     if (!temMult) return imprimirRelatorio(dados, false);
     $('#fundo-ficha').classList.remove('escondido');
     $('#ficha').innerHTML = `
@@ -1432,7 +1442,7 @@ async function paginaPlanilha(planilhaId) {
     const c = linhaDe(aluno);
     const tr = $('#tabela-notas').querySelector(`tr[data-linha="${aluno}"]`);
     tr.querySelector('[data-soma]').textContent = fmt(c.soma);
-    tr.querySelector('[data-soma]').classList.toggle('acima', c.soma > 10);
+    tr.querySelector('[data-soma]').classList.toggle('acima', c.soma > 10 && !misto);
     tr.querySelector('[data-real]').textContent = fmt(c.real);
     tr.querySelector('[data-final]').textContent = fmt(c.final);
   };
@@ -1472,7 +1482,7 @@ async function paginaPlanilha(planilhaId) {
 }
 
 // Relatório de notas para imprimir: sem multiplicador (notas dos professores) ou com multiplicador
-function imprimirRelatorio({ p, ciclo, questoes, alunos, valor, seg, semM, doc, linhaDe, temSegunda = true }, comMult) {
+function imprimirRelatorio({ p, ciclo, questoes, alunos, valor, seg, semM, doc, linhaDe, temSegunda = true, misto = false }, comMult) {
   const hoje = new Date().toLocaleDateString('pt-BR');
   const linhas = alunos.map((a, i) => ({ a, i, c: linhaDe(a.id) }));
   const media = (k) => {
@@ -1482,13 +1492,13 @@ function imprimirRelatorio({ p, ciclo, questoes, alunos, valor, seg, semM, doc, 
   const semNota = linhas.filter(l => l.c.real == null).length;
   const cab = comMult
     ? `<th class="n">Nº</th><th>Aluno</th><th class="n">Nota real</th><th class="n">Multiplicador</th><th class="n">Nota final</th>`
-    : `<th class="n">Nº</th><th>Aluno</th>${questoes.map(q => `<th class="n">${doc ? esc(nomeColuna(q)) : `Q${q.numero}<br>${esc(q.professor)}`}</th>`).join('')}
-       ${doc ? '' : '<th class="n">Soma</th>'}${temSegunda ? '<th class="n">2ª chamada</th>' : ''}<th class="n">Nota real</th>`;
+    : `<th class="n">Nº</th><th>Aluno</th>${questoes.map(q => `<th class="n">${doc ? esc(nomeColuna(q)) : misto ? (colunaPdf(q) ? 'Prova (PDF)' : `Redação<br>${esc(q.professor)}`) : `Q${q.numero}<br>${esc(q.professor)}`}</th>`).join('')}
+       ${doc || misto ? '' : '<th class="n">Soma</th>'}${temSegunda ? '<th class="n">2ª chamada</th>' : ''}<th class="n">Nota real</th>`;
   const corpo = linhas.map(({ a, i, c }) => comMult
     ? `<tr><td class="n">${i + 1}</td><td>${esc(a.nome)}</td><td class="n">${fmt(c.real)}</td>
         <td class="n">${semM.has(a.id) ? 'não aplicado' : '× ' + fmt(MULT[p.nm])}</td><td class="n forte">${fmt(c.final)}</td></tr>`
     : `<tr><td class="n">${i + 1}</td><td>${esc(a.nome)}</td>${questoes.map(q => `<td class="n">${fmt(valor.get(`${a.id}-${q.id}`))}</td>`).join('')}
-        ${doc ? '' : `<td class="n">${fmt(c.soma)}</td>`}${temSegunda ? `<td class="n">${fmt(seg.get(a.id))}</td>` : ''}<td class="n forte">${fmt(c.real)}</td></tr>`).join('');
+        ${doc || misto ? '' : `<td class="n">${fmt(c.soma)}</td>`}${temSegunda ? `<td class="n">${fmt(seg.get(a.id))}</td>` : ''}<td class="n forte">${fmt(c.real)}</td></tr>`).join('');
   $('#impressao').innerHTML = `
     <div class="imp-topo"><h1>NOTAS · ${esc(p.materia.toUpperCase())} · ${p.nm} · ${esc(nomeTurma(p.turma_id).toUpperCase())}</h1>
       <span>${esc(ciclo.nome)} · impresso em ${hoje}</span></div>
@@ -1524,14 +1534,14 @@ async function paginaPublica(token) {
       </div>
       <div class="aviso erro escondido alerta-notas"></div>
       <div class="rolavel"><table id="tabela-publica">
-        <thead><tr><th>Nº</th><th>Aluno</th>${pl.questoes.map(q => `<th class="num">Q${q.numero}<br><small>${esc(q.professor)}</small></th>`).join('')}<th class="num">Soma</th></tr></thead>
+        <thead><tr><th>Nº</th><th>Aluno</th>${pl.questoes.map(q => `<th class="num">${eMisto(pl.nm, pl.materia) ? 'Redação' : 'Q' + q.numero}<br><small>${esc(q.professor)}</small></th>`).join('')}<th class="num ${eMisto(pl.nm, pl.materia) ? 'escondido' : ''}">Soma</th></tr></thead>
         <tbody>${pl.alunos.map((a, i) => {
           const vals = pl.questoes.map(q => valor.get(`${a.id}-${q.id}`) ?? null);
           const soma = calcularLinha(vals, null, pl.nm).soma;
           return `<tr data-linha="${a.id}"><td>${i + 1}</td><td>${esc(a.nome)}</td>
             ${pl.questoes.map((q, j) => `<td class="num"><input class="nota" inputmode="decimal" data-aluno="${a.id}" data-questao="${q.id}"
                value="${vals[j] == null ? '' : String(vals[j]).replace('.', ',')}" ${pl.aberta && q.id === escolhido ? '' : 'disabled'}></td>`).join('')}
-            <td class="num ${soma > 10 ? 'acima' : ''}" data-soma>${fmt(soma)}</td></tr>`;
+            <td class="num ${soma > 10 ? 'acima' : ''} ${eMisto(pl.nm, pl.materia) ? 'escondido' : ''}" data-soma>${fmt(soma)}</td></tr>`;
         }).join('')}</tbody></table></div>`;
     $('#quem').onchange = () => {
       escolhido = Number($('#quem').value) || null;
@@ -1557,6 +1567,9 @@ async function paginaPublica(token) {
 const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
 const PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const eDocumento = (nm, materia) => nm === 'NM2' || materia === 'Inglês';
+// Linguagens NM1/NM3: uma coluna vem do PDF (coordenação importa) e a Redação vem do link do professor
+const eMisto = (nm, materia) => materia === 'Linguagens' && nm !== 'NM2';
+const colunaPdf = (q) => / \(PDF\)$/.test(q.professor);
 
 // Lê o texto do PDF e monta as linhas (juntando os pedaços que estão na mesma altura da página)
 async function lerLinhasPdf(arquivo) {
