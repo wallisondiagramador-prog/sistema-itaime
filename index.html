@@ -120,6 +120,15 @@
   td.forte { font-weight: 700; }
   .pendente { color: var(--suave); font-size: 13px; font-style: italic; }
   .botao.pequeno { padding: 6px 10px; font-size: 13px; }
+  .botao.perigo { background: var(--erro); }
+  .botao.perigo:hover { background: #8f1c13; }
+  .linha-acao { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .linha-acao select, .linha-acao input { flex: 1 1 160px; min-width: 140px; }
+  .mov { font-size: 13.5px; padding: 6px 0; border-top: 1px solid var(--borda); }
+  .mov:first-child { border-top: 0; }
+  .mov small { color: var(--suave); }
+  .lista-desistentes { display: grid; gap: 6px; margin-top: 10px; }
+  .lista-desistentes button { text-align: left; }
   .caixa-link { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--branco); border: 1px solid var(--borda); border-radius: 12px; padding: 14px; margin-bottom: 18px; }
   .caixa-link input { flex: 1; min-width: 260px; }
   .linha-prof { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-bottom: 8px; }
@@ -368,7 +377,7 @@ async function iniciar() {
 
   const [t, m, a] = await Promise.all([
     db.from('turmas').select('*').order('id'),
-    db.from('matriculas').select('aluno_id, turma_id, ordem, situacao').eq('ano_letivo', ANO_LETIVO),
+    db.from('matriculas').select('aluno_id, turma_id, ordem, situacao, data_saida, motivo_saida').eq('ano_letivo', ANO_LETIVO),
     db.from('alunos_basico').select('*').order('nome'),
   ]);
   const erro = t.error || m.error || a.error;
@@ -379,8 +388,16 @@ async function iniciar() {
   irPara('turmas');
 }
 
+// depois de mudar turma / desistente: recarrega as matrículas e redesenha a página aberta
+async function recarregarMatriculas() {
+  const { data } = await db.from('matriculas').select('aluno_id, turma_id, ordem, situacao, data_saida, motivo_saida').eq('ano_letivo', ANO_LETIVO);
+  if (data) estado.matriculas = data;
+  if (estado.pagina) irPara(...estado.pagina);
+}
+
 document.querySelectorAll('nav button').forEach(b => b.onclick = () => irPara(b.dataset.pagina));
 function irPara(pagina, extra) {
+  estado.pagina = [pagina, extra];
   const menu = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' }[pagina] || pagina;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === menu));
   ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe,
@@ -413,17 +430,26 @@ function htmlFoto(aluno, preguicoso = true) {
 // =====================================================================
 function paginaTurmas() {
   const cont = (id) => estado.matriculas.filter(m => m.turma_id === id && m.situacao === 'ativo').length;
+  const ativos = estado.matriculas.filter(m => m.situacao === 'ativo').length;
+  const desistentes = estado.matriculas.filter(m => m.situacao === 'desistente')
+    .map(m => ({ m, a: estado.alunos.get(m.aluno_id) })).filter(x => x.a).sort((x, y) => x.a.nome.localeCompare(y.a.nome));
   $('#conteudo').innerHTML = `
     <h1>Turmas ${ANO_LETIVO}</h1>
-    <p class="subtitulo">${estado.matriculas.length} alunos matriculados. Clique numa turma para ver o carômetro.</p>
+    <p class="subtitulo">${ativos} alunos matriculados. Clique numa turma para ver o carômetro.</p>
     <div class="grade-turmas">
       ${estado.turmas.map(t => `
         <button class="turma ${cont(t.id) ? '' : 'vazia'}" data-turma="${t.id}">
           <div class="nome">${esc(t.nome)}</div>
           <div class="qtd">${cont(t.id)}<span>${cont(t.id) ? 'alunos' : 'sem alunos ainda'}</span></div>
         </button>`).join('')}
-    </div>`;
+    </div>
+    ${desistentes.length ? `<h2 style="margin-top:32px">Desistentes (${desistentes.length})</h2>
+      <p class="subtitulo">Saíram das turmas, mas o cadastro e as notas continuam guardados. Clique para ver a ficha, reativar ou apagar.</p>
+      <div class="lista-desistentes">${desistentes.map(({ m, a }) => `
+        <button class="botao leve" data-aluno="${a.id}"><strong>${esc(a.nome)}</strong>&nbsp;·&nbsp;${esc(nomeTurma(m.turma_id))}${m.data_saida ? ` · desde ${esc(data(m.data_saida))}` : ''}</button>`).join('')}
+      </div>` : ''}`;
   document.querySelectorAll('[data-turma]').forEach(b => b.onclick = () => irPara('turma', Number(b.dataset.turma)));
+  document.querySelectorAll('.lista-desistentes [data-aluno]').forEach(b => b.onclick = () => abrirFicha(Number(b.dataset.aluno)));
 }
 
 async function paginaTurma(turmaId) {
@@ -480,7 +506,11 @@ function imprimirCarometro(turma, lista) {
 }
 
 function desenharAlunos(alunos, onde, mostrarTurma = false) {
-  const turmaDe = (id) => estado.turmas.find(t => t.id === estado.matriculas.find(m => m.aluno_id === id)?.turma_id)?.nome || '';
+  const turmaDe = (id) => {
+    const m = estado.matriculas.find(m => m.aluno_id === id);
+    const nome = estado.turmas.find(t => t.id === m?.turma_id)?.nome || '';
+    return m?.situacao === 'desistente' ? `Desistente (era ${nome})` : nome;
+  };
   if (!alunos.length) { $(onde).innerHTML = '<p class="subtitulo">Nenhum aluno encontrado.</p>'; return; }
   $(onde).innerHTML = estado.visao === 'carometro'
     ? `<div class="carometro">${alunos.map(a => `
@@ -513,7 +543,9 @@ function paginaBusca() {
 // ---------- Ficha do aluno ----------
 async function abrirFicha(id) {
   const basico = estado.alunos.get(id);
-  const turma = estado.turmas.find(t => t.id === estado.matriculas.find(m => m.aluno_id === id)?.turma_id);
+  const matricula = estado.matriculas.find(m => m.aluno_id === id);
+  const turma = estado.turmas.find(t => t.id === matricula?.turma_id);
+  const desistente = matricula?.situacao === 'desistente';
   const campo = (rotulo, valor) => `<div class="campo"><small>${rotulo}</small><div>${valor ? esc(valor) : '<span class="vazio">não informado</span>'}</div></div>`;
   $('#fundo-ficha').classList.remove('escondido');
   $('#ficha').innerHTML = '<div class="carregando">Carregando ficha…</div>';
@@ -528,23 +560,63 @@ async function abrirFicha(id) {
     completo = a.data; responsaveis = (r.data || []).map(x => x.responsaveis); pendencias = p.data || [];
   }
   const a = completo || basico;
-  const [{ data: notasAluno }, { data: ciclosAluno }] = await Promise.all([
-    db.from('notas_planilha').select('ciclo_id, nm, materia, nota_real, nota_multiplicada').eq('aluno_id', id),
-    db.from('ciclos').select('id, nome').eq('ano_letivo', ANO_LETIVO),
+  // notas em qualquer turma (continuam aparecendo depois de mudar de turma ou desistir)
+  const [{ data: notasAluno }, { data: movs }] = await Promise.all([
+    db.from('historico_notas').select('ciclo_id, ciclo, nm, materia, turma_id, nota_real, nota_multiplicada').eq('aluno_id', id).order('ciclo_id').order('nm'),
+    db.from('movimentacoes').select('*').eq('aluno_id', id).order('feito_em'),
   ]);
-  const nomeCiclo = (cid) => (ciclosAluno || []).find(c => c.id === cid)?.nome || '';
-  const notasHtml = (notasAluno || []).filter(n => n.nota_real != null).length ? `
+  const comNota = (notasAluno || []).filter(n => n.nota_real != null);
+  const notasHtml = comNota.length ? `
     <div class="secao"><h3>Notas</h3><div class="rolavel"><table>
-      <thead><tr><th>Ciclo</th><th>NM</th><th>Matéria</th><th class="num">Nota real</th><th class="num">Com multiplicador</th></tr></thead>
-      <tbody>${notasAluno.filter(n => n.nota_real != null).map(n => `<tr><td>${esc(nomeCiclo(n.ciclo_id))}</td><td>${n.nm}</td><td>${esc(n.materia)}</td>
+      <thead><tr><th>Ciclo</th><th>NM</th><th>Matéria</th><th>Turma</th><th class="num">Nota real</th><th class="num">Com multiplicador</th></tr></thead>
+      <tbody>${comNota.map(n => `<tr><td>${esc(n.ciclo)}</td><td>${n.nm}</td><td>${esc(n.materia)}</td><td>${esc(nomeTurma(n.turma_id))}</td>
         <td class="num">${fmt(n.nota_real)}</td><td class="num forte">${fmt(n.nota_multiplicada)}</td></tr>`).join('')}</tbody>
     </table></div></div>` : '';
+  const textoMov = (x) => ({
+    mudou_turma: `Mudou da ${esc(nomeTurma(x.de_turma))} para a ${esc(nomeTurma(x.para_turma))}`,
+    desistente: `Marcado como desistente (estava na ${esc(nomeTurma(x.de_turma))})`,
+    reativado: `Reativado na ${esc(nomeTurma(x.para_turma))}`,
+  })[x.tipo] + (x.motivo ? ` — ${esc(x.motivo)}` : '');
+  const outrasTurmas = estado.turmas.filter(t => t.id !== matricula?.turma_id || desistente)
+    .map(t => `<option value="${t.id}" ${desistente && t.id === matricula?.turma_id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('');
+  // data de hoje no fuso do computador (toISOString daria a data em UTC, que vira o dia às 21h)
+  const hoje = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const matriculaHtml = !matricula ? '' : `
+    <div class="secao"><h3>Matrícula ${ANO_LETIVO}</h3>
+      ${desistente ? `
+        <div class="pendencia"><strong>Desistente</strong>${matricula.data_saida ? ` desde ${esc(data(matricula.data_saida))}` : ''}${matricula.motivo_saida ? ` — ${esc(matricula.motivo_saida)}` : ''}.
+          Saiu da ${esc(turma?.nome || '')}; cadastro e notas continuam guardados.</div>
+        ${veTudo() ? `<div class="linha-acao"><select id="reativar-turma">${outrasTurmas}</select>
+          <button class="botao" id="reativar">Reativar nesta turma</button></div>` : ''}
+        ${estado.papel === 'admin' ? `<div class="linha-acao" style="margin-top:14px">
+          <button class="botao leve" id="apagar">Apagar aluno definitivamente…</button></div>
+          <div id="confirmar-apagar" class="escondido"><div class="aviso erro" style="margin-top:10px">Isso apaga <strong>${esc(a.nome)}</strong>,
+            todas as notas, a matrícula e o histórico. <strong>Não dá para desfazer.</strong></div>
+            <div class="linha-acao"><button class="botao perigo" id="apagar-sim">Sim, apagar para sempre</button>
+            <button class="botao leve" id="apagar-nao">Cancelar</button></div></div>` : ''}`
+      : `<div>Turma atual: <strong>${esc(turma?.nome || '')}</strong></div>
+        ${veTudo() ? `
+          <div class="linha-acao"><select id="nova-turma">${outrasTurmas}</select>
+            <input type="text" id="motivo-turma" placeholder="Motivo (opcional)">
+            <button class="botao" id="mudar-turma">Mudar de turma</button></div>
+          <div class="linha-acao"><button class="botao leve" id="abrir-desistente">Marcar como desistente…</button></div>
+          <div id="form-desistente" class="escondido">
+            <div class="linha-acao"><input type="date" id="data-saida" value="${hoje}">
+              <input type="text" id="motivo-saida" placeholder="Motivo (opcional)">
+              <button class="botao perigo" id="confirmar-desistente">Confirmar desistência</button></div>
+            <p class="subtitulo" style="margin:6px 0 0">O aluno sai da turma e das planilhas. As notas e o cadastro ficam guardados; dá para reativar depois.</p>
+          </div>` : ''}`}
+      <div id="msg-matricula" class="aviso erro escondido"></div>
+      ${(movs || []).length ? `<div style="margin-top:14px">${movs.map(x => `<div class="mov">${textoMov(x)}
+        <br><small>${esc(data(x.data))}${x.feito_por ? ` · por ${esc(x.feito_por)}` : ''}</small></div>`).join('')}</div>` : ''}
+    </div>`;
   $('#ficha').innerHTML = `
     <div class="modal-topo">
       ${htmlFoto(basico)}
-      <div><h2>${esc(a.nome)}</h2><span class="etiqueta">${esc(turma?.nome || '')}</span></div>
+      <div><h2>${esc(a.nome)}</h2><span class="etiqueta">${desistente ? 'Desistente · era da ' : ''}${esc(turma?.nome || '')}</span></div>
       <button class="fechar" aria-label="Fechar">×</button>
     </div>
+    ${matriculaHtml}
     ${notasHtml}
     <div class="secao"><h3>Contato</h3><div class="campos">
       ${campo('Telefone', telefone(a.telefone))}${campo('E-mail', a.email)}
@@ -565,6 +637,36 @@ async function abrirFicha(id) {
       ${a.observacao ? `<div class="secao"><h3>Observação</h3><div>${esc(a.observacao)}</div></div>` : ''}
     ` : `<div class="secao"><p class="subtitulo" style="margin:0">Documentos, endereço e responsável ficam visíveis só para a coordenação.</p></div>`}`;
   $('#ficha .fechar').onclick = fecharFicha;
+
+  // ----- ações da matrícula -----
+  const acao = async (botao, chamada) => {
+    botao.disabled = true;
+    const { error } = await chamada();
+    if (error) {
+      botao.disabled = false;
+      $('#msg-matricula').textContent = 'Não foi possível: ' + error.message; $('#msg-matricula').classList.remove('escondido');
+      return false;
+    }
+    return true;
+  };
+  const depois = async () => { await recarregarMatriculas(); abrirFicha(id); };
+  if ($('#mudar-turma')) $('#mudar-turma').onclick = async (e) => {
+    if (await acao(e.target, () => db.rpc('mudar_turma', { p_aluno: id, p_turma: Number($('#nova-turma').value), p_ano: ANO_LETIVO, p_motivo: $('#motivo-turma').value.trim() || null }))) depois();
+  };
+  if ($('#abrir-desistente')) $('#abrir-desistente').onclick = () => { $('#form-desistente').classList.remove('escondido'); $('#abrir-desistente').classList.add('escondido'); };
+  if ($('#confirmar-desistente')) $('#confirmar-desistente').onclick = async (e) => {
+    if (await acao(e.target, () => db.rpc('marcar_desistente', { p_aluno: id, p_ano: ANO_LETIVO, p_motivo: $('#motivo-saida').value.trim() || null, p_data: $('#data-saida').value || hoje }))) depois();
+  };
+  if ($('#reativar')) $('#reativar').onclick = async (e) => {
+    if (await acao(e.target, () => db.rpc('reativar_aluno', { p_aluno: id, p_turma: Number($('#reativar-turma').value), p_ano: ANO_LETIVO }))) depois();
+  };
+  if ($('#apagar')) $('#apagar').onclick = () => { $('#confirmar-apagar').classList.remove('escondido'); $('#apagar').classList.add('escondido'); };
+  if ($('#apagar-nao')) $('#apagar-nao').onclick = () => { $('#confirmar-apagar').classList.add('escondido'); $('#apagar').classList.remove('escondido'); };
+  if ($('#apagar-sim')) $('#apagar-sim').onclick = async (e) => {
+    if (await acao(e.target, () => db.rpc('apagar_aluno', { p_aluno: id }))) {
+      estado.alunos.delete(id); fecharFicha(); recarregarMatriculas();
+    }
+  };
 }
 function fecharFicha() { $('#fundo-ficha').classList.add('escondido'); $('#ficha').classList.remove('largo'); }
 $('#fundo-ficha').onclick = (e) => { if (e.target.id === 'fundo-ficha') fecharFicha(); };
