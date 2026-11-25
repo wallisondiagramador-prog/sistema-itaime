@@ -1992,7 +1992,7 @@ async function paginaPlanilha(planilhaId) {
     const sub = questoes.find(x => x.substitui_id === b.id);
     return (sub ? valor.get(`${a}-${sub.id}`) : null) ?? valor.get(`${a}-${b.id}`) ?? null;
   });
-  const temSegunda = p.nm !== 'NM2';   // na NM2 a 2ª chamada é por prova (colunas próprias)
+  const temSegunda = p.nm !== 'NM2' && p.materia !== 'Inglês';   // na NM2 e no Inglês a 2ª chamada é por prova (colunas próprias)
   const linhaDe = (a) => calcularLinha(valoresDe(a), temSegunda ? seg.get(a) ?? null : null, p.nm, !semM.has(a), p.materia);
 
   // Pendências ligadas a um aluno da turma (aparecem na linha dele) e as soltas (nome do documento que não está na turma)
@@ -2013,7 +2013,7 @@ async function paginaPlanilha(planilhaId) {
       <button class="botao" id="imprimir-relatorio" style="margin-left:auto">Imprimir relatório</button></div>
     ${doc ? `<div class="caixa-link"><strong>Notas importadas de PDF.</strong>
       ${editar ? questoes.map(q => `<button class="botao leve pequeno" data-reimportar="${q.numero}">Importar ${esc(nomeColuna(q))}</button>`).join('') : ''}
-      <span class="subtitulo" style="margin:0">${p.nm === 'NM2' ? regraNm2(p.materia) + ' A 2ª chamada de uma prova substitui a nota daquela prova. ' : ''}Importar de novo atualiza as notas e refaz as pendências daquela prova.</span></div>` : `
+      <span class="subtitulo" style="margin:0">${p.nm === 'NM2' || p.materia === 'Inglês' ? regraNm2(p.materia) + ' A 2ª chamada de uma prova substitui a nota daquela prova. ' : ''}Importar de novo atualiza as notas e refaz as pendências daquela prova.</span></div>` : `
     <div class="caixa-link">
       <strong>Link dos professores:</strong>
       <input type="text" readonly value="${esc(linkPublico(p.token))}" id="link-publico">
@@ -2239,7 +2239,7 @@ async function paginaPublica(token) {
 }
 
 // ---------- Importar notas de um PDF (nome do aluno + nota) ----------
-// Usado para Inglês (NM1, NM2, NM3) e para as matérias do NM2.
+// Usado para Inglês (NM1, NM2, NM3, sempre a Prova de Inglês) e para as matérias do NM2.
 // O sistema lê o PDF no próprio navegador (o arquivo não é enviado a lugar nenhum),
 // encontra cada aluno pelo nome e mostra uma prévia antes de salvar.
 const PDFJS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
@@ -2364,19 +2364,18 @@ function analisarImportacao(info, alunos, turmaId, parcial = false) {
 // Colunas das planilhas de documento (n = número da coluna; sub = coluna que a 2ª chamada substitui).
 // NM2 de Matemática, Física e Química: Provão ITA + Provão IME + Prova Qualitativa (nota = média das três).
 // NM2 de Linguagens: só a Prova Qualitativa (a nota é a dela, sem média).
-// NM2 de Inglês: continua Provão + Qualitativa.
+// Inglês (NM1, NM2 e NM3): prova própria de Inglês, via PDF, com 2ª chamada (a nota é a da prova).
 const COLUNAS_NM2 = [
   { n: 1, nome: 'Provão ITA (PDF)' }, { n: 5, nome: 'Provão IME (PDF)' }, { n: 2, nome: 'Qualitativa (PDF)' },
   { n: 3, nome: '2ª chamada Provão ITA (PDF)', sub: 1 }, { n: 6, nome: '2ª chamada Provão IME (PDF)', sub: 5 },
   { n: 4, nome: '2ª chamada Qualitativa (PDF)', sub: 2 }];
-const COLUNAS_NM2_INGLES = [{ n: 1, nome: 'Provão (PDF)' }, { n: 2, nome: 'Qualitativa (PDF)' },
-  { n: 3, nome: '2ª chamada Provão (PDF)', sub: 1 }, { n: 4, nome: '2ª chamada Qualitativa (PDF)', sub: 2 }];
-const colunasDocumento = (nm, materia) => nm !== 'NM2' ? [{ n: 1, nome: 'Documento (PDF)' }]
-  : materia === 'Linguagens' ? COLUNAS_NM2.filter(c => c.n === 2 || c.n === 4)
-  : materia === 'Inglês' ? COLUNAS_NM2_INGLES : COLUNAS_NM2;
+const COLUNAS_INGLES = [{ n: 1, nome: 'Prova de Inglês (PDF)' }, { n: 3, nome: '2ª chamada Prova de Inglês (PDF)', sub: 1 }];
+const colunasDocumento = (nm, materia) => materia === 'Inglês' ? COLUNAS_INGLES
+  : nm !== 'NM2' ? [{ n: 1, nome: 'Documento (PDF)' }]
+  : materia === 'Linguagens' ? COLUNAS_NM2.filter(c => c.n === 2 || c.n === 4) : COLUNAS_NM2;
 const rotuloColuna = (c) => c.nome.replace(' (PDF)', '');
 const regraNm2 = (materia) => materia === 'Linguagens' ? 'Nota real = nota da Prova Qualitativa (Linguagens não tem média na NM2).'
-  : materia === 'Inglês' ? 'Nota real = (Provão + Qualitativa) ÷ 2, quando as duas estiverem lançadas.'
+  : materia === 'Inglês' ? 'Nota real = nota da Prova de Inglês.'
   : 'Nota real = (Provão ITA + Provão IME + Qualitativa) ÷ 3, quando as três estiverem lançadas.';
 const nomeColuna = (q) => q.professor === 'Documento (PDF)' ? 'Nota do documento' : q.professor.replace(' (PDF)', '');
 // ordem de exibição: cada coluna original seguida da sua 2ª chamada (na NM2: Provão ITA, Provão IME, Qualitativa)
@@ -2390,6 +2389,7 @@ const ordenarColunas = (qs, nm) => {
 async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null, coluna = null) {
   const colunas = colunasDocumento(nm, materia);
   const colunaDe = (n) => colunas.find(c => c.n === n);
+  const comEscolha = colunas.length > 1; // NM2 e Inglês: escolher de qual prova é o PDF
   const alunos = estado.matriculas.filter(m => m.turma_id === turmaId && m.situacao === 'ativo')
     .map(m => estado.alunos.get(m.aluno_id)).filter(Boolean).sort((a, b) => a.nome.localeCompare(b.nome));
   $('#fundo-ficha').classList.remove('escondido');
@@ -2400,9 +2400,10 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null, colun
       <button class="fechar" aria-label="Fechar">×</button></div>
     <div class="secao">
       <label for="arquivo-pdf">Escolha o PDF com o nome dos alunos e as notas</label>
-      ${nm === 'NM2' ? `<label for="qual-prova">Este PDF é</label>
+      ${comEscolha ? `<label for="qual-prova">Este PDF é</label>
         <select id="qual-prova">${colunas.map(c => `<option value="${c.n}" ${(coluna || colunas[0].n) === c.n ? 'selected' : ''}>${esc(rotuloColuna(c))}</option>`).join('')}</select>
-        ${materia === 'Linguagens' ? '<p class="subtitulo" style="margin:6px 0 0">Na NM2, Linguagens tem só a Prova Qualitativa.</p>' : ''}` : ''}
+        ${materia === 'Linguagens' ? '<p class="subtitulo" style="margin:6px 0 0">Na NM2, Linguagens tem só a Prova Qualitativa.</p>' : ''}
+        ${materia === 'Inglês' ? '<p class="subtitulo" style="margin:6px 0 0">Inglês tem prova própria em cada NM: a Prova de Inglês e a 2ª chamada dela.</p>' : ''}` : ''}
       <input type="file" id="arquivo-pdf" accept="application/pdf,.pdf">
       <p class="subtitulo" style="margin:8px 0 0">O arquivo é lido aqui no seu navegador. Só entra nota de aluno com o nome <strong>igual</strong> ao do sistema;
         os outros casos ficam em vermelho na planilha, com o motivo, para você corrigir.</p>
@@ -2431,23 +2432,24 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null, colun
     if (codPdf && codPdf !== codigoTurma(nomeTurma(turmaId))) avisos.push(`O PDF é da turma <strong>${esc(info.turma)}</strong>, que parece ser a ${codPdf[0]}ª Série ${codPdf[1]}, não a ${esc(nomeTurma(turmaId))}.`);
     const tituloSA = semAcento(info.titulo);
     const segundaCh = /CHAMADA/.test(tituloSA);
-    const provaoIme = /\bIME\b/.test(tituloSA) && materia !== 'Inglês';
-    const provaPdf = /QUALITATIVA/.test(tituloSA) ? (segundaCh ? 4 : 2)
+    const provaoIme = /\bIME\b/.test(tituloSA);
+    const provaPdf = materia === 'Inglês' ? (segundaCh ? 3 : 1)
+      : /QUALITATIVA/.test(tituloSA) ? (segundaCh ? 4 : 2)
       : /PROVAO/.test(tituloSA) ? (provaoIme ? (segundaCh ? 6 : 5) : (segundaCh ? 3 : 1)) : null;
-    const nmPdf = provaPdf ? 'NM2' : /\bIME\b/.test(tituloSA) ? 'NM3' : /\bITA\b/.test(tituloSA) ? 'NM1' : null;
+    const nmPdf = /QUALITATIVA|PROVAO/.test(tituloSA) ? 'NM2' : /\bIME\b/.test(tituloSA) ? 'NM3' : /\bITA\b/.test(tituloSA) ? 'NM1' : null;
     const rotulo = { NM1: 'ITA (NM1)', NM2: 'Provão/Qualitativa (NM2)', NM3: 'IME (NM3)' };
     const nomeProva = (n) => colunaDe(n) ? rotuloColuna(colunaDe(n)) : (COLUNAS_NM2.find(c => c.n === n) ? rotuloColuna(COLUNAS_NM2.find(c => c.n === n)) : '');
     if (nmPdf && nmPdf !== nm) avisos.push(`O título do PDF fala em <strong>${rotulo[nmPdf]}</strong>, mas você está importando para ${nm}.`);
-    if (nm === 'NM2' && provaPdf) {
+    if (comEscolha && provaPdf) {
       // o título diz qual é a prova: se veio de um botão de outra prova, avisa; senão, já escolhe
       const escolhida = escolhaManual ? Number($('#qual-prova').value) : coluna;
-      if (!colunaDe(provaPdf)) avisos.push(`O título do PDF indica <strong>${nomeProva(provaPdf)}</strong>, mas na NM2 ${esc(materia)} tem só: ${colunas.filter(c => !c.sub).map(rotuloColuna).join(', ')}. Confira o PDF.`);
+      if (!colunaDe(provaPdf)) avisos.push(`O título do PDF indica <strong>${nomeProva(provaPdf)}</strong>, mas na ${nm} ${esc(materia)} tem só: ${colunas.filter(c => !c.sub).map(rotuloColuna).join(', ')}. Confira o PDF.`);
       else if (escolhida && escolhida !== provaPdf) avisos.push(`O título do PDF indica <strong>${nomeProva(provaPdf)}</strong>, mas foi escolhido ${nomeProva(escolhida)}. Confira o campo "Este PDF é".`);
       else $('#qual-prova').value = String(provaPdf);
     }
 
-    const colunaEscolhida = nm === 'NM2' ? Number($('#qual-prova').value) : 1;
-    const parcial = nm === 'NM2' && !!colunaDe(colunaEscolhida)?.sub;
+    const colunaEscolhida = comEscolha ? Number($('#qual-prova').value) : 1;
+    const parcial = comEscolha && !!colunaDe(colunaEscolhida)?.sub;
     if (parcial) avisos.push(`Importando como <strong>${nomeProva(colunaEscolhida)}</strong>: só entram os alunos da lista, e a nota deles substitui a da prova original. Quem não está na lista não fica pendente.`);
     const r = analisarImportacao(info, alunos, turmaId, parcial);
     const vermelhas = r.pendencias;
@@ -2476,7 +2478,7 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null, colun
       $('#salvar-importacao').disabled = true;
       try {
         // cria a planilha na primeira importação: NM2 com as colunas das suas provas; as outras com uma coluna
-        const numero = nm === 'NM2' ? Number($('#qual-prova').value) : 1;
+        const numero = comEscolha ? Number($('#qual-prova').value) : 1;
         let pid = planilhaId;
         if (!pid) {
           const { data: p, error } = await db.from('planilhas').insert({ ciclo_id: ciclo.id, nm, materia, turma_id: turmaId, aberta: false }).select().single();
@@ -2495,7 +2497,7 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null, colun
           qs.push(criada);
         }
         const questaoId = qs.find(q => q.numero === numero).id;
-        const prefixo = nm === 'NM2' ? `[${nomeProva(numero)}] ` : '';
+        const prefixo = comEscolha ? `[${nomeProva(numero)}] ` : '';
         if (r.lancar.length) {
           const { error: e3 } = await db.from('notas_questao').upsert(
             r.lancar.map(x => ({ aluno_id: x.aluno_id, questao_id: questaoId, nota: x.nota, atualizado_em: new Date().toISOString() })));
