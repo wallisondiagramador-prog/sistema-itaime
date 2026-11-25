@@ -336,6 +336,19 @@
   .fr-lista-manual label { display: flex; gap: 8px; align-items: center; font-size: 13.5px; padding: 3px 0; }
   @media (max-width: 760px) { .fr-revisao { grid-template-columns: 1fr; } .fr-foto { position: static; } }
 
+  /* ---------- Bolsas ---------- */
+  .bo-filtros { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-start; }
+  .bo-ciclos { display: flex; gap: 6px 16px; flex-wrap: wrap; margin-top: 6px; }
+  .bo-ciclos label { display: flex; gap: 6px; align-items: center; font-weight: 500; }
+  .bo-legenda { display: flex; gap: 6px; flex-wrap: wrap; align-self: center; margin-left: auto; }
+  .bo-pill { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--f); color: var(--c); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .bo-pill.forte { font-size: 14px; font-weight: 800; padding: 3px 12px; }
+  .bo-tabela td, .bo-tabela th { padding: 7px 8px; vertical-align: middle; }
+  .bo-tabela tbody tr td:first-child { box-shadow: inset 5px 0 0 var(--c); }
+  .bo-tabela button.link { padding: 0; margin: 0; text-align: left; }
+  .bo-faixa { color: var(--c); font-weight: 800; }
+  .bo-falta { display: block; color: var(--alerta); font-size: 11.5px; }
+
   /* ---------- Impressão do carômetro ---------- */
   #impressao { display: none; }
   @media print {
@@ -373,6 +386,10 @@
     @page paisagem { size: A4 landscape; margin: 10mm; }
     .imp-paisagem { page: paisagem; }
     .fr-rel-imp { font-size: 7.5pt; }
+    .bo-imp { break-after: page; }
+    .bo-imp:last-child { break-after: auto; }
+    .bo-imp .imp-tabela { font-size: 8pt; }
+    .bo-imp-nota { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .fr-rel-imp td, .fr-rel-imp th { padding: 2px 3px; }
     /* horário: A4 deitado, uma grade por página */
     @page horario { size: A4 landscape; margin: 10mm; }
@@ -427,6 +444,7 @@
         <button data-pagina="busca">Buscar aluno</button>
         <button data-pagina="ocorrencias" id="nav-ocorrencias" class="escondido">Ocorrências</button>
         <button data-pagina="professores" id="nav-professores" class="escondido">Professores</button>
+        <button data-pagina="bolsas" id="nav-bolsas" class="escondido">Bolsas</button>
         <button data-pagina="equipe" id="nav-equipe" class="escondido">Equipe</button>
       </nav>
       <div class="usuario"><strong id="nome-usuario"></strong><span id="papel-usuario"></span></div>
@@ -588,6 +606,7 @@ async function iniciar() {
   $('#papel-usuario').textContent = NOMES_PAPEL[papel];
   $('#nav-equipe').classList.toggle('escondido', papel !== 'admin');
   $('#nav-professores').classList.toggle('escondido', !veTudo());
+  $('#nav-bolsas').classList.toggle('escondido', estado.papel !== 'admin');
   $('#nav-ocorrencias').classList.toggle('escondido', !veTudo());
   $('#nav-frequencia').classList.toggle('escondido', !veTudo());
   mostrar('#tela-sistema');
@@ -627,7 +646,7 @@ function irPara(pagina, extra, modo) {
   const menu = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' }[pagina] || pagina;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === menu));
   ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe,
-     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias, comparativos: paginaComparativos, desempenho: paginaDesempenho, horarios: paginaHorarios, frequencia: paginaFrequencia })[pagina](extra);
+     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias, comparativos: paginaComparativos, desempenho: paginaDesempenho, horarios: paginaHorarios, frequencia: paginaFrequencia, bolsas: paginaBolsas })[pagina](extra);
 }
 
 window.addEventListener('popstate', (e) => {
@@ -1691,7 +1710,7 @@ async function paginaEquipe() {
 // =====================================================================
 const MATERIAS = ['Matemática', 'Física', 'Química', 'Inglês', 'Linguagens'];
 const EXATAS = ['Matemática', 'Física', 'Química'];
-const NMS = { NM1: 'NM1 · ITA', NM2: 'NM2 · Provão + Qualitativa', NM3: 'NM3 · IME' };
+const NMS = { NM1: 'NM1 · ITA', NM2: 'NM2 · Provão ITA + Provão IME + Qualitativa', NM3: 'NM3 · IME' };
 const MULT = { NM1: 1.5, NM2: 1, NM3: 1.5 };
 const TURMAS_NOTAS = [1, 2, 3, 4]; // 1ª A, 1ª B, 2ª A, 2ª B (3ª série e Cursinho entram depois)
 
@@ -1759,7 +1778,7 @@ async function paginaNotas() {
   if (error) return erroNaTela(error);
   $('#conteudo').innerHTML = `
     <h1>Notas ${ANO_LETIVO}</h1>
-    <p class="subtitulo">Cada ciclo tem as notas NM1 (ITA), NM2 (Provão + Qualitativa) e NM3 (IME).</p>
+    <p class="subtitulo">Cada ciclo tem as notas NM1 (ITA), NM2 (Provão ITA + Provão IME + Prova Qualitativa) e NM3 (IME).</p>
     ${veTudo() ? `<form class="barra" id="form-ciclo">
         <input type="text" id="nome-ciclo" placeholder="Nome do novo ciclo (ex.: I Ciclo)" required style="max-width:320px">
         <button class="botao">Criar ciclo</button></form>
@@ -1946,7 +1965,7 @@ async function paginaPlanilha(planilhaId) {
     db.from('pendencias_notas').select('*').eq('planilha_id', p.id).order('id'),
     db.from('sem_multiplicador').select('aluno_id').eq('planilha_id', p.id),
   ]);
-  const questoes = ordenarColunas(questoesBrutas || []);
+  const questoes = ordenarColunas(questoesBrutas || [], p.nm);
   const { data: notas } = questoes.length
     ? await db.from('notas_questao').select('aluno_id, questao_id, nota').in('questao_id', questoes.map(q => q.id))
     : { data: [] };
@@ -1994,7 +2013,7 @@ async function paginaPlanilha(planilhaId) {
       <button class="botao" id="imprimir-relatorio" style="margin-left:auto">Imprimir relatório</button></div>
     ${doc ? `<div class="caixa-link"><strong>Notas importadas de PDF.</strong>
       ${editar ? questoes.map(q => `<button class="botao leve pequeno" data-reimportar="${q.numero}">Importar ${esc(nomeColuna(q))}</button>`).join('') : ''}
-      <span class="subtitulo" style="margin:0">${p.nm === 'NM2' ? 'Nota real = (Provão + Qualitativa) ÷ 2, quando as duas estiverem lançadas. A 2ª chamada de uma prova substitui a nota daquela prova. ' : ''}Importar de novo atualiza as notas e refaz as pendências daquela prova.</span></div>` : `
+      <span class="subtitulo" style="margin:0">${p.nm === 'NM2' ? regraNm2(p.materia) + ' A 2ª chamada de uma prova substitui a nota daquela prova. ' : ''}Importar de novo atualiza as notas e refaz as pendências daquela prova.</span></div>` : `
     <div class="caixa-link">
       <strong>Link dos professores:</strong>
       <input type="text" readonly value="${esc(linkPublico(p.token))}" id="link-publico">
@@ -2342,18 +2361,35 @@ function analisarImportacao(info, alunos, turmaId, parcial = false) {
   return { linhas, lancar, pendencias };
 }
 
-// Colunas das planilhas de documento. NM2 tem duas provas; as outras, uma.
-// NM2: 1 Provão, 2 Qualitativa, 3 2ª chamada do Provão (substitui a 1), 4 2ª chamada da Qualitativa (substitui a 2)
-const COLUNAS_NM2 = ['Provão (PDF)', 'Qualitativa (PDF)', '2ª chamada Provão (PDF)', '2ª chamada Qualitativa (PDF)'];
-const SUBSTITUI_NM2 = { 3: 1, 4: 2 };
+// Colunas das planilhas de documento (n = número da coluna; sub = coluna que a 2ª chamada substitui).
+// NM2 de Matemática, Física e Química: Provão ITA + Provão IME + Prova Qualitativa (nota = média das três).
+// NM2 de Linguagens: só a Prova Qualitativa (a nota é a dela, sem média).
+// NM2 de Inglês: continua Provão + Qualitativa.
+const COLUNAS_NM2 = [
+  { n: 1, nome: 'Provão ITA (PDF)' }, { n: 5, nome: 'Provão IME (PDF)' }, { n: 2, nome: 'Qualitativa (PDF)' },
+  { n: 3, nome: '2ª chamada Provão ITA (PDF)', sub: 1 }, { n: 6, nome: '2ª chamada Provão IME (PDF)', sub: 5 },
+  { n: 4, nome: '2ª chamada Qualitativa (PDF)', sub: 2 }];
+const COLUNAS_NM2_INGLES = [{ n: 1, nome: 'Provão (PDF)' }, { n: 2, nome: 'Qualitativa (PDF)' },
+  { n: 3, nome: '2ª chamada Provão (PDF)', sub: 1 }, { n: 4, nome: '2ª chamada Qualitativa (PDF)', sub: 2 }];
+const colunasDocumento = (nm, materia) => nm !== 'NM2' ? [{ n: 1, nome: 'Documento (PDF)' }]
+  : materia === 'Linguagens' ? COLUNAS_NM2.filter(c => c.n === 2 || c.n === 4)
+  : materia === 'Inglês' ? COLUNAS_NM2_INGLES : COLUNAS_NM2;
+const rotuloColuna = (c) => c.nome.replace(' (PDF)', '');
+const regraNm2 = (materia) => materia === 'Linguagens' ? 'Nota real = nota da Prova Qualitativa (Linguagens não tem média na NM2).'
+  : materia === 'Inglês' ? 'Nota real = (Provão + Qualitativa) ÷ 2, quando as duas estiverem lançadas.'
+  : 'Nota real = (Provão ITA + Provão IME + Qualitativa) ÷ 3, quando as três estiverem lançadas.';
 const nomeColuna = (q) => q.professor === 'Documento (PDF)' ? 'Nota do documento' : q.professor.replace(' (PDF)', '');
-// ordem de exibição: cada coluna original seguida da sua 2ª chamada
-const ordenarColunas = (qs) => {
-  const base = qs.filter(q => !q.substitui_id).sort((a, b) => a.numero - b.numero);
+// ordem de exibição: cada coluna original seguida da sua 2ª chamada (na NM2: Provão ITA, Provão IME, Qualitativa)
+const ORDEM_NM2 = { 1: 1, 5: 2, 2: 3 };
+const ordenarColunas = (qs, nm) => {
+  const pos = (q) => nm === 'NM2' ? (ORDEM_NM2[q.numero] ?? q.numero + 10) : q.numero;
+  const base = qs.filter(q => !q.substitui_id).sort((a, b) => pos(a) - pos(b));
   return [...base.flatMap(b => [b, ...qs.filter(x => x.substitui_id === b.id)]), ...qs.filter(x => x.substitui_id && !base.some(b => b.id === x.substitui_id))];
 };
 
 async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null, coluna = null) {
+  const colunas = colunasDocumento(nm, materia);
+  const colunaDe = (n) => colunas.find(c => c.n === n);
   const alunos = estado.matriculas.filter(m => m.turma_id === turmaId && m.situacao === 'ativo')
     .map(m => estado.alunos.get(m.aluno_id)).filter(Boolean).sort((a, b) => a.nome.localeCompare(b.nome));
   $('#fundo-ficha').classList.remove('escondido');
@@ -2365,7 +2401,8 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null, colun
     <div class="secao">
       <label for="arquivo-pdf">Escolha o PDF com o nome dos alunos e as notas</label>
       ${nm === 'NM2' ? `<label for="qual-prova">Este PDF é</label>
-        <select id="qual-prova">${COLUNAS_NM2.map((c, i) => `<option value="${i + 1}" ${(coluna || 1) === i + 1 ? 'selected' : ''}>${c.replace(' (PDF)', '')}</option>`).join('')}</select>` : ''}
+        <select id="qual-prova">${colunas.map(c => `<option value="${c.n}" ${(coluna || colunas[0].n) === c.n ? 'selected' : ''}>${esc(rotuloColuna(c))}</option>`).join('')}</select>
+        ${materia === 'Linguagens' ? '<p class="subtitulo" style="margin:6px 0 0">Na NM2, Linguagens tem só a Prova Qualitativa.</p>' : ''}` : ''}
       <input type="file" id="arquivo-pdf" accept="application/pdf,.pdf">
       <p class="subtitulo" style="margin:8px 0 0">O arquivo é lido aqui no seu navegador. Só entra nota de aluno com o nome <strong>igual</strong> ao do sistema;
         os outros casos ficam em vermelho na planilha, com o motivo, para você corrigir.</p>
@@ -2394,20 +2431,24 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null, colun
     if (codPdf && codPdf !== codigoTurma(nomeTurma(turmaId))) avisos.push(`O PDF é da turma <strong>${esc(info.turma)}</strong>, que parece ser a ${codPdf[0]}ª Série ${codPdf[1]}, não a ${esc(nomeTurma(turmaId))}.`);
     const tituloSA = semAcento(info.titulo);
     const segundaCh = /CHAMADA/.test(tituloSA);
-    const provaPdf = /QUALITATIVA/.test(tituloSA) ? (segundaCh ? 4 : 2) : /PROVAO/.test(tituloSA) ? (segundaCh ? 3 : 1) : null;
+    const provaoIme = /\bIME\b/.test(tituloSA) && materia !== 'Inglês';
+    const provaPdf = /QUALITATIVA/.test(tituloSA) ? (segundaCh ? 4 : 2)
+      : /PROVAO/.test(tituloSA) ? (provaoIme ? (segundaCh ? 6 : 5) : (segundaCh ? 3 : 1)) : null;
     const nmPdf = provaPdf ? 'NM2' : /\bIME\b/.test(tituloSA) ? 'NM3' : /\bITA\b/.test(tituloSA) ? 'NM1' : null;
     const rotulo = { NM1: 'ITA (NM1)', NM2: 'Provão/Qualitativa (NM2)', NM3: 'IME (NM3)' };
+    const nomeProva = (n) => colunaDe(n) ? rotuloColuna(colunaDe(n)) : (COLUNAS_NM2.find(c => c.n === n) ? rotuloColuna(COLUNAS_NM2.find(c => c.n === n)) : '');
     if (nmPdf && nmPdf !== nm) avisos.push(`O título do PDF fala em <strong>${rotulo[nmPdf]}</strong>, mas você está importando para ${nm}.`);
     if (nm === 'NM2' && provaPdf) {
       // o título diz qual é a prova: se veio de um botão de outra prova, avisa; senão, já escolhe
       const escolhida = escolhaManual ? Number($('#qual-prova').value) : coluna;
-      if (escolhida && escolhida !== provaPdf) avisos.push(`O título do PDF indica <strong>${COLUNAS_NM2[provaPdf - 1].replace(' (PDF)', '')}</strong>, mas foi escolhido ${COLUNAS_NM2[escolhida - 1].replace(' (PDF)', '')}. Confira o campo "Este PDF é".`);
+      if (!colunaDe(provaPdf)) avisos.push(`O título do PDF indica <strong>${nomeProva(provaPdf)}</strong>, mas na NM2 ${esc(materia)} tem só: ${colunas.filter(c => !c.sub).map(rotuloColuna).join(', ')}. Confira o PDF.`);
+      else if (escolhida && escolhida !== provaPdf) avisos.push(`O título do PDF indica <strong>${nomeProva(provaPdf)}</strong>, mas foi escolhido ${nomeProva(escolhida)}. Confira o campo "Este PDF é".`);
       else $('#qual-prova').value = String(provaPdf);
     }
 
     const colunaEscolhida = nm === 'NM2' ? Number($('#qual-prova').value) : 1;
-    const parcial = nm === 'NM2' && !!SUBSTITUI_NM2[colunaEscolhida];
-    if (parcial) avisos.push(`Importando como <strong>${COLUNAS_NM2[colunaEscolhida - 1].replace(' (PDF)', '')}</strong>: só entram os alunos da lista, e a nota deles substitui a da prova original. Quem não está na lista não fica pendente.`);
+    const parcial = nm === 'NM2' && !!colunaDe(colunaEscolhida)?.sub;
+    if (parcial) avisos.push(`Importando como <strong>${nomeProva(colunaEscolhida)}</strong>: só entram os alunos da lista, e a nota deles substitui a da prova original. Quem não está na lista não fica pendente.`);
     const r = analisarImportacao(info, alunos, turmaId, parcial);
     const vermelhas = r.pendencias;
     $('#previa').innerHTML = `
@@ -2434,9 +2475,8 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null, colun
       const msg = $('#msg-importacao');
       $('#salvar-importacao').disabled = true;
       try {
-        // cria a planilha na primeira importação: NM2 com as colunas Provão e Qualitativa; as outras com uma coluna
+        // cria a planilha na primeira importação: NM2 com as colunas das suas provas; as outras com uma coluna
         const numero = nm === 'NM2' ? Number($('#qual-prova').value) : 1;
-        const nomes = nm === 'NM2' ? COLUNAS_NM2 : ['Documento (PDF)'];
         let pid = planilhaId;
         if (!pid) {
           const { data: p, error } = await db.from('planilhas').insert({ ciclo_id: ciclo.id, nm, materia, turma_id: turmaId, aberta: false }).select().single();
@@ -2446,17 +2486,16 @@ async function importarPdf(ciclo, nm, materia, turmaId, planilhaId = null, colun
         const { data: qs, error: eq } = await db.from('questoes').select('id, numero').eq('planilha_id', pid).order('numero');
         if (eq) throw eq;
         // cria as colunas que faltam (as originais antes das de 2ª chamada, que apontam para elas)
-        for (const [i, professor] of nomes.entries()) {
-          if (qs.some(q => q.numero === i + 1)) continue;
-          const base = nm === 'NM2' ? SUBSTITUI_NM2[i + 1] : null;
-          const nova = { planilha_id: pid, numero: i + 1, professor };
-          if (base) nova.substitui_id = qs.find(q => q.numero === base).id;
+        for (const c of colunas) {
+          if (qs.some(q => q.numero === c.n)) continue;
+          const nova = { planilha_id: pid, numero: c.n, professor: c.nome };
+          if (c.sub) nova.substitui_id = qs.find(q => q.numero === c.sub).id;
           const { data: criada, error: e2 } = await db.from('questoes').insert(nova).select().single();
           if (e2) throw e2;
           qs.push(criada);
         }
         const questaoId = qs.find(q => q.numero === numero).id;
-        const prefixo = nm === 'NM2' ? `[${nomes[numero - 1].replace(' (PDF)', '')}] ` : '';
+        const prefixo = nm === 'NM2' ? `[${nomeProva(numero)}] ` : '';
         if (r.lancar.length) {
           const { error: e3 } = await db.from('notas_questao').upsert(
             r.lancar.map(x => ({ aluno_id: x.aluno_id, questao_id: questaoId, nota: x.nota, atualizado_em: new Date().toISOString() })));
@@ -3637,6 +3676,115 @@ function htmlFrequenciaAluno(r, faltas) {
 const textoFrequenciaImpressa = (r) => !r || !Number(r.dias) ? '' :
   `Frequência em ${ANO_LETIVO}: ${fmt(pctPresenca(r))}% de presença (${r.faltas} ${Number(r.faltas) === 1 ? 'falta' : 'faltas'} em ${r.dias} ${Number(r.dias) === 1 ? 'dia' : 'dias'} de aula)`;
 
+// =====================================================================
+// BOLSAS (só administradores)
+// Para cada matéria (Física, Matemática, Química, Linguagens e Inglês): média das notas finais
+// de NM1, NM2 e NM3 dos ciclos escolhidos. A nota única é a média dessas cinco médias.
+// Faixas: até 6 = vermelho · acima de 6 e abaixo de 8 = amarelo · 8 a 10 = azul.
+// =====================================================================
+const MATERIAS_BOLSA = ['Física', 'Matemática', 'Química', 'Linguagens', 'Inglês'];
+const CURTO_BOLSA = { 'Física': 'Fís', 'Matemática': 'Mat', 'Química': 'Quí', 'Linguagens': 'Ling', 'Inglês': 'Ing' };
+const FAIXAS_BOLSA = [
+  { id: 'azul', nome: 'Azul', regra: '8 a 10', cor: '#1f63c4', fundo: '#e6effc' },
+  { id: 'amarelo', nome: 'Amarela', regra: '6,1 a 7,9', cor: '#9a6a00', fundo: '#fdf1d2' },
+  { id: 'vermelho', nome: 'Vermelha', regra: '0 a 6', cor: '#c2271b', fundo: '#fde4e2' },
+];
+const faixaBolsa = (n) => n == null ? null : n >= 8 ? FAIXAS_BOLSA[0] : n > 6 ? FAIXAS_BOLSA[1] : FAIXAS_BOLSA[2];
+const media2 = (xs) => xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length * 100) / 100 : null;
+
+async function paginaBolsas() {
+  if (estado.papel !== 'admin') return irPara('turmas');
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando bolsas…</div>';
+  const { data: ciclos, error } = await db.from('ciclos').select('*').eq('ano_letivo', ANO_LETIVO).order('criado_em');
+  if (error) return erroNaTela(error);
+  const B = estado.bolsas || (estado.bolsas = { ciclos: ciclos.slice(-2).map(c => c.id), turma: 'todas' });
+  B.ciclos = B.ciclos.filter(id => ciclos.some(c => c.id === id));
+  $('#conteudo').innerHTML = `
+    <div class="barra"><h1>Bolsas</h1><div class="espaco"></div>
+      <button class="botao" id="bo-imprimir">Imprimir classificação</button></div>
+    <p class="subtitulo">Em cada matéria (Física, Matemática, Química, Linguagens e Inglês) o sistema tira a média das notas finais de NM1, NM2 e NM3
+      dos ciclos marcados. A <strong>nota única</strong> é a média dessas cinco médias. Os alunos são classificados por turma.</p>
+    <div class="fr-bloco">
+      <div class="bo-filtros">
+        <div><strong>Ciclos</strong> <span class="subtitulo" style="margin:0">(um ou dois ciclos)</span>
+          <div class="bo-ciclos">${ciclos.length ? ciclos.map(c => `<label><input type="checkbox" value="${c.id}" ${B.ciclos.includes(c.id) ? 'checked' : ''}> ${esc(c.nome)}</label>`).join('')
+            : '<span class="subtitulo" style="margin:0">Nenhum ciclo criado em ' + ANO_LETIVO + '.</span>'}</div></div>
+        <div><strong>Turma</strong><br><select id="bo-turma"><option value="todas">Todas as turmas</option>
+          ${TURMAS_NOTAS.map(t => `<option value="${t}" ${String(t) === String(B.turma) ? 'selected' : ''}>${esc(nomeTurma(t))}</option>`).join('')}</select></div>
+        <div class="bo-legenda">${FAIXAS_BOLSA.map(f => `<span class="bo-pill" style="--c:${f.cor};--f:${f.fundo}">${f.nome} · ${f.regra}</span>`).join('')}</div>
+      </div>
+    </div>
+    <div id="bo-resultado"><div class="carregando">Calculando…</div></div>`;
+  let ultimo = null;
+  const calcular = async () => {
+    B.ciclos = [...document.querySelectorAll('.bo-ciclos input:checked')].map(i => Number(i.value));
+    B.turma = $('#bo-turma').value;
+    if (!B.ciclos.length) { ultimo = null; $('#bo-resultado').innerHTML = '<p class="subtitulo">Marque pelo menos um ciclo.</p>'; return; }
+    $('#bo-resultado').innerHTML = '<div class="carregando">Calculando…</div>';
+    const { data: notas, error: e2 } = await db.from('historico_notas').select('aluno_id, ciclo_id, nm, materia, nota_multiplicada').in('ciclo_id', B.ciclos);
+    if (e2) { $('#bo-resultado').innerHTML = `<div class="aviso erro">${esc(e2.message)}</div>`; return; }
+    ultimo = montarBolsas(notas || [], B, ciclos);
+    $('#bo-resultado').innerHTML = ultimo.html;
+    $('#bo-resultado').querySelectorAll('[data-aluno]').forEach(b => b.onclick = () => abrirFicha(Number(b.dataset.aluno)));
+  };
+  document.querySelectorAll('.bo-ciclos input').forEach(i => i.onchange = calcular);
+  $('#bo-turma').onchange = calcular;
+  $('#bo-imprimir').onclick = () => {
+    if (!ultimo) return;
+    $('#impressao').innerHTML = ultimo.imp;
+    setTimeout(() => window.print(), 100);
+  };
+  await calcular();
+}
+
+function montarBolsas(notas, B, ciclos) {
+  const esperadas = B.ciclos.length * 3;   // NM1, NM2 e NM3 de cada ciclo
+  const porAluno = new Map();
+  for (const n of notas) {
+    if (n.nota_multiplicada == null || !MATERIAS_BOLSA.includes(n.materia)) continue;
+    const m = porAluno.get(n.aluno_id) || porAluno.set(n.aluno_id, {}).get(n.aluno_id);
+    (m[n.materia] = m[n.materia] || []).push(Number(n.nota_multiplicada));
+  }
+  const turmas = B.turma === 'todas' ? TURMAS_NOTAS : [Number(B.turma)];
+  const nomesCiclos = ciclos.filter(c => B.ciclos.includes(c.id)).map(c => c.nome).join(' + ');
+  const blocos = turmas.map(tid => {
+    const linhas = estado.matriculas.filter(m => m.turma_id === tid && m.situacao === 'ativo').map(m => {
+      const a = estado.alunos.get(m.aluno_id), notasAl = porAluno.get(m.aluno_id) || {};
+      const medias = Object.fromEntries(MATERIAS_BOLSA.map(mt => [mt, media2(notasAl[mt] || [])]));
+      const faltam = MATERIAS_BOLSA.reduce((s, mt) => s + Math.max(0, esperadas - (notasAl[mt] || []).length), 0);
+      const presentes = MATERIAS_BOLSA.map(mt => medias[mt]).filter(v => v != null);
+      const unica = media2(presentes);
+      return { id: m.aluno_id, nome: a?.nome || '', medias, unica, faixa: faixaBolsa(unica), faltam };
+    }).sort((x, y) => (y.unica ?? -1) - (x.unica ?? -1) || x.nome.localeCompare(y.nome, 'pt-BR'));
+    const conta = Object.fromEntries(FAIXAS_BOLSA.map(f => [f.id, linhas.filter(l => l.faixa?.id === f.id).length]));
+    return { tid, linhas, conta };
+  });
+  const pill = (n, f) => n == null ? '<span class="vazio">—</span>' : `<span class="bo-pill forte" style="--c:${f.cor};--f:${f.fundo}">${fmt(n)}</span>`;
+  const html = blocos.map(b => `
+    <div class="fr-bloco">
+      <div class="barra" style="margin:0 0 10px"><h2>${esc(nomeTurma(b.tid))}</h2><div class="espaco"></div>
+        ${FAIXAS_BOLSA.map(f => `<span class="bo-pill" style="--c:${f.cor};--f:${f.fundo}">${f.nome}: <strong>${b.conta[f.id]}</strong></span>`).join(' ')}</div>
+      ${!b.linhas.length ? '<p class="subtitulo">Nenhum aluno ativo nesta turma.</p>' : `<div class="rolavel"><table class="bo-tabela">
+        <thead><tr><th class="num">#</th><th>Aluno</th>${MATERIAS_BOLSA.map(m => `<th class="num" title="${m}">${CURTO_BOLSA[m]}</th>`).join('')}<th class="num">Nota única</th><th>Faixa</th></tr></thead>
+        <tbody>${b.linhas.map((l, i) => `<tr style="--c:${l.faixa?.cor || '#c9d1cc'}">
+          <td class="num">${l.unica == null ? '' : i + 1}</td>
+          <td><button class="link" data-aluno="${l.id}">${esc(l.nome)}</button>${l.faltam ? `<small class="bo-falta" title="Notas que ainda não foram lançadas nos ciclos marcados">faltam ${l.faltam} ${l.faltam === 1 ? 'nota' : 'notas'}</small>` : ''}</td>
+          ${MATERIAS_BOLSA.map(m => `<td class="num">${fmt(l.medias[m])}</td>`).join('')}
+          <td class="num">${l.faixa ? pill(l.unica, l.faixa) : '—'}</td>
+          <td>${l.faixa ? `<span class="bo-faixa" style="--c:${l.faixa.cor}">${l.faixa.nome}</span>` : '<span class="vazio">sem notas</span>'}</td></tr>`).join('')}</tbody></table></div>`}
+    </div>`).join('') + `<p class="subtitulo">Ciclos: ${esc(nomesCiclos)} · notas finais (com multiplicador) · "faltam notas" = NM1, NM2 ou NM3 ainda não lançada; a média usa só as notas que existem.</p>`;
+  const imp = blocos.map(b => `<div class="imp-paisagem bo-imp">
+    <div class="imp-topo"><h1>BOLSAS · ${esc(nomeTurma(b.tid).toUpperCase())}</h1><span>${esc(nomesCiclos)} · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+    <p class="imp-sub">${FAIXAS_BOLSA.map(f => `${f.nome} (${f.regra}): <strong>${b.conta[f.id]}</strong>`).join(' · ')}</p>
+    <table class="imp-tabela"><thead><tr><th class="n">#</th><th>Aluno</th>${MATERIAS_BOLSA.map(m => `<th class="n">${m}</th>`).join('')}<th class="n">Nota única</th><th>Faixa</th></tr></thead>
+      <tbody>${b.linhas.map((l, i) => `<tr><td class="n">${l.unica == null ? '' : i + 1}</td><td>${esc(l.nome)}${l.faltam ? ` <small>(faltam ${l.faltam})</small>` : ''}</td>
+        ${MATERIAS_BOLSA.map(m => `<td class="n">${fmt(l.medias[m])}</td>`).join('')}
+        <td class="n bo-imp-nota" style="background:${l.faixa?.fundo || '#fff'};color:${l.faixa?.cor || '#000'}"><strong>${fmt(l.unica)}</strong></td>
+        <td style="color:${l.faixa?.cor || '#000'}"><strong>${l.faixa?.nome || 'sem notas'}</strong></td></tr>`).join('')}</tbody></table>
+    <p class="imp-rodape">Média de NM1, NM2 e NM3 (notas finais) em cada matéria; nota única = média das cinco matérias. Azul 8 a 10 · Amarela 6,1 a 7,9 · Vermelha 0 a 6.</p></div>`).join('');
+  return { html, imp };
+}
+
 function carregarScript(url) {
   return new Promise((ok, falha) => {
     if (document.querySelector(`script[src="${url}"]`)) return ok();
@@ -3665,10 +3813,11 @@ async function paginaProfessores() {
       <input type="text" id="np-turmas" placeholder="Turmas (ex.: 1ª A, 1ª B)">
       <button class="botao pequeno">Adicionar</button>
     </form>
-    <div class="rolavel"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Matéria</th><th>Turmas</th><th>Ativo</th></tr></thead>
-      <tbody>${profs.map(p => `<tr><td>${esc(p.nome)}</td><td>${esc(p.email || '')}</td><td>${esc(p.materia || '')}</td><td>${esc(p.turmas || '')}</td>
-        <td><input type="checkbox" data-prof="${p.id}" ${p.ativo ? 'checked' : ''}></td></tr>`).join('')
-        || '<tr><td colspan="5" class="pendente">Nenhum professor cadastrado ainda.</td></tr>'}</tbody></table></div>`;
+    <div class="rolavel"><table id="tabela-prof"><thead><tr><th>Nome</th><th>E-mail</th><th>Matéria</th><th>Turmas</th><th>Ativo</th><th></th></tr></thead>
+      <tbody>${profs.map(p => `<tr data-linha="${p.id}"><td>${esc(p.nome)}</td><td>${esc(p.email || '')}</td><td>${esc(p.materia || '')}</td><td>${esc(p.turmas || '')}</td>
+        <td><input type="checkbox" data-prof="${p.id}" ${p.ativo ? 'checked' : ''}></td>
+        <td><button class="botao leve pequeno" data-editar-prof="${p.id}">Editar</button></td></tr>`).join('')
+        || '<tr><td colspan="6" class="pendente">Nenhum professor cadastrado ainda.</td></tr>'}</tbody></table></div>`;
   const aviso = (t, erro) => { const m = $('#msg-prof'); m.textContent = t; m.classList.toggle('erro', !!erro); m.classList.remove('escondido'); };
 
   $('#form-prof').onsubmit = async (e) => {
@@ -3680,6 +3829,30 @@ async function paginaProfessores() {
     paginaProfessores();
   };
   document.querySelectorAll('[data-prof]').forEach(c => c.onchange = () => db.from('professores').update({ ativo: c.checked }).eq('id', Number(c.dataset.prof)));
+  // corrigir o cadastro: a linha vira um formulário (nome, e-mail, matéria, turmas)
+  document.querySelectorAll('[data-editar-prof]').forEach(b => b.onclick = () => {
+    const prof = profs.find(x => x.id === Number(b.dataset.editarProf)), tr = b.closest('tr');
+    tr.classList.add('editando');
+    tr.innerHTML = `<td><input type="text" class="ep-nome" value="${esc(prof.nome)}" aria-label="Nome"></td>
+      <td><input type="email" class="ep-email" value="${esc(prof.email || '')}" aria-label="E-mail"></td>
+      <td><select class="ep-materia" aria-label="Matéria"><option value="">—</option>${MATERIAS.map(m => `<option ${m === prof.materia ? 'selected' : ''}>${m}</option>`).join('')}</select></td>
+      <td><input type="text" class="ep-turmas" value="${esc(prof.turmas || '')}" aria-label="Turmas"></td>
+      <td><input type="checkbox" class="ep-ativo" ${prof.ativo ? 'checked' : ''} aria-label="Ativo"></td>
+      <td class="acoes-prof"><button class="botao pequeno ep-salvar">Salvar</button> <button class="botao leve pequeno ep-cancelar">Cancelar</button></td>`;
+    tr.querySelector('.ep-nome').focus();
+    tr.querySelector('.ep-cancelar').onclick = () => paginaProfessores();
+    tr.querySelector('.ep-salvar').onclick = async (ev) => {
+      const nome = tr.querySelector('.ep-nome').value.trim();
+      if (!nome) return aviso('O nome do professor não pode ficar vazio.', true);
+      ev.target.disabled = true;
+      const novo = { nome, email: tr.querySelector('.ep-email').value.trim().toLowerCase() || null, materia: tr.querySelector('.ep-materia').value || null,
+        turmas: tr.querySelector('.ep-turmas').value.trim() || null, ativo: tr.querySelector('.ep-ativo').checked };
+      const { error } = await db.from('professores').update(novo).eq('id', prof.id);
+      if (error) { ev.target.disabled = false; return aviso(/duplicate|unique/i.test(error.message) ? 'Já existe outro professor com esse e-mail.' : error.message, true); }
+      await paginaProfessores();
+      aviso(`Cadastro de ${nome} atualizado.`);
+    };
+  });
 
   $('#baixar-modelo').onclick = async () => {
     await carregarScript(XLSX_URL);
