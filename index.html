@@ -53,6 +53,10 @@
   .usuario { font-size: 13px; color: var(--suave); text-align: right; line-height: 1.25; }
   .usuario strong { color: var(--texto); display: block; font-size: 14px; }
   #menu-botao { display: none; align-items: center; gap: 8px; }
+  #faixa-simulacao { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px; background: #b54708; color: #fff;
+    padding: 7px 14px; font-size: 14px; font-weight: 600; text-align: center; }
+  #faixa-simulacao.escondido { display: none; }
+  #faixa-simulacao .botao { background: #fff; color: #b54708; }
   #menu-botao .barras { font-size: 18px; line-height: 1; }
   #menu-atual { max-width: 38vw; overflow: hidden; text-overflow: ellipsis; }
   /* computador estreito (notebook): as abas descem para uma linha própria, inteira */
@@ -491,6 +495,7 @@
 <!-- ================= SISTEMA ================= -->
 <section id="tela-sistema" class="escondido">
   <header>
+    <div id="faixa-simulacao" class="escondido"><span id="faixa-texto"></span><button class="botao pequeno" id="sair-simulacao">Voltar ao meu acesso</button></div>
     <div class="topo">
       <div class="marca" style="font-size:18px">ITA-IME</div>
       <button class="botao leve" id="menu-botao" aria-expanded="false" aria-controls="menu-principal"><span class="barras" aria-hidden="true">☰</span><span id="menu-atual">Menu</span></button>
@@ -538,6 +543,27 @@ const SUPABASE_CHAVE_PUBLICA = 'sb_publishable_tMp35-YZV9F0KmQnd_DVQg_P2tHLJGU';
 const ANO_LETIVO = 2026;
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_CHAVE_PUBLICA);
+// Modo "Ver como" (simulação do administrador): nada é gravado, apagado ou enviado.
+const MSG_SIMULACAO = 'Você está no modo "Ver como": nada é salvo. Clique em "Voltar ao meu acesso" para fazer alterações.';
+const respostaBloqueada = () => {
+  const r = { data: null, error: { message: MSG_SIMULACAO } };
+  const falso = new Proxy(function () {}, { get: (_, k) => k === 'then' ? (ok) => Promise.resolve(r).then(ok) : () => falso });
+  return falso;
+};
+{
+  const fromOriginal = db.from.bind(db), rpcOriginal = db.rpc.bind(db), storageOriginal = db.storage.from.bind(db.storage);
+  db.from = (tabela) => {
+    const q = fromOriginal(tabela);
+    if (estado.simulando) ['insert', 'update', 'upsert', 'delete'].forEach(m => { q[m] = () => respostaBloqueada(); });
+    return q;
+  };
+  db.rpc = (nome, args) => estado.simulando && !['meu_papel', 'minhas_permissoes', 'planilha_publica'].includes(nome) ? respostaBloqueada() : rpcOriginal(nome, args);
+  db.storage.from = (balde) => {
+    const b = storageOriginal(balde);
+    if (estado.simulando) { b.upload = async () => ({ data: null, error: { message: MSG_SIMULACAO } }); b.remove = async () => ({ data: null, error: { message: MSG_SIMULACAO } }); }
+    return b;
+  };
+}
 
 // Estado do sistema (o que já foi carregado)
 const estado = { papel: null, nome: '', turmas: [], matriculas: [], alunos: new Map(), fotos: new Map(), visao: 'carometro', contOc: new Map() };
@@ -726,6 +752,44 @@ async function iniciar() {
   await carregarContOc();
   irPara(primeiraPagina(), undefined, 'replace');
 }
+// ---------- "Ver como": o administrador vê a plataforma com o acesso de outra pessoa ----------
+function aplicarAcessoNaTela() {
+  document.querySelectorAll('nav button[data-pagina]').forEach(b => b.classList.toggle('escondido', !podePagina(b.dataset.pagina)));
+  $('#nome-usuario').textContent = estado.nome;
+  $('#papel-usuario').textContent = NOMES_PAPEL[estado.papel] || '';
+}
+async function verComo(pessoa) {
+  if (!estado.simulando) estado.real = { papel: estado.papel, perm: estado.perm, email: estado.email, nome: estado.nome };
+  const papel = pessoa.papel;
+  estado.simulando = { nome: pessoa.nome || NOMES_PAPEL[papel], email: pessoa.email || '', papel };
+  estado.papel = papel;
+  estado.perm = permEfetiva(pessoa);
+  estado.email = pessoa.email || '';
+  estado.nome = pessoa.nome || NOMES_PAPEL[papel];
+  const personal = pessoa.permissoes ? ' · permissões personalizadas' : '';
+  $('#faixa-texto').textContent = pessoa.email
+    ? `Você está vendo o sistema como ${pessoa.nome} (${NOMES_PAPEL[papel]}${personal}). Nada é salvo neste modo.`
+    : `Você está vendo o sistema como um(a) ${NOMES_PAPEL[papel]} (permissões padrão). Nada é salvo neste modo.`;
+  $('#faixa-simulacao').classList.remove('escondido');
+  aplicarAcessoNaTela();
+  fecharFicha();
+  await carregarContOc();
+  irPara(primeiraPagina());
+  window.scrollTo(0, 0);
+}
+async function sairSimulacao() {
+  if (!estado.simulando) return;
+  Object.assign(estado, estado.real);
+  estado.simulando = null; estado.real = null;
+  $('#faixa-simulacao').classList.add('escondido');
+  aplicarAcessoNaTela();
+  fecharFicha();
+  await carregarContOc();
+  irPara('equipe');
+}
+// na simulação, quem não tem a permissão de ler relatórios psicológicos não vê o texto (igual ao banco faria)
+const mascararAtendimentos = (lista) => !estado.simulando || permite('atendimento') ? lista
+  : (lista || []).map(a => ({ ...a, relato: null, encaminhamento: null, pode_ler: false }));
 // que aba cada página precisa
 const MODULO_PAGINA = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' };
 function podePagina(pagina) {
@@ -755,6 +819,7 @@ $('#menu-botao').onclick = (e) => {
 };
 document.addEventListener('click', (e) => { if (!e.target.closest('#tela-sistema header')) fecharMenu(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharMenu(); });
+$('#sair-simulacao').onclick = sairSimulacao;
 // cada tela fica guardada no histórico do navegador: o botão "Voltar" do navegador volta para a tela anterior do sistema
 function irPara(pagina, extra, modo) {
   const mesma = estado.pagina && estado.pagina[0] === pagina && estado.pagina[1] === extra;
@@ -1113,7 +1178,7 @@ async function abrirFicha(id, aba) {
     ]);
     completo = a.data; responsaveis = (r.data || []).map(x => x.responsaveis).filter(Boolean); pendencias = p.data || [];
     ocorrencias = (o.data || []).sort((x, y) => (y.data + y.id).localeCompare(x.data + x.id));
-    atendimentos = at.error ? [] : (at.data || []);
+    atendimentos = at.error ? [] : mascararAtendimentos(at.data || []);
     // mantém o balãozinho do carômetro em dia com o que acabou de ser lido
     const total = ocorrencias.length + atendimentos.length;
     if ((veOc || veAt) && (estado.contOc.get(id) || 0) !== total) {
@@ -1672,7 +1737,7 @@ async function paginaOcorrencias() {
   const chave = (x) => x.data + String(x.id).padStart(9, '0');
   const todas = [
     ...(oc.data || []).map(o => ({ ...o, _tipo: o.tipo === 'saida' ? 'saida' : 'ocorrencia' })),
-    ...(at.error ? [] : (at.data || [])).map(o => ({ ...o, _tipo: 'atendimento' })),
+    ...(at.error ? [] : mascararAtendimentos(at.data || [])).map(o => ({ ...o, _tipo: 'atendimento' })),
   ].sort((x, y) => chave(y).localeCompare(chave(x)));
   const turmaDe = (alunoId) => estado.matriculas.find(m => m.aluno_id === alunoId);
   const f = estado.filtroOc || (estado.filtroOc = { turma: '', situacao: veOc ? 'abertas' : 'todas', nome: '', tipo: '' });
@@ -1995,9 +2060,16 @@ async function painelUsuarios() {
           ${Object.entries(NOMES_PAPEL).map(([v, n]) => `<option value="${v}" ${v === p.papel ? 'selected' : ''}>${n}</option>`).join('')}</select></td>
         <td>${resumoPerm(p)}</td>
         <td><input type="checkbox" data-email="${esc(p.email)}" data-campo="ativo" ${p.ativo ? 'checked' : ''} ${eu ? 'disabled' : ''}></td>
-        <td>${['admin', 'pendente'].includes(p.papel) ? '' : `<button class="botao leve pequeno" data-perm="${esc(p.email)}">Permissões…</button>`}</td></tr>`; }).join('')}
+        <td style="white-space:nowrap">${['admin', 'pendente'].includes(p.papel) ? '' : `<button class="botao leve pequeno" data-perm="${esc(p.email)}">Permissões…</button>`}
+          ${eu || ['admin', 'pendente'].includes(p.papel) || !p.ativo ? '' : `<button class="botao leve pequeno" data-ver-como="${esc(p.email)}" title="Ver a plataforma como esta pessoa vê">👁 Ver como</button>`}</td></tr>`; }).join('')}
       </tbody></table></div>
       <div id="msg-equipe" class="aviso escondido"></div>
+      <div class="barra" style="margin-top:14px;flex-wrap:wrap">
+        <strong>Ver como um papel:</strong>
+        <select id="ver-como-papel">${Object.entries(NOMES_PAPEL).filter(([v]) => !['admin', 'pendente'].includes(v)).map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>
+        <button class="botao leve pequeno" id="ver-como-papel-ok">👁 Ver como este papel</button>
+        <span class="subtitulo" style="margin:0">Mostra a plataforma com as permissões padrão do papel. Nada é salvo nesse modo.</span>
+      </div>
       <p class="subtitulo" style="margin-top:14px">
         <strong>Administrador:</strong> tudo, inclusive este painel · <strong>Coordenação:</strong> quase tudo, inclusive documentos e responsáveis ·
         <strong>Professor</strong> e <strong>Consulta:</strong> turmas, notas e horários só para ver · <strong>Psicologia:</strong> Turmas e Ocorrências, e registra relatórios de atendimento ·
@@ -2023,6 +2095,8 @@ async function painelUsuarios() {
     msg('#msg-equipe', 'Alteração salva.');
   });
   document.querySelectorAll('[data-perm]').forEach(b => b.onclick = () => editarPermissoes(equipe.find(p => p.email === b.dataset.perm)));
+  document.querySelectorAll('[data-ver-como]').forEach(b => b.onclick = () => verComo(equipe.find(p => p.email === b.dataset.verComo)));
+  $('#ver-como-papel-ok').onclick = () => verComo({ papel: $('#ver-como-papel').value, permissoes: null });
 }
 
 function editarPermissoes(p) {
