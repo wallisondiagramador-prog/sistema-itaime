@@ -182,6 +182,25 @@
   .oc-topo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
   .oc-topo .espaco { flex: 1; }
   .ocorrencia small { display: block; color: var(--suave); margin-top: 4px; }
+  .oc-titulo { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .oc-texto { white-space: pre-line; }
+  .oc-saida .oc-titulo { color: var(--alerta); }
+  /* relatório de atendimento psicológico: destaque em verde */
+  .ocorrencia.oc-atendimento { border: 2px solid #16a34a; border-radius: 10px; background: #f0fdf4; padding: 12px 14px; margin: 10px 0; }
+  .ocorrencia.oc-atendimento:first-of-type { padding-top: 12px; }
+  .oc-atendimento .oc-titulo, .titulo-atendimento, .txt-atendimento { color: #15803d; }
+  .perm-tabela td, .perm-tabela th { padding: 8px 10px; vertical-align: middle; }
+  .perm-tabela tr.perm-mudou td { background: #fff7e6; }
+  .hist-tabela td { vertical-align: top; font-size: 13.5px; }
+  .hist-mudou div { margin: 1px 0; } .hist-mudou b { font-weight: 600; color: var(--suave); }
+  .acao-hist { font-weight: 700; } .acao-hist.criou { color: var(--verde); } .acao-hist.alterou { color: #9a6a00; } .acao-hist.apagou { color: var(--erro); }
+  .fr-tag-atestado { display: inline-block; background: #e0ecff; color: #1f4f9c; font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 99px; }
+  td.fr-a { color: #1f4f9c; font-weight: 700; text-align: center; }
+  .pa-sit { font-weight: 600; } .pa-sit.pa-falta { color: var(--erro); } .pa-sit.pa-atestado { color: #1f4f9c; }
+  .pa-sit.pa-saiu { color: var(--alerta); } .pa-sit.pa-presente { color: var(--verde); } .pa-sit.pa-sem { color: var(--suave); font-weight: 400; }
+  .tag-atendimento { display: inline-block; background: #16a34a; color: #fff; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
+  .botao.verde { background: #16a34a; } .botao.verde:hover { background: #15803d; }
+  tr.linha-atendimento td { background: #f0fdf4; } tr.linha-atendimento td:first-child { box-shadow: inset 4px 0 0 #16a34a; }
   .form-edicao .marcar { display: flex; gap: 8px; align-items: center; margin-top: 30px; color: var(--texto); font-size: 14px; }
   .form-edicao .marcar input { width: auto; }
   .imp-ocorrencia .campo-imp { margin: 10px 0; font-size: 11pt; }
@@ -389,6 +408,13 @@
     @page paisagem { size: A4 landscape; margin: 10mm; }
     .imp-paisagem { page: paisagem; }
     .fr-rel-imp { font-size: 7.5pt; }
+    .imp-pa { height: 296mm; }
+    .imp-pa-conteudo { padding: 14mm 14mm 10mm; font-size: 10pt; }
+    .imp-pa .imp-tabela { font-size: 9pt; }
+    .imp-pa .imp-tabela td, .imp-pa .imp-tabela th { padding: 1mm 2mm; }
+    .imp-pa.muitos .imp-tabela { font-size: 7.5pt; line-height: 1.15; } .imp-pa.muitos .imp-tabela td { padding: .25mm 2mm; }
+    .imp-pa.muitos .imp-pa-conteudo { padding-top: 10mm; }
+    .imp-destaque { font-weight: 700; }
     .bo-imp { break-after: page; }
     .bo-imp:last-child { break-after: auto; }
     .bo-imp .imp-tabela { font-size: 8pt; }
@@ -440,17 +466,18 @@
     <div class="topo">
       <div class="marca" style="font-size:18px">ITA-IME</div>
       <nav>
-        <button data-pagina="turmas" class="ativa">Turmas</button>
-        <button data-pagina="notas">Notas</button>
-        <button data-pagina="comparativos">Comparativos</button>
-        <button data-pagina="desempenho">Desempenho</button>
-        <button data-pagina="horarios">Horários de aula</button>
+        <button data-pagina="turmas" class="ativa escondido">Turmas</button>
+        <button data-pagina="notas" class="escondido">Notas</button>
+        <button data-pagina="comparativos" class="escondido">Comparativos</button>
+        <button data-pagina="desempenho" class="escondido">Desempenho</button>
+        <button data-pagina="horarios" class="escondido">Horários de aula</button>
         <button data-pagina="frequencia" id="nav-frequencia" class="escondido">Frequência</button>
-        <button data-pagina="busca">Buscar aluno</button>
+        <button data-pagina="atestados" id="nav-atestados" class="escondido">Atestados e saídas</button>
+        <button data-pagina="busca" class="escondido">Buscar aluno</button>
         <button data-pagina="ocorrencias" id="nav-ocorrencias" class="escondido">Ocorrências</button>
         <button data-pagina="professores" id="nav-professores" class="escondido">Professores</button>
         <button data-pagina="bolsas" id="nav-bolsas" class="escondido">Bolsas</button>
-        <button data-pagina="equipe" id="nav-equipe" class="escondido">Equipe</button>
+        <button data-pagina="equipe" id="nav-equipe" class="escondido">Painel admin</button>
       </nav>
       <div class="usuario"><strong id="nome-usuario"></strong><span id="papel-usuario"></span></div>
       <button class="botao leve" id="sair">Sair</button>
@@ -485,7 +512,46 @@ const db = supabase.createClient(SUPABASE_URL, SUPABASE_CHAVE_PUBLICA);
 
 // Estado do sistema (o que já foi carregado)
 const estado = { papel: null, nome: '', turmas: [], matriculas: [], alunos: new Map(), fotos: new Map(), visao: 'carometro', contOc: new Map() };
-const NOMES_PAPEL = { admin: 'Administrador', coordenacao: 'Coordenação', professor: 'Professor', consulta: 'Consulta', pendente: 'Sem acesso' };
+const NOMES_PAPEL = { admin: 'Administrador', coordenacao: 'Coordenação', professor: 'Professor', consulta: 'Consulta', psicologia: 'Psicologia', pendente: 'Sem acesso' };
+const EMAIL_MASTER = 'wallison.diagramador@gmail.com';   // conta principal: única que apaga o histórico
+// Módulos do sistema (abas). Cada pessoa tem, para cada um: nenhum, ver ou editar.
+const MODULOS = [
+  { id: 'turmas', nome: 'Turmas', desc: 'carômetro, listas e ficha do aluno; editar = cadastrar, mudar turma, desistente' },
+  { id: 'busca', nome: 'Buscar aluno', desc: 'procurar aluno pelo nome' },
+  { id: 'notas', nome: 'Notas', desc: 'ciclos, planilhas e boletim; editar = criar ciclos e lançar notas' },
+  { id: 'comparativos', nome: 'Comparativos', desc: 'comparação com as notas de corte; editar = mudar as notas de corte' },
+  { id: 'desempenho', nome: 'Desempenho', desc: 'gráficos, destaques e relação da turma' },
+  { id: 'horarios', nome: 'Horários de aula', desc: 'grade das turmas; editar = subir horário e mudar salas' },
+  { id: 'frequencia', nome: 'Frequência', desc: 'folhas, chamadas, lista por aula e relatórios; editar = imprimir, ler e corrigir chamadas' },
+  { id: 'atestados', nome: 'Atestados e saídas', desc: 'atestados médicos e autorizações de saída; editar = lançar e corrigir' },
+  { id: 'ocorrencias', nome: 'Ocorrências', desc: 'ocorrências dos alunos; editar = registrar e corrigir' },
+  { id: 'atendimento', nome: 'Relatório psicológico', desc: 'SIGILOSO: ver = ler o texto dos atendimentos; editar = registrar atendimentos' },
+  { id: 'professores', nome: 'Professores', desc: 'cadastro dos professores' },
+  { id: 'bolsas', nome: 'Bolsas', desc: 'classificação para bolsas' },
+];
+// padrão de cada papel (igual ao do banco: permissoes_padrao)
+const PERM_PADRAO = (() => {
+  const t = (o) => Object.fromEntries(MODULOS.map(m => [m.id, o[m.id] || 'nenhum']));
+  const todos = (n) => Object.fromEntries(MODULOS.map(m => [m.id, n]));
+  const leitura = { turmas: 'ver', busca: 'ver', notas: 'ver', comparativos: 'ver', desempenho: 'ver', horarios: 'ver' };
+  return {
+    admin: todos('editar'),
+    coordenacao: t({ turmas: 'editar', busca: 'ver', notas: 'editar', comparativos: 'editar', desempenho: 'ver', horarios: 'editar',
+      frequencia: 'editar', atestados: 'editar', ocorrencias: 'editar', professores: 'editar' }),
+    professor: t(leitura), consulta: t(leitura),
+    psicologia: t({ turmas: 'ver', ocorrencias: 'ver', atendimento: 'editar' }),
+    pendente: todos('nenhum'),
+  };
+})();
+// permite('notas') = pode ver; permite('notas', 'editar') = pode editar
+const permite = (mod, nivel = 'ver') => {
+  if (estado.papel === 'admin') return true;
+  const v = (estado.perm || {})[mod];
+  return nivel === 'editar' ? v === 'editar' : v === 'ver' || v === 'editar';
+};
+const veNotas = () => permite('notas') || permite('comparativos') || permite('desempenho') || permite('bolsas');
+const editaAlunos = () => veTudo() && permite('turmas', 'editar');   // dados pessoais seguem só para admin/coordenação
+const ehMaster = () => estado.papel === 'admin' && estado.email === EMAIL_MASTER;
 
 // ---------- utilidades ----------
 const $ = (sel) => document.querySelector(sel);
@@ -598,7 +664,12 @@ async function iniciar() {
   const { data: papel } = await db.rpc('meu_papel');
   const { data: eu } = await db.from('equipe').select('nome').eq('email', session.user.email).maybeSingle();
   estado.papel = papel;
+  estado.email = (session.user.email || '').toLowerCase();
   estado.nome = eu?.nome || session.user.email;
+  // permissões por módulo (se o banco ainda não tiver a função, usa o padrão do papel)
+  let perm = null;
+  try { const r = await db.rpc('minhas_permissoes'); if (r && !r.error && r.data && typeof r.data === 'object') perm = r.data; } catch (e) { /* usa o padrão */ }
+  estado.perm = perm || PERM_PADRAO[papel] || {};
 
   if (!papel || papel === 'pendente') {
     mostrar('#tela-login');
@@ -609,11 +680,7 @@ async function iniciar() {
 
   $('#nome-usuario').textContent = estado.nome;
   $('#papel-usuario').textContent = NOMES_PAPEL[papel];
-  $('#nav-equipe').classList.toggle('escondido', papel !== 'admin');
-  $('#nav-professores').classList.toggle('escondido', !veTudo());
-  $('#nav-bolsas').classList.toggle('escondido', estado.papel !== 'admin');
-  $('#nav-ocorrencias').classList.toggle('escondido', !veTudo());
-  $('#nav-frequencia').classList.toggle('escondido', !veTudo());
+  document.querySelectorAll('nav button[data-pagina]').forEach(b => b.classList.toggle('escondido', !podePagina(b.dataset.pagina)));
   mostrar('#tela-sistema');
   $('#conteudo').innerHTML = '<div class="carregando">Carregando turmas…</div>';
 
@@ -628,7 +695,18 @@ async function iniciar() {
   estado.matriculas = m.data;
   estado.alunos = new Map(a.data.map(x => [x.id, x]));
   await carregarContOc();
-  irPara('turmas', undefined, 'replace');
+  irPara(primeiraPagina(), undefined, 'replace');
+}
+// que aba cada página precisa
+const MODULO_PAGINA = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' };
+function podePagina(pagina) {
+  if (pagina === 'equipe') return estado.papel === 'admin';
+  if (pagina === 'ocorrencias') return permite('ocorrencias') || permite('atendimento');
+  return permite(MODULO_PAGINA[pagina] || pagina);
+}
+function primeiraPagina() {
+  return ['turmas', 'notas', 'desempenho', 'comparativos', 'horarios', 'frequencia', 'atestados', 'ocorrencias', 'busca', 'professores', 'bolsas', 'equipe']
+    .find(podePagina) || 'turmas';
 }
 
 // depois de mudar turma / desistente: recarrega as matrículas e redesenha a página aberta
@@ -647,11 +725,12 @@ function irPara(pagina, extra, modo) {
     if (modo === 'push') history.pushState({ pagina, extra }, '');
     else if (modo === 'replace') history.replaceState({ pagina, extra }, '');
   } catch (e) { /* navegador sem histórico: segue normal */ }
+  if (!podePagina(pagina)) { pagina = primeiraPagina(); extra = undefined; }
   estado.pagina = [pagina, extra];
   const menu = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' }[pagina] || pagina;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === menu));
   ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe,
-     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias, comparativos: paginaComparativos, desempenho: paginaDesempenho, horarios: paginaHorarios, frequencia: paginaFrequencia, bolsas: paginaBolsas })[pagina](extra);
+     notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias, comparativos: paginaComparativos, desempenho: paginaDesempenho, horarios: paginaHorarios, frequencia: paginaFrequencia, bolsas: paginaBolsas, atestados: paginaAtestados })[pagina](extra);
 }
 
 window.addEventListener('popstate', (e) => {
@@ -691,7 +770,7 @@ function paginaTurmas() {
     .map(m => ({ m, a: estado.alunos.get(m.aluno_id) })).filter(x => x.a).sort((x, y) => x.a.nome.localeCompare(y.a.nome));
   $('#conteudo').innerHTML = `
     <div class="barra"><h1>Turmas ${ANO_LETIVO}</h1><div class="espaco"></div>
-      ${veTudo() ? `<button class="botao leve" id="importar-alunos">Importar alunos (Excel)</button>
+      ${editaAlunos() ? `<button class="botao leve" id="importar-alunos">Importar alunos (Excel)</button>
       <button class="botao" id="novo-aluno">+ Novo aluno</button>` : ''}</div>
     <p class="subtitulo">${ativos} alunos matriculados. Clique numa turma para ver o carômetro.</p>
     <div class="grade-turmas">
@@ -724,7 +803,8 @@ async function paginaTurma(turmaId) {
   if (!estado.selecao || estado.selecao.turma !== turmaId) estado.selecao = { turma: turmaId, ativo: false, ids: new Set() };
   const S = estado.selecao;
   [...S.ids].forEach(id => { if (!lista.some(a => a.id === id)) S.ids.delete(id); });
-  const selecionando = veTudo() && S.ativo;
+  const podeSelecionar = permite('turmas', 'editar') || permite('ocorrencias', 'editar');
+  const selecionando = podeSelecionar && S.ativo;
 
   $('#conteudo').innerHTML = `
     <div class="barra">
@@ -737,8 +817,8 @@ async function paginaTurma(turmaId) {
         <button data-visao="lista" class="${estado.visao === 'lista' ? 'ativa' : ''}">Lista</button>
       </div>
       <button class="botao leve" id="imprimir">Imprimir</button>
-      ${veTudo() ? `<button class="botao leve" id="selecionar">${selecionando ? 'Concluir seleção' : 'Selecionar'}</button>
-        <button class="botao" id="novo-aluno">+ Novo aluno</button>` : ''}
+      ${podeSelecionar ? `<button class="botao leve" id="selecionar">${selecionando ? 'Concluir seleção' : 'Selecionar'}</button>` : ''}
+      ${editaAlunos() ? '<button class="botao" id="novo-aluno">+ Novo aluno</button>' : ''}
     </div>
     ${selecionando ? '<p class="subtitulo">Clique nos alunos para marcar. Depois escolha a ação na barra de baixo.</p>' : ''}
     <div id="alunos-turma"></div>
@@ -758,15 +838,15 @@ async function paginaTurma(turmaId) {
       <button class="botao leve pequeno" id="sel-todos">Selecionar todos</button>
       <button class="botao leve pequeno" id="sel-limpar" ${off}>Limpar</button>
       <span class="espaco"></span>
-      <button class="botao pequeno" id="massa-turma" ${off}>Mudar de turma…</button>
-      <button class="botao pequeno" id="massa-oc" ${off}>Adicionar ocorrência…</button>
-      <button class="botao perigo pequeno" id="massa-desist" ${off}>Marcar desistência…</button>`;
+      ${permite('turmas', 'editar') ? `<button class="botao pequeno" id="massa-turma" ${off}>Mudar de turma…</button>` : ''}
+      ${permite('ocorrencias', 'editar') ? `<button class="botao pequeno" id="massa-oc" ${off}>Adicionar ocorrência…</button>` : ''}
+      ${permite('turmas', 'editar') ? `<button class="botao perigo pequeno" id="massa-desist" ${off}>Marcar desistência…</button>` : ''}`;
     $('#sel-todos').onclick = () => { visiveis().forEach(a => S.ids.add(a.id)); desenhar(); };
     $('#sel-limpar').onclick = () => { S.ids.clear(); desenhar(); };
     const depois = () => { S.ids.clear(); paginaTurma(turmaId); };
-    $('#massa-turma').onclick = () => massaMudarTurma(escolhidos(), turma, depois);
-    $('#massa-oc').onclick = () => massaOcorrencia(escolhidos(), turma, depois);
-    $('#massa-desist').onclick = () => massaDesistencia(escolhidos(), turma, depois);
+    if ($('#massa-turma')) $('#massa-turma').onclick = () => massaMudarTurma(escolhidos(), turma, depois);
+    if ($('#massa-oc')) $('#massa-oc').onclick = () => massaOcorrencia(escolhidos(), turma, depois);
+    if ($('#massa-desist')) $('#massa-desist').onclick = () => massaDesistencia(escolhidos(), turma, depois);
   };
   const sel = selecionando ? { ids: S.ids, alternar: (id) => { S.ids.has(id) ? S.ids.delete(id) : S.ids.add(id); barra(); } } : null;
   const desenhar = () => { desenharAlunos(visiveis(), '#alunos-turma', false, sel); barra(); };
@@ -979,26 +1059,31 @@ async function abrirFicha(id, aba) {
   $('#fundo-ficha').classList.remove('escondido');
   $('#ficha').innerHTML = '<div class="carregando">Carregando ficha…</div>';
 
-  let completo = null, responsaveis = [], pendencias = [], ocorrencias = [];
-  if (veTudo()) {
-    const [a, r, p, o] = await Promise.all([
-      db.from('alunos').select('*').eq('id', id).single(),
-      db.from('aluno_responsavel').select('responsaveis(*)').eq('aluno_id', id),
-      db.from('pendencias').select('campo, problema, valor').eq('aluno_id', id).eq('resolvida', false),
-      db.from('ocorrencias').select('*').eq('aluno_id', id).order('data', { ascending: false }),
+  let completo = null, responsaveis = [], pendencias = [], ocorrencias = [], atendimentos = [];
+  const veOc = permite('ocorrencias'), veAt = permite('ocorrencias') || permite('atendimento');
+  const nada = Promise.resolve({ data: null });
+  {
+    const [a, r, p, o, at] = await Promise.all([
+      veTudo() ? db.from('alunos').select('*').eq('id', id).single() : nada,
+      veTudo() ? db.from('aluno_responsavel').select('responsaveis(*)').eq('aluno_id', id) : nada,
+      veTudo() ? db.from('pendencias').select('campo, problema, valor').eq('aluno_id', id).eq('resolvida', false) : nada,
+      veOc ? db.from('ocorrencias').select('*').eq('aluno_id', id).order('data', { ascending: false }) : nada,
+      veAt ? db.from('atendimentos_lista').select('*').eq('aluno_id', id).order('data', { ascending: false }) : nada,
     ]);
     completo = a.data; responsaveis = (r.data || []).map(x => x.responsaveis).filter(Boolean); pendencias = p.data || [];
     ocorrencias = (o.data || []).sort((x, y) => (y.data + y.id).localeCompare(x.data + x.id));
+    atendimentos = at.error ? [] : (at.data || []);
     // mantém o balãozinho do carômetro em dia com o que acabou de ser lido
-    if ((estado.contOc.get(id) || 0) !== ocorrencias.length) {
-      if (ocorrencias.length) estado.contOc.set(id, ocorrencias.length); else estado.contOc.delete(id);
+    const total = ocorrencias.length + atendimentos.length;
+    if ((veOc || veAt) && (estado.contOc.get(id) || 0) !== total) {
+      if (total) estado.contOc.set(id, total); else estado.contOc.delete(id);
       atualizarBalao(id);
     }
   }
   const a = completo || basico;
   // notas em qualquer turma (continuam aparecendo depois de mudar de turma ou desistir)
   const [{ data: notasAluno }, { data: movs }, { data: freq }, { data: faltasAluno }] = await Promise.all([
-    db.from('historico_notas').select('ciclo_id, ciclo, nm, materia, turma_id, nota_real, nota_multiplicada').eq('aluno_id', id).order('ciclo_id').order('nm'),
+    veNotas() ? db.from('historico_notas').select('ciclo_id, ciclo, nm, materia, turma_id, nota_real, nota_multiplicada').eq('aluno_id', id).order('ciclo_id').order('nm') : Promise.resolve({ data: null }),
     db.from('movimentacoes').select('*').eq('aluno_id', id).order('feito_em'),
     db.from('frequencia_resumo').select('*').eq('aluno_id', id).eq('ano_letivo', ANO_LETIVO).maybeSingle(),
     db.from('frequencia_detalhe').select('data').eq('aluno_id', id).eq('ano_letivo', ANO_LETIVO).eq('faltou', true).order('data'),
@@ -1018,7 +1103,7 @@ async function abrirFicha(id, aba) {
       ${desistente ? `
         <div class="pendencia"><strong>Desistente</strong>${matricula.data_saida ? ` desde ${esc(data(matricula.data_saida))}` : ''}${matricula.motivo_saida ? ` — ${esc(matricula.motivo_saida)}` : ''}.
           Saiu da ${esc(turma?.nome || '')}; cadastro e notas continuam guardados.</div>
-        ${veTudo() ? `<div class="linha-acao"><select id="reativar-turma">${opcoesTurma(matricula.turma_id)}</select>
+        ${permite('turmas', 'editar') ? `<div class="linha-acao"><select id="reativar-turma">${opcoesTurma(matricula.turma_id)}</select>
           <button class="botao" id="reativar">Reativar nesta turma</button></div>` : ''}
         ${estado.papel === 'admin' ? `<div class="linha-acao" style="margin-top:14px">
           <button class="botao leve" id="apagar">Apagar aluno definitivamente…</button></div>
@@ -1027,7 +1112,7 @@ async function abrirFicha(id, aba) {
             <div class="linha-acao"><button class="botao perigo" id="apagar-sim">Sim, apagar para sempre</button>
             <button class="botao leve" id="apagar-nao">Cancelar</button></div></div>` : ''}`
       : `<div>Turma atual: <strong>${esc(turma?.nome || '')}</strong></div>
-        ${veTudo() ? `
+        ${permite('turmas', 'editar') ? `
           <div class="linha-acao"><button class="botao leve" id="abrir-desistente">Marcar como desistente…</button></div>
           <div id="form-desistente" class="escondido">
             <div class="linha-acao"><input type="date" id="data-saida" value="${hoje}">
@@ -1047,10 +1132,10 @@ async function abrirFicha(id, aba) {
       <button class="fechar" aria-label="Fechar">×</button>
     </div>`;
   $('#ficha').innerHTML = `
-    ${topo(`<div class="acoes-ficha"><button class="botao" id="ver-boletim">Boletim</button>
-      ${veTudo() ? `<button class="botao leve" id="editar-aluno">Editar</button>
-        <button class="botao leve" id="ver-ocorrencias">Ocorrências${balaoOc(id)}</button>` : ''}
-      <button class="botao leve" id="ver-desempenho">Desempenho</button></div>`)}
+    ${topo(`<div class="acoes-ficha">${veNotas() ? '<button class="botao" id="ver-boletim">Boletim</button>' : ''}
+      ${editaAlunos() ? '<button class="botao leve" id="editar-aluno">Editar</button>' : ''}
+      ${veOc || veAt ? `<button class="botao leve" id="ver-ocorrencias">Ocorrências${balaoOc(id)}</button>` : ''}
+      ${permite('desempenho') ? '<button class="botao leve" id="ver-desempenho">Desempenho</button>' : ''}</div>`)}
     ${matriculaHtml}
     <div class="secao"><h3>Frequência</h3>${htmlFrequenciaAluno(freq, faltasDatas)}</div>
     <div class="secao"><h3>Contato</h3><div class="campos">
@@ -1072,12 +1157,12 @@ async function abrirFicha(id, aba) {
       ${a.observacao ? `<div class="secao"><h3>Observação</h3><div>${esc(a.observacao)}</div></div>` : ''}
     ` : `<div class="secao"><p class="subtitulo" style="margin:0">Documentos, endereço e responsável ficam visíveis só para a coordenação.</p></div>`}`;
   $('#ficha .fechar').onclick = fecharFicha;
-  $('#ver-boletim').onclick = async () => { await carregarCortes(); mostrarBoletim(a, notasAluno || [], topo, id, freq, faltasDatas); };
+  if ($('#ver-boletim')) $('#ver-boletim').onclick = async () => { await carregarCortes(); mostrarBoletim(a, notasAluno || [], topo, id, freq, faltasDatas); };
   if ($('#editar-aluno')) $('#editar-aluno').onclick = () => mostrarEdicao(id, a, responsaveis, matricula, topo);
-  const abrirOcorrencias = () => mostrarOcorrencias({ a, basico, ocorrencias, topo, id, responsaveis, nomeTurmaAluno: turma?.nome || '' });
+  const abrirOcorrencias = () => mostrarOcorrencias({ a, basico, ocorrencias, atendimentos, topo, id, responsaveis, nomeTurmaAluno: turma?.nome || '' });
   if ($('#ver-ocorrencias')) $('#ver-ocorrencias').onclick = abrirOcorrencias;
-  $('#ver-desempenho').onclick = () => { fecharFicha(); estado.desempAluno = id; irPara('desempenho', id); };
-  if (aba === 'ocorrencias' && veTudo()) abrirOcorrencias();
+  if ($('#ver-desempenho')) $('#ver-desempenho').onclick = () => { fecharFicha(); estado.desempAluno = id; irPara('desempenho', id); };
+  if (aba === 'ocorrencias' && (veOc || veAt)) abrirOcorrencias();
 
   // ----- ações da matrícula -----
   const acao = async (botao, chamada) => {
@@ -1280,16 +1365,106 @@ function mostrarEdicao(id, a, responsaveis, matricula, topo) {
 const PROVIDENCIAS = ['Conversa com o aluno', 'Advertência verbal', 'Advertência escrita', 'Contato com a família', 'Reunião com a família', 'Suspensão'];
 const hojeLocal = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 function htmlOcorrencia(o) {
-  return `<div class="ocorrencia">
+  const saida = o.tipo === 'saida';
+  return `<div class="ocorrencia ${saida ? 'oc-saida' : ''}">
+    ${o.titulo ? `<div class="oc-titulo">${esc(o.titulo)}</div>` : ''}
     <div class="oc-topo"><strong>${esc(data(o.data))}</strong>
-      <span class="status ${o.resolvida ? 'fechada' : 'vermelho'}">${o.resolvida ? 'resolvida' : 'em aberto'}</span>
+      ${saida ? '<span class="status aberta">saída autorizada</span>' : `<span class="status ${o.resolvida ? 'fechada' : 'vermelho'}">${o.resolvida ? 'resolvida' : 'em aberto'}</span>`}
       <span class="status ${o.responsavel_avisado ? 'aberta' : 'fechada'}">${o.responsavel_avisado ? `família avisada${o.data_aviso ? ' em ' + esc(data(o.data_aviso)) : ''}` : 'família não avisada'}</span>
       <span class="espaco"></span>
-      <button class="botao leve pequeno" data-oc-editar="${o.id}">Editar</button>
+      ${permite('ocorrencias', 'editar') ? `<button class="botao leve pequeno" data-oc-editar="${o.id}">Editar</button>` : ''}
       <button class="botao leve pequeno" data-oc-imprimir="${o.id}">Imprimir</button></div>
-    <div>${esc(o.descricao)}</div>
+    <div class="oc-texto">${esc(o.descricao)}</div>
+    ${saida ? '<small class="vazio">Gerada automaticamente pela autorização de saída. Para corrigir os dados da saída, use a aba Atestados e saídas.</small>' : ''}
     ${o.providencia ? `<small><strong>Providência:</strong> ${esc(o.providencia)}</small>` : ''}
     <small>Registrada por ${esc(o.registrado_por || '—')}</small></div>`;
+}
+// Relatório de atendimento psicológico: card verde. O texto só aparece para quem tem a permissão.
+function htmlAtendimento(at) {
+  const podeMexer = permite('atendimento', 'editar') && (at.registrado_por === estado.email || estado.papel === 'admin');
+  return `<div class="ocorrencia oc-atendimento">
+    <div class="oc-titulo">Relatório de Atendimento</div>
+    <div class="oc-topo"><strong>${esc(data(at.data))}</strong>
+      <span class="tag-atendimento">Atendimento Psicológico</span>
+      <span class="espaco"></span>
+      ${podeMexer ? `<button class="botao leve pequeno" data-at-editar="${at.id}">Editar</button>` : ''}
+      ${at.pode_ler ? `<button class="botao leve pequeno" data-at-imprimir="${at.id}">Imprimir</button>` : ''}</div>
+    ${at.pode_ler ? `<div class="oc-texto">${esc(at.relato)}</div>
+      ${at.encaminhamento ? `<small><strong>Encaminhamento:</strong> ${esc(at.encaminhamento)}</small>` : ''}`
+      : '<div class="vazio">Conteúdo sigiloso: visível só para quem tem permissão de ler relatórios psicológicos.</div>'}
+    <small>Registrado por ${esc(at.registrado_nome || at.registrado_por || '—')}</small></div>`;
+}
+// formulário do relatório de atendimento (at = null → novo)
+function formAtendimento(alunoId, at, voltar) {
+  const novo = !at;
+  at = at || { data: hojeLocal(), relato: '', encaminhamento: '' };
+  const aluno = alunoId ? estado.alunos.get(alunoId) : null;
+  const ativos = estado.matriculas.filter(m => m.situacao === 'ativo').map(m => estado.alunos.get(m.aluno_id)).filter(Boolean)
+    .sort((x, y) => x.nome.localeCompare(y.nome));
+  $('#fundo-ficha').classList.remove('escondido');
+  $('#ficha').classList.remove('largo');
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2 class="titulo-atendimento">${novo ? 'Relatório de Atendimento' : 'Editar relatório de atendimento'}</h2>
+      <span class="tag-atendimento">Atendimento Psicológico</span>
+      ${aluno ? `<span class="etiqueta">${esc(aluno.nome)} · ${esc(nomeTurma(estado.matriculas.find(m => m.aluno_id === alunoId)?.turma_id))}</span>` : ''}</div>
+      <button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao"><div class="form-edicao">
+      ${aluno ? '' : `<div class="largo"><label for="at-aluno">Aluno</label><input type="text" id="at-aluno" list="at-lista-alunos" placeholder="Digite o nome do aluno">
+        <datalist id="at-lista-alunos">${ativos.map(x => `<option value="${esc(x.nome)}">${esc(nomeTurma(estado.matriculas.find(m => m.aluno_id === x.id)?.turma_id))}</option>`).join('')}</datalist></div>`}
+      <div><label for="at-data">Data do atendimento</label><input type="date" id="at-data" value="${esc(at.data || '')}"></div>
+      <div class="largo"><label for="at-relato">Relato do atendimento</label><textarea id="at-relato" rows="8">${esc(at.relato || '')}</textarea></div>
+      <div class="largo"><label for="at-encaminhamento">Encaminhamento (opcional)</label><input type="text" id="at-encaminhamento" value="${esc(at.encaminhamento || '')}" placeholder="Ex.: retorno em 15 dias, conversa com a família"></div>
+    </div>
+    <p class="subtitulo" style="margin:10px 0 0">O texto fica sigiloso: só quem tem permissão de ler relatórios psicológicos vê o conteúdo. Os demais veem apenas que houve um atendimento.</p></div>
+    <div id="msg-at" class="aviso erro escondido" style="margin:0 24px 14px"></div>
+    <div class="rodape-ficha">
+      ${novo ? '' : '<button class="botao leve" id="at-apagar" style="margin-right:auto">Apagar…</button>'}
+      <button class="botao leve" id="at-cancelar">Cancelar</button>
+      <button class="botao verde" id="at-salvar">${novo ? 'Registrar atendimento' : 'Salvar'}</button>
+    </div>`;
+  $('#ficha .fechar').onclick = fecharFicha;
+  $('#at-cancelar').onclick = voltar;
+  const erro = (m) => { $('#msg-at').textContent = m; $('#msg-at').classList.remove('escondido'); $('#at-salvar').disabled = false; };
+  $('#at-salvar').onclick = async () => {
+    $('#msg-at').classList.add('escondido');
+    let quem = alunoId;
+    if (!quem) {
+      const nome = semAcento($('#at-aluno').value.trim());
+      const achado = ativos.find(x => semAcento(x.nome) === nome);
+      if (!achado) return erro('Escolha o aluno na lista (comece a digitar o nome).');
+      quem = achado.id;
+    }
+    const relato = $('#at-relato').value.trim();
+    if (!relato) return erro('Escreva o relato do atendimento.');
+    if (!$('#at-data').value) return erro('Informe a data do atendimento.');
+    const dados = { aluno_id: quem, data: $('#at-data').value, relato, encaminhamento: $('#at-encaminhamento').value.trim() || null };
+    $('#at-salvar').disabled = true;
+    const { error } = novo ? await db.from('atendimentos').insert(dados) : await db.from('atendimentos').update(dados).eq('id', at.id);
+    if (error) return erro('Não foi possível salvar: ' + error.message);
+    voltar();
+  };
+  if ($('#at-apagar')) $('#at-apagar').onclick = async (e) => {
+    if (e.target.dataset.confirmar !== '1') {
+      e.target.dataset.confirmar = '1'; e.target.textContent = 'Clique de novo para apagar de vez'; e.target.classList.add('perigo'); return;
+    }
+    const { error } = await db.from('atendimentos').delete().eq('id', at.id);
+    if (error) return erro('Não foi possível apagar: ' + error.message);
+    voltar();
+  };
+}
+// impressão de um relatório de atendimento (só para quem pode ler)
+function imprimirAtendimento(f, at) {
+  const { a, basico, nomeTurmaAluno } = f;
+  $('#impressao').innerHTML = `<div class="imp-ocorrencia imp-atendimento">
+    <div class="imp-topo"><h1>RELATÓRIO DE ATENDIMENTO</h1><span>Atendimento Psicológico · documento sigiloso · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+    <div class="imp-cab-aluno">${htmlFoto(basico || a, false)}
+      <div><div class="campo-imp"><b>Aluno</b>${esc(a.nome)}${nomeTurmaAluno ? ' · ' + esc(nomeTurmaAluno) : ''}</div>
+        <div class="campo-imp"><b>Data</b>${esc(data(at.data))}</div>
+        <div class="campo-imp"><b>Registrado por</b>${esc(at.registrado_nome || at.registrado_por || '—')}</div></div></div>
+    <div class="imp-oc-item"><div class="campo-imp"><b>Relato</b>${esc(at.relato || '').replace(/\n/g, '<br>')}</div>
+      <div class="campo-imp"><b>Encaminhamento</b>${esc(at.encaminhamento || '—')}</div></div>
+    <div class="imp-assinaturas"><div>Psicologia</div></div></div>`;
+  imprimirQuandoCarregar();
 }
 // alunoId = null → escolher o aluno no próprio formulário; o = null → nova ocorrência
 function formOcorrencia(alunoId, o, voltar) {
@@ -1360,14 +1535,22 @@ function formOcorrencia(alunoId, o, voltar) {
 // Contagem de ocorrências por aluno (para o balãozinho). Só admin e coordenação.
 async function carregarContOc() {
   estado.contOc = new Map();
-  if (!veTudo()) return;
+  if (!permite('ocorrencias')) {
+    if (permite('atendimento')) try {
+      const { data: ats, error } = await db.from('atendimentos_lista').select('aluno_id');
+      if (!error) (ats || []).forEach(o => estado.contOc.set(o.aluno_id, (estado.contOc.get(o.aluno_id) || 0) + 1));
+    } catch (e) { /* segue sem balões */ }
+    return;
+  }
   try { // se falhar, o sistema segue normal, só sem os balõezinhos
     for (let de = 0; ; de += 1000) {
       const { data, error } = await db.from('ocorrencias').select('aluno_id').order('id').range(de, de + 999);
       if (error || !data) return;
       data.forEach(o => estado.contOc.set(o.aluno_id, (estado.contOc.get(o.aluno_id) || 0) + 1));
-      if (data.length < 1000) return;
+      if (data.length < 1000) break;
     }
+    const { data: ats, error: errAt } = await db.from('atendimentos_lista').select('aluno_id');
+    if (!errAt) (ats || []).forEach(o => estado.contOc.set(o.aluno_id, (estado.contOc.get(o.aluno_id) || 0) + 1));
   } catch (e) { /* segue sem balões */ }
 }
 function balaoOc(id) {
@@ -1383,13 +1566,18 @@ function atualizarBalao(id) {
 }
 // Aba "Ocorrências" da ficha, no mesmo estilo do Boletim
 function mostrarOcorrencias(f) {
-  const { ocorrencias, topo, id } = f;
+  const { ocorrencias, topo, id } = f, atendimentos = f.atendimentos || [];
   const voltar = () => abrirFicha(id, 'ocorrencias');
+  const itens = [...ocorrencias.map(o => ({ t: 'oc', d: o.data, k: o.id, o })), ...atendimentos.map(o => ({ t: 'at', d: o.data, k: o.id, o }))]
+    .sort((x, y) => y.d.localeCompare(x.d) || y.k - x.k);
+  const total = itens.length;
   $('#ficha').innerHTML = `
     ${topo()}
-    <div class="secao"><h3>Ocorrências (${ocorrencias.length})</h3>
-      ${ocorrencias.length ? ocorrencias.map(htmlOcorrencia).join('') : '<p class="subtitulo" style="margin:0">Nenhuma ocorrência registrada.</p>'}
-      <div class="linha-acao"><button class="botao leve" id="nova-ocorrencia">+ Registrar ocorrência</button></div>
+    <div class="secao"><h3>Ocorrências e atendimentos (${total})</h3>
+      ${total ? itens.map(i => i.t === 'oc' ? htmlOcorrencia(i.o) : htmlAtendimento(i.o)).join('') : '<p class="subtitulo" style="margin:0">Nada registrado para este aluno.</p>'}
+      <div class="linha-acao">
+        ${permite('ocorrencias', 'editar') ? '<button class="botao leve" id="nova-ocorrencia">+ Registrar ocorrência</button>' : ''}
+        ${permite('atendimento', 'editar') ? '<button class="botao verde" id="novo-atendimento">+ Relatório de atendimento</button>' : ''}</div>
     </div>
     <div class="rodape-ficha">
       ${ocorrencias.length ? '<button class="botao leve" id="imprimir-ocorrencias">Imprimir ocorrências</button>' : ''}
@@ -1397,7 +1585,12 @@ function mostrarOcorrencias(f) {
     </div>`;
   $('#ficha .fechar').onclick = fecharFicha;
   $('#voltar-ficha').onclick = () => abrirFicha(id);
-  $('#nova-ocorrencia').onclick = () => formOcorrencia(id, null, voltar);
+  if ($('#nova-ocorrencia')) $('#nova-ocorrencia').onclick = () => formOcorrencia(id, null, voltar);
+  if ($('#novo-atendimento')) $('#novo-atendimento').onclick = () => formAtendimento(id, null, voltar);
+  document.querySelectorAll('[data-at-editar]').forEach(b => b.onclick = () =>
+    formAtendimento(id, atendimentos.find(o => o.id === Number(b.dataset.atEditar)), voltar));
+  document.querySelectorAll('[data-at-imprimir]').forEach(b => b.onclick = () =>
+    imprimirAtendimento(f, atendimentos.find(o => o.id === Number(b.dataset.atImprimir))));
   document.querySelectorAll('[data-oc-editar]').forEach(b => b.onclick = () =>
     formOcorrencia(id, ocorrencias.find(o => o.id === Number(b.dataset.ocEditar)), voltar));
   document.querySelectorAll('[data-oc-imprimir]').forEach(b => b.onclick = () =>
@@ -1416,7 +1609,8 @@ function imprimirOcorrencias(f, lista) {
         <div class="campo-imp"><b>Responsável</b>${nomesResp.length ? nomesResp.map(esc).join(' · ') : '—'}</div>
         ${umaSo ? '' : `<div class="campo-imp"><b>Total</b>${lista.length} ocorrências</div>`}</div></div>
     ${lista.map(o => `<div class="imp-oc-item">
-      <div class="campo-imp"><b>Data</b>${esc(data(o.data))} · ${o.resolvida ? 'resolvida' : 'em aberto'}</div>
+      ${o.titulo ? `<div class="campo-imp"><b>Título</b>${esc(o.titulo)}</div>` : ''}
+      <div class="campo-imp"><b>Data</b>${esc(data(o.data))}${o.tipo === 'saida' ? '' : ' · ' + (o.resolvida ? 'resolvida' : 'em aberto')}</div>
       <div class="campo-imp"><b>O que aconteceu</b>${esc(o.descricao).replace(/\n/g, '<br>')}</div>
       <div class="campo-imp"><b>Providência tomada</b>${esc(o.providencia || '—')}</div>
       <div class="campo-imp"><b>Responsável avisado</b>${o.responsavel_avisado ? 'Sim' + (o.data_aviso ? ', em ' + esc(data(o.data_aviso)) : '') : 'Não'}</div>
@@ -1424,70 +1618,98 @@ function imprimirOcorrencias(f, lista) {
     <div class="imp-assinaturas"><div>Aluno</div><div>Responsável</div><div>Coordenação</div></div></div>`;
   imprimirQuandoCarregar();
 }
-// Página com todas as ocorrências
+// Página com todas as ocorrências (e os relatórios de atendimento, em verde)
 async function paginaOcorrencias() {
-  if (!veTudo()) return irPara('turmas');
+  const veOc = permite('ocorrencias'), veAt = permite('ocorrencias') || permite('atendimento');
+  if (!veOc && !veAt) return irPara('turmas');
   $('#conteudo').innerHTML = '<div class="carregando">Carregando ocorrências…</div>';
-  const { data: lista, error } = await db.from('ocorrencias').select('*').order('data', { ascending: false }).limit(2000);
-  if (error) return erroNaTela(error);
-  const todas = (lista || []).sort((x, y) => (y.data + String(y.id).padStart(9, '0')).localeCompare(x.data + String(x.id).padStart(9, '0')));
+  const [oc, at] = await Promise.all([
+    veOc ? db.from('ocorrencias').select('*').order('data', { ascending: false }).limit(2000) : Promise.resolve({ data: [] }),
+    db.from('atendimentos_lista').select('*').order('data', { ascending: false }).limit(2000),
+  ]);
+  if (oc.error) return erroNaTela(oc.error);
+  const chave = (x) => x.data + String(x.id).padStart(9, '0');
+  const todas = [
+    ...(oc.data || []).map(o => ({ ...o, _tipo: o.tipo === 'saida' ? 'saida' : 'ocorrencia' })),
+    ...(at.error ? [] : (at.data || [])).map(o => ({ ...o, _tipo: 'atendimento' })),
+  ].sort((x, y) => chave(y).localeCompare(chave(x)));
   const turmaDe = (alunoId) => estado.matriculas.find(m => m.aluno_id === alunoId);
-  const f = estado.filtroOc || (estado.filtroOc = { turma: '', situacao: 'abertas', nome: '' });
+  const f = estado.filtroOc || (estado.filtroOc = { turma: '', situacao: veOc ? 'abertas' : 'todas', nome: '', tipo: '' });
+  if (!veOc) f.situacao = 'todas';
   $('#conteudo').innerHTML = `
     <div class="barra"><h1>Ocorrências</h1><div class="espaco"></div>
       <button class="botao leve" id="oc-imprimir-lista">Imprimir lista</button>
-      <button class="botao" id="oc-nova">+ Registrar ocorrência</button></div>
-    <p class="subtitulo">Visível só para admin e coordenação. Clique no nome do aluno para abrir a ficha.</p>
+      ${permite('atendimento', 'editar') ? '<button class="botao verde" id="at-novo">+ Relatório de atendimento</button>' : ''}
+      ${permite('ocorrencias', 'editar') ? '<button class="botao" id="oc-nova">+ Registrar ocorrência</button>' : ''}</div>
+    <p class="subtitulo">Clique no nome do aluno para abrir a ficha. Os relatórios de atendimento psicológico aparecem em verde${permite('atendimento') ? '' : ' (o texto deles é sigiloso)'}.</p>
     <div class="barra">
       <select id="oc-f-turma"><option value="">Todas as turmas</option>${estado.turmas.map(t => `<option value="${t.id}" ${String(t.id) === f.turma ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select>
-      <select id="oc-f-situacao">
+      <select id="oc-f-tipo">
+        <option value="" ${!f.tipo ? 'selected' : ''}>Todos os tipos</option>
+        ${veOc ? `<option value="ocorrencia" ${f.tipo === 'ocorrencia' ? 'selected' : ''}>Ocorrências da coordenação</option>
+        <option value="saida" ${f.tipo === 'saida' ? 'selected' : ''}>Autorizações de saída</option>` : ''}
+        <option value="atendimento" ${f.tipo === 'atendimento' ? 'selected' : ''}>Atendimentos psicológicos</option></select>
+      ${veOc ? `<select id="oc-f-situacao">
         <option value="abertas" ${f.situacao === 'abertas' ? 'selected' : ''}>Em aberto</option>
         <option value="todas" ${f.situacao === 'todas' ? 'selected' : ''}>Todas</option>
         <option value="resolvidas" ${f.situacao === 'resolvidas' ? 'selected' : ''}>Resolvidas</option>
-        <option value="sem-aviso" ${f.situacao === 'sem-aviso' ? 'selected' : ''}>Família não avisada</option></select>
+        <option value="sem-aviso" ${f.situacao === 'sem-aviso' ? 'selected' : ''}>Família não avisada</option></select>` : ''}
       <input type="search" id="oc-f-nome" placeholder="Filtrar por nome" value="${esc(f.nome)}" style="max-width:280px">
     </div>
     <div id="oc-tabela"></div>`;
   let visiveis = [];
+  const textoDe = (o) => o._tipo === 'atendimento' ? (o.pode_ler ? o.relato : 'Conteúdo sigiloso') : o.descricao;
+  const tituloDe = (o) => o._tipo === 'atendimento' ? 'Relatório de Atendimento' : (o.titulo || '');
   const desenhar = () => {
-    f.turma = $('#oc-f-turma').value; f.situacao = $('#oc-f-situacao').value; f.nome = $('#oc-f-nome').value;
+    f.turma = $('#oc-f-turma').value; f.tipo = $('#oc-f-tipo').value; f.situacao = $('#oc-f-situacao')?.value || 'todas'; f.nome = $('#oc-f-nome').value;
     const busca = semAcento(f.nome.trim());
     visiveis = todas.filter(o => {
       const m = turmaDe(o.aluno_id), al = estado.alunos.get(o.aluno_id);
       if (f.turma && String(m?.turma_id) !== f.turma) return false;
-      if (f.situacao === 'abertas' && o.resolvida) return false;
-      if (f.situacao === 'resolvidas' && !o.resolvida) return false;
-      if (f.situacao === 'sem-aviso' && o.responsavel_avisado) return false;
+      if (f.tipo && o._tipo !== f.tipo) return false;
+      // os filtros de situação valem só para as ocorrências da coordenação
+      if (o._tipo === 'ocorrencia') {
+        if (f.situacao === 'abertas' && o.resolvida) return false;
+        if (f.situacao === 'resolvidas' && !o.resolvida) return false;
+        if (f.situacao === 'sem-aviso' && o.responsavel_avisado) return false;
+      }
       if (busca && !semAcento(al?.nome || '').includes(busca)) return false;
       return true;
     });
-    $('#oc-tabela').innerHTML = !visiveis.length ? '<p class="subtitulo">Nenhuma ocorrência com esses filtros.</p>' : `
+    $('#oc-tabela').innerHTML = !visiveis.length ? '<p class="subtitulo">Nada com esses filtros.</p>' : `
       <div class="rolavel"><table>
         <thead><tr><th>Data</th><th>Aluno</th><th>Turma</th><th>O que aconteceu</th><th>Providência</th><th>Família</th><th>Situação</th></tr></thead>
-        <tbody>${visiveis.map(o => { const m = turmaDe(o.aluno_id), al = estado.alunos.get(o.aluno_id);
-          return `<tr><td>${esc(data(o.data))}</td>
+        <tbody>${visiveis.map(o => { const m = turmaDe(o.aluno_id), al = estado.alunos.get(o.aluno_id), at = o._tipo === 'atendimento';
+          return `<tr class="${at ? 'linha-atendimento' : ''}"><td>${esc(data(o.data))}</td>
             <td><button class="botao leve pequeno" data-aluno="${o.aluno_id}">${esc(al?.nome || 'Aluno ' + o.aluno_id)}</button></td>
             <td>${esc(nomeTurma(m?.turma_id))}${m?.situacao === 'desistente' ? ' <span class="vazio">(desistente)</span>' : ''}</td>
-            <td>${esc(o.descricao)}</td><td>${esc(o.providencia || '—')}</td>
-            <td>${o.responsavel_avisado ? `avisada${o.data_aviso ? ' ' + esc(data(o.data_aviso)) : ''}` : '<span class="status vermelho">não avisada</span>'}</td>
-            <td><span class="status ${o.resolvida ? 'fechada' : 'vermelho'}">${o.resolvida ? 'resolvida' : 'em aberto'}</span></td></tr>`; }).join('')}</tbody>
+            <td>${tituloDe(o) ? `<strong class="${at ? 'txt-atendimento' : ''}">${esc(tituloDe(o))}</strong><br>` : ''}${at && !o.pode_ler ? '<span class="vazio">Conteúdo sigiloso</span>' : esc(textoDe(o))}</td>
+            <td>${at ? esc(o.encaminhamento || '—') : esc(o.providencia || '—')}</td>
+            <td>${at ? '—' : o.responsavel_avisado ? `avisada${o.data_aviso ? ' ' + esc(data(o.data_aviso)) : ''}` : '<span class="status vermelho">não avisada</span>'}</td>
+            <td>${at ? '<span class="tag-atendimento">Atendimento Psicológico</span>' : o._tipo === 'saida' ? '<span class="status aberta">saída autorizada</span>'
+              : `<span class="status ${o.resolvida ? 'fechada' : 'vermelho'}">${o.resolvida ? 'resolvida' : 'em aberto'}</span>`}</td></tr>`; }).join('')}</tbody>
       </table></div>`;
-    document.querySelectorAll('#oc-tabela [data-aluno]').forEach(b => b.onclick = () => abrirFicha(Number(b.dataset.aluno)));
+    document.querySelectorAll('#oc-tabela [data-aluno]').forEach(b => b.onclick = () => abrirFicha(Number(b.dataset.aluno), 'ocorrencias'));
   };
-  ['#oc-f-turma', '#oc-f-situacao'].forEach(s => $(s).onchange = desenhar);
+  ['#oc-f-turma', '#oc-f-tipo', '#oc-f-situacao'].forEach(s => { if ($(s)) $(s).onchange = desenhar; });
   $('#oc-f-nome').oninput = desenhar;
   desenhar();
-  $('#oc-nova').onclick = () => formOcorrencia(null, null, async () => { fecharFicha(); await carregarContOc(); paginaOcorrencias(); });
+  const depois = async () => { fecharFicha(); await carregarContOc(); paginaOcorrencias(); };
+  if ($('#oc-nova')) $('#oc-nova').onclick = () => formOcorrencia(null, null, depois);
+  if ($('#at-novo')) $('#at-novo').onclick = () => formAtendimento(null, null, depois);
   $('#oc-imprimir-lista').onclick = () => {
     const filtros = [f.turma ? nomeTurma(Number(f.turma)) : 'todas as turmas',
+      { '': 'todos os tipos', ocorrencia: 'ocorrências', saida: 'saídas', atendimento: 'atendimentos' }[f.tipo],
       { abertas: 'em aberto', todas: 'todas', resolvidas: 'resolvidas', 'sem-aviso': 'família não avisada' }[f.situacao]];
     $('#impressao').innerHTML = `
       <div class="imp-topo"><h1>OCORRÊNCIAS</h1><span>${esc(filtros.join(' · '))} · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
       <table class="imp-tabela"><thead><tr><th>Data</th><th>Aluno</th><th>Turma</th><th>O que aconteceu</th><th>Providência</th><th>Família</th><th>Situação</th></tr></thead>
-      <tbody>${visiveis.map(o => { const m = turmaDe(o.aluno_id);
+      <tbody>${visiveis.map(o => { const m = turmaDe(o.aluno_id), at = o._tipo === 'atendimento';
         return `<tr><td>${esc(data(o.data))}</td><td>${esc(estado.alunos.get(o.aluno_id)?.nome || '')}</td><td>${esc(nomeTurma(m?.turma_id))}</td>
-          <td>${esc(o.descricao)}</td><td>${esc(o.providencia || '—')}</td><td>${o.responsavel_avisado ? 'avisada' : 'não avisada'}</td><td>${o.resolvida ? 'resolvida' : 'em aberto'}</td></tr>`; }).join('')}</tbody></table>
-      <p class="imp-rodape">${visiveis.length} ocorrência(s)</p>`;
+          <td>${tituloDe(o) ? `<strong>${esc(tituloDe(o))}</strong><br>` : ''}${esc(at && !o.pode_ler ? 'Conteúdo sigiloso' : textoDe(o))}</td>
+          <td>${esc((at ? o.encaminhamento : o.providencia) || '—')}</td><td>${at ? '—' : o.responsavel_avisado ? 'avisada' : 'não avisada'}</td>
+          <td>${at ? 'atendimento psicológico' : o._tipo === 'saida' ? 'saída autorizada' : o.resolvida ? 'resolvida' : 'em aberto'}</td></tr>`; }).join('')}</tbody></table>
+      <p class="imp-rodape">${visiveis.length} registro(s)</p>`;
     setTimeout(() => window.print(), 100);
   };
 }
@@ -1679,34 +1901,246 @@ $('#fundo-ficha').onclick = (e) => { if (e.target.id === 'fundo-ficha') fecharFi
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharFicha(); });
 
 // ---------- Equipe (só administrador) ----------
-async function paginaEquipe() {
-  $('#conteudo').innerHTML = '<div class="carregando">Carregando equipe…</div>';
-  const { data: equipe, error } = await db.from('equipe').select('*').order('nome');
-  if (error) { $('#conteudo').innerHTML = `<div class="aviso erro">${esc(error.message)}</div>`; return; }
+// =====================================================================
+// PAINEL ADMINISTRATIVO: usuários, permissões por módulo e histórico de alterações
+// =====================================================================
+const NIVEIS = [['nenhum', 'Nenhum'], ['ver', 'Visualizar'], ['editar', 'Editar']];
+const permEfetiva = (p) => p.papel === 'admin' ? PERM_PADRAO.admin : { ...(PERM_PADRAO[p.papel] || {}), ...(p.permissoes || {}) };
+async function paginaEquipe(aba) {
+  if (estado.papel !== 'admin') return irPara(primeiraPagina());
+  aba = aba || estado.abaPainel || 'usuarios';
+  estado.abaPainel = aba;
   $('#conteudo').innerHTML = `
-    <h1>Equipe e permissões</h1>
-    <p class="subtitulo">Escolha o que cada pessoa pode ver. A mudança vale no próximo acesso dela.</p>
-    <table><thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Ativo</th></tr></thead><tbody>
-      ${equipe.map(p => `<tr>
-        <td>${esc(p.nome)}</td><td>${esc(p.email)}</td>
-        <td><select data-email="${esc(p.email)}" data-campo="papel">
-          ${Object.entries(NOMES_PAPEL).map(([v, n]) => `<option value="${v}" ${v === p.papel ? 'selected' : ''}>${n}</option>`).join('')}
-        </select></td>
-        <td><input type="checkbox" data-email="${esc(p.email)}" data-campo="ativo" ${p.ativo ? 'checked' : ''}></td>
-      </tr>`).join('')}
-    </tbody></table>
-    <div id="msg-equipe" class="aviso escondido"></div>
-    <p class="subtitulo" style="margin-top:20px">
-      <strong>Administrador:</strong> tudo, inclusive esta página · <strong>Coordenação:</strong> vê tudo, inclusive documentos e responsáveis ·
-      <strong>Professor</strong> e <strong>Consulta:</strong> turmas, fotos, nomes e contatos · <strong>Sem acesso:</strong> não vê nada.
-    </p>`;
-  document.querySelectorAll('[data-campo]').forEach(el => el.onchange = async () => {
-    const valor = el.dataset.campo === 'ativo' ? el.checked : el.value;
+    <div class="barra"><h1 style="margin:0">Painel administrativo</h1></div>
+    <div class="alternar" style="margin:12px 0 18px">
+      <button data-aba-painel="usuarios" class="${aba === 'usuarios' ? 'ativa' : ''}">Usuários e permissões</button>
+      <button data-aba-painel="historico" class="${aba === 'historico' ? 'ativa' : ''}">Histórico de alterações</button></div>
+    <div id="painel-corpo"><div class="carregando">Carregando…</div></div>`;
+  document.querySelectorAll('[data-aba-painel]').forEach(b => b.onclick = () => paginaEquipe(b.dataset.abaPainel));
+  if (aba === 'historico') return painelHistorico();
+  return painelUsuarios();
+}
+
+async function painelUsuarios() {
+  const { data: equipe, error } = await db.from('equipe').select('*').order('nome');
+  if (error) { $('#painel-corpo').innerHTML = `<div class="aviso erro">${esc(error.message)}</div>`; return; }
+  const resumoPerm = (p) => {
+    if (p.papel === 'admin') return '<span class="vazio">tudo (administrador)</span>';
+    if (p.papel === 'pendente') return '<span class="vazio">nenhuma</span>';
+    const ef = permEfetiva(p), ed = MODULOS.filter(m => ef[m.id] === 'editar').length, ve = MODULOS.filter(m => ef[m.id] === 'ver').length;
+    return `${p.permissoes ? '<span class="status aberta">personalizadas</span>' : '<span class="vazio">padrão do papel</span>'}
+      <small class="vazio">${ed} para editar · ${ve} só para ver</small>`;
+  };
+  $('#painel-corpo').innerHTML = `
+    <div class="painel">
+      <h3>Novo usuário</h3>
+      <form class="barra" id="form-usuario" style="flex-wrap:wrap">
+        <input type="text" id="nu-nome" placeholder="Nome" required style="max-width:240px">
+        <input type="email" id="nu-email" placeholder="E-mail" required style="max-width:280px">
+        <select id="nu-papel">${Object.entries(NOMES_PAPEL).filter(([v]) => v !== 'pendente').map(([v, n]) => `<option value="${v}" ${v === 'professor' ? 'selected' : ''}>${n}</option>`).join('')}</select>
+        <button class="botao">Cadastrar</button>
+      </form>
+      <p class="subtitulo" style="margin:8px 0 0">Depois de cadastrar, a pessoa abre o sistema, clica em <strong>Primeiro acesso</strong> e cria a própria senha com este e-mail.
+        As permissões começam iguais ao padrão do papel; ajuste em <strong>Permissões…</strong>.</p>
+      <div id="msg-usuario" class="aviso escondido"></div>
+    </div>
+    <div class="painel">
+      <h3>Usuários (${equipe.length})</h3>
+      <div class="rolavel"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Permissões</th><th>Ativo</th><th></th></tr></thead><tbody>
+      ${equipe.map(p => { const eu = p.email === estado.email;
+        return `<tr><td><input type="text" value="${esc(p.nome)}" data-email="${esc(p.email)}" data-campo="nome" style="min-width:160px"></td>
+        <td>${esc(p.email)}${p.email === EMAIL_MASTER ? ' <span class="status aberta">conta principal</span>' : ''}</td>
+        <td><select data-email="${esc(p.email)}" data-campo="papel" ${eu ? 'disabled title="Você não pode mudar o próprio papel"' : ''}>
+          ${Object.entries(NOMES_PAPEL).map(([v, n]) => `<option value="${v}" ${v === p.papel ? 'selected' : ''}>${n}</option>`).join('')}</select></td>
+        <td>${resumoPerm(p)}</td>
+        <td><input type="checkbox" data-email="${esc(p.email)}" data-campo="ativo" ${p.ativo ? 'checked' : ''} ${eu ? 'disabled' : ''}></td>
+        <td>${['admin', 'pendente'].includes(p.papel) ? '' : `<button class="botao leve pequeno" data-perm="${esc(p.email)}">Permissões…</button>`}</td></tr>`; }).join('')}
+      </tbody></table></div>
+      <div id="msg-equipe" class="aviso escondido"></div>
+      <p class="subtitulo" style="margin-top:14px">
+        <strong>Administrador:</strong> tudo, inclusive este painel · <strong>Coordenação:</strong> quase tudo, inclusive documentos e responsáveis ·
+        <strong>Professor</strong> e <strong>Consulta:</strong> turmas, notas e horários só para ver · <strong>Psicologia:</strong> Turmas e Ocorrências, e registra relatórios de atendimento ·
+        <strong>Sem acesso:</strong> não vê nada. CPF, RG, endereço e responsáveis aparecem só para Administrador e Coordenação.
+        As mudanças valem no próximo acesso da pessoa.</p>
+    </div>`;
+  const msg = (sel, t, erro) => { const m = $(sel); m.textContent = t; m.classList.toggle('erro', !!erro); m.classList.remove('escondido'); };
+  $('#form-usuario').onsubmit = async (e) => {
+    e.preventDefault();
+    const email = $('#nu-email').value.trim().toLowerCase(), nome = $('#nu-nome').value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return msg('#msg-usuario', 'O e-mail parece incompleto.', true);
+    const { error } = await db.from('equipe').insert({ email, nome, papel: $('#nu-papel').value, ativo: true });
+    if (error) return msg('#msg-usuario', /duplicate|unique/i.test(error.message) ? 'Esse e-mail já está cadastrado.' : 'Não foi possível cadastrar: ' + error.message, true);
+    await painelUsuarios();
+    msg('#msg-usuario', `${nome} cadastrado(a). Avise para entrar em "Primeiro acesso" com ${email}.`);
+  };
+  document.querySelectorAll('#painel-corpo [data-campo]').forEach(el => el.onchange = async () => {
+    const valor = el.dataset.campo === 'ativo' ? el.checked : el.value.trim();
+    if (el.dataset.campo === 'nome' && !valor) return msg('#msg-equipe', 'O nome não pode ficar vazio.', true);
     const { error } = await db.from('equipe').update({ [el.dataset.campo]: valor }).eq('email', el.dataset.email);
-    const m = $('#msg-equipe');
-    m.textContent = error ? 'Não foi possível salvar: ' + error.message : 'Alteração salva.';
-    m.classList.toggle('erro', !!error); m.classList.remove('escondido');
+    if (error) return msg('#msg-equipe', 'Não foi possível salvar: ' + error.message, true);
+    if (el.dataset.campo === 'papel') return painelUsuarios();
+    msg('#msg-equipe', 'Alteração salva.');
   });
+  document.querySelectorAll('[data-perm]').forEach(b => b.onclick = () => editarPermissoes(equipe.find(p => p.email === b.dataset.perm)));
+}
+
+function editarPermissoes(p) {
+  const padrao = PERM_PADRAO[p.papel] || {}, atual = permEfetiva(p);
+  $('#fundo-ficha').classList.remove('escondido'); $('#ficha').classList.add('largo');
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2>Permissões de ${esc(p.nome)}</h2>
+      <span class="etiqueta">${esc(p.email)} · papel: ${esc(NOMES_PAPEL[p.papel])}</span></div>
+      <button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao">
+      <p class="subtitulo" style="margin:0 0 10px">Para cada aba, escolha se a pessoa <strong>não vê</strong>, só <strong>visualiza</strong> ou também <strong>edita</strong>.
+        O que está diferente do padrão do papel fica destacado.</p>
+      <div class="rolavel"><table class="perm-tabela"><thead><tr><th>Aba / módulo</th>${NIVEIS.map(([, n]) => `<th class="num">${n}</th>`).join('')}<th>Padrão do papel</th></tr></thead>
+      <tbody>${MODULOS.map(m => `<tr data-mod="${m.id}" class="${atual[m.id] !== padrao[m.id] ? 'perm-mudou' : ''}">
+        <td><strong>${esc(m.nome)}</strong><small class="vazio" style="display:block">${esc(m.desc)}</small></td>
+        ${NIVEIS.map(([v]) => `<td class="num"><input type="radio" name="perm-${m.id}" value="${v}" ${atual[m.id] === v ? 'checked' : ''} aria-label="${esc(m.nome)}: ${v}"></td>`).join('')}
+        <td><small>${esc(NIVEIS.find(([v]) => v === padrao[m.id])?.[1] || 'Nenhum')}</small></td></tr>`).join('')}</tbody></table></div>
+      <p class="subtitulo" style="margin:10px 0 0">CPF, RG, endereço e responsáveis continuam visíveis só para Administrador e Coordenação, qualquer que seja a escolha aqui.
+        A mudança vale no próximo acesso da pessoa.</p>
+    </div>
+    <div id="msg-perm" class="aviso erro escondido" style="margin:0 24px 14px"></div>
+    <div class="rodape-ficha">
+      <button class="botao leve" id="perm-padrao" style="margin-right:auto">Voltar ao padrão do papel</button>
+      <button class="botao leve" id="perm-cancelar">Cancelar</button>
+      <button class="botao" id="perm-salvar">Salvar permissões</button></div>`;
+  $('#ficha .fechar').onclick = fecharFicha; $('#perm-cancelar').onclick = fecharFicha;
+  const lerTela = () => Object.fromEntries(MODULOS.map(m => [m.id, document.querySelector(`[name="perm-${m.id}"]:checked`)?.value || 'nenhum']));
+  document.querySelectorAll('.perm-tabela input').forEach(i => i.onchange = () => {
+    const tr = i.closest('tr'); tr.classList.toggle('perm-mudou', i.value !== padrao[tr.dataset.mod]);
+  });
+  const salvar = async (permissoes) => {
+    const { error } = await db.from('equipe').update({ permissoes }).eq('email', p.email);
+    if (error) { $('#msg-perm').textContent = 'Não foi possível salvar: ' + error.message; $('#msg-perm').classList.remove('escondido'); return; }
+    fecharFicha(); painelUsuarios();
+  };
+  $('#perm-padrao').onclick = () => salvar(null);
+  $('#perm-salvar').onclick = () => {
+    const escolha = lerTela();
+    const igual = MODULOS.every(m => escolha[m.id] === (padrao[m.id] || 'nenhum'));
+    salvar(igual ? null : escolha);
+  };
+}
+
+// ---------- Histórico de alterações (só administradores; apagar só a conta principal) ----------
+const NOMES_TABELA = { alunos: 'Cadastro do aluno', matriculas: 'Matrícula', responsaveis: 'Responsável', aluno_responsavel: 'Vínculo com responsável',
+  pendencias: 'Pendência do cadastro', movimentacoes: 'Movimentação', turmas: 'Turma', ciclos: 'Ciclo', planilhas: 'Planilha de notas', questoes: 'Coluna da planilha',
+  notas_questao: 'Nota', segunda_chamada: '2ª chamada', pendencias_notas: 'Pendência de nota', sem_multiplicador: 'Sem multiplicador', vestibulares: 'Vestibular',
+  notas_corte: 'Nota de corte', horarios: 'Horário de aula', folhas_frequencia: 'Folha de frequência', chamadas: 'Chamada', frequencia: 'Presença/falta',
+  ocorrencias: 'Ocorrência', atendimentos: 'Relatório de atendimento', atestados: 'Atestado médico', saidas: 'Autorização de saída',
+  professores: 'Professor', equipe: 'Usuário / permissões' };
+const NOMES_MODULO_HIST = { ...Object.fromEntries(MODULOS.map(m => [m.id, m.nome])), equipe: 'Painel admin' };
+const ACOES_HIST = { criou: 'Criou', alterou: 'Alterou', apagou: 'Apagou' };
+const CAMPOS_OCULTOS_HIST = ['id', 'criado_em', 'atualizado_em', 'registrado_em', 'registrado_por', 'criado_por', 'feito_em', 'feito_por'];
+function valorHist(v) {
+  if (v === null || v === undefined || v === '') return '<span class="vazio">vazio</span>';
+  if (v === true) return 'sim'; if (v === false) return 'não';
+  if (typeof v === 'object') v = JSON.stringify(v);
+  v = String(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) v = data(v);
+  return esc(v.length > 140 ? v.slice(0, 140) + '…' : v);
+}
+function textoAlteracao(h) {
+  const a = h.alteracoes || {};
+  if (h.acao === 'alterou') return Object.entries(a).map(([k, x]) => `<div><b>${esc(k)}</b>: ${valorHist(x?.de)} → ${valorHist(x?.para)}</div>`).join('');
+  const campos = Object.entries(a).filter(([k, v]) => !CAMPOS_OCULTOS_HIST.includes(k) && v !== null && v !== '');
+  const curtos = campos.slice(0, 5).map(([k, v]) => `<div><b>${esc(k)}</b>: ${valorHist(v)}</div>`).join('');
+  return curtos + (campos.length > 5 ? `<details><summary>ver todos os dados</summary>${campos.slice(5).map(([k, v]) => `<div><b>${esc(k)}</b>: ${valorHist(v)}</div>`).join('')}</details>` : '');
+}
+async function painelHistorico() {
+  const H = estado.filtroHist || (estado.filtroHist = { de: '', ate: '', usuario: '', modulo: '', acao: '', aluno: '' });
+  const { data: equipe } = await db.from('equipe').select('email, nome').order('nome');
+  const nomeUsuario = new Map((equipe || []).map(e => [e.email, e.nome]));
+  const master = ehMaster();
+  $('#painel-corpo').innerHTML = `
+    <p class="subtitulo" style="margin:0 0 10px">Toda criação, alteração e exclusão de dados fica registrada aqui automaticamente.
+      Só administradores veem este histórico${master ? '; só você (conta principal) pode apagar registros dele' : '; só a conta principal pode apagar registros'}.</p>
+    <div class="barra filtros-hist" style="flex-wrap:wrap">
+      <label>De <input type="date" id="h-de" value="${H.de}"></label>
+      <label>Até <input type="date" id="h-ate" value="${H.ate}"></label>
+      <select id="h-usuario"><option value="">Todos os usuários</option>
+        ${(equipe || []).map(e => `<option value="${esc(e.email)}" ${H.usuario === e.email ? 'selected' : ''}>${esc(e.nome)}</option>`).join('')}
+        <option value="__link" ${H.usuario === '__link' ? 'selected' : ''}>Link de lançamento (professor)</option></select>
+      <select id="h-modulo"><option value="">Todos os módulos</option>
+        ${Object.entries(NOMES_MODULO_HIST).map(([v, n]) => `<option value="${v}" ${H.modulo === v ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
+      <select id="h-acao"><option value="">Todas as ações</option>
+        ${Object.entries(ACOES_HIST).map(([v, n]) => `<option value="${v}" ${H.acao === v ? 'selected' : ''}>${n}</option>`).join('')}</select>
+      <input type="search" id="h-aluno" placeholder="Nome do aluno" value="${esc(H.aluno)}" style="max-width:220px">
+      <button class="botao leve" id="h-filtrar">Filtrar</button>
+    </div>
+    ${master ? `<div class="barra" style="margin:6px 0"><button class="botao perigo pequeno" id="h-apagar-sel" disabled>Apagar selecionados</button>
+      <span class="subtitulo" style="margin:0" id="h-qtd-sel"></span></div>` : ''}
+    <div id="h-lista"><div class="carregando">Carregando histórico…</div></div>
+    <div id="msg-hist" class="aviso erro escondido"></div>`;
+  const POR_PAGINA = 100;
+  let carregados = [], fim = false;
+  const marcados = new Set();
+  const buscar = async () => {
+    let q = db.from('historico').select('*').order('quando', { ascending: false }).range(carregados.length, carregados.length + POR_PAGINA - 1);
+    if (H.de) q = q.gte('quando', H.de + 'T00:00:00-03:00');
+    if (H.ate) q = q.lte('quando', H.ate + 'T23:59:59-03:00');
+    if (H.usuario === '__link') q = q.is('usuario', null); else if (H.usuario) q = q.eq('usuario', H.usuario);
+    if (H.modulo) q = q.eq('modulo', H.modulo);
+    if (H.acao) q = q.eq('acao', H.acao);
+    if (H.aluno.trim()) {
+      const b = semAcento(H.aluno.trim());
+      const ids = [...estado.alunos.values()].filter(a => semAcento(a.nome).includes(b)).map(a => a.id).slice(0, 200);
+      if (!ids.length) { fim = true; return []; }
+      q = q.in('aluno_id', ids);
+    }
+    const { data: linhas, error } = await q;
+    if (error) { $('#h-lista').innerHTML = `<div class="aviso erro">${esc(error.message)}</div>`; fim = true; return []; }
+    if (linhas.length < POR_PAGINA) fim = true;
+    return linhas;
+  };
+  const desenhar = () => {
+    $('#h-lista').innerHTML = !carregados.length ? '<p class="subtitulo">Nenhuma alteração com esses filtros.</p>' : `
+      <div class="rolavel"><table class="hist-tabela"><thead><tr>${master ? '<th><input type="checkbox" id="h-todos" aria-label="Marcar todos"></th>' : ''}
+        <th>Quando</th><th>Usuário</th><th>Módulo</th><th>Ação</th><th>Registro</th><th>O que mudou</th>${master ? '<th></th>' : ''}</tr></thead>
+      <tbody>${carregados.map(h => `<tr>
+        ${master ? `<td><input type="checkbox" data-sel="${h.id}" ${marcados.has(h.id) ? 'checked' : ''}></td>` : ''}
+        <td style="white-space:nowrap">${esc(new Date(h.quando).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' }))}</td>
+        <td>${h.usuario ? esc(nomeUsuario.get(h.usuario) || h.usuario) + `<small class="vazio" style="display:block">${esc(h.usuario)}</small>` : '<span class="vazio">link do professor / sistema</span>'}</td>
+        <td>${esc(NOMES_MODULO_HIST[h.modulo] || h.modulo || '')}</td>
+        <td><span class="acao-hist ${h.acao}">${ACOES_HIST[h.acao] || h.acao}</span></td>
+        <td>${esc(NOMES_TABELA[h.tabela] || h.tabela)}${h.aluno_id ? `<small style="display:block">${esc(estado.alunos.get(h.aluno_id)?.nome || 'aluno ' + h.aluno_id)}</small>` : ''}
+          <small class="vazio" style="display:block">nº ${esc(h.registro || '—')}</small></td>
+        <td class="hist-mudou">${textoAlteracao(h)}</td>
+        ${master ? `<td><button class="botao leve pequeno" data-apagar-hist="${h.id}">Apagar</button></td>` : ''}</tr>`).join('')}</tbody></table></div>
+      ${fim ? `<p class="subtitulo">${carregados.length} registro(s).</p>` : '<div class="barra" style="justify-content:center"><button class="botao leve" id="h-mais">Carregar mais</button></div>'}`;
+    if ($('#h-mais')) $('#h-mais').onclick = async () => { carregados = carregados.concat(await buscar()); desenhar(); };
+    if (!master) return;
+    const atualizarSel = () => { $('#h-apagar-sel').disabled = !marcados.size; $('#h-qtd-sel').textContent = marcados.size ? `${marcados.size} marcado(s)` : ''; };
+    document.querySelectorAll('[data-sel]').forEach(c => c.onchange = () => { c.checked ? marcados.add(Number(c.dataset.sel)) : marcados.delete(Number(c.dataset.sel)); atualizarSel(); });
+    if ($('#h-todos')) $('#h-todos').onchange = (e) => { carregados.forEach(h => e.target.checked ? marcados.add(h.id) : marcados.delete(h.id)); desenhar(); };
+    document.querySelectorAll('[data-apagar-hist]').forEach(b => b.onclick = async () => {
+      if (b.dataset.confirmar !== '1') { b.dataset.confirmar = '1'; b.textContent = 'Confirmar'; b.classList.add('perigo'); return; }
+      await apagar([Number(b.dataset.apagarHist)]);
+    });
+    atualizarSel();
+  };
+  const apagar = async (ids) => {
+    const { error } = await db.from('historico').delete().in('id', ids);
+    if (error) { $('#msg-hist').textContent = 'Não foi possível apagar: ' + error.message; $('#msg-hist').classList.remove('escondido'); return; }
+    ids.forEach(id => marcados.delete(id));
+    carregados = carregados.filter(h => !ids.includes(h.id));
+    desenhar();
+  };
+  if (master) $('#h-apagar-sel').onclick = async (e) => {
+    if (e.target.dataset.confirmar !== '1') { e.target.dataset.confirmar = '1'; e.target.textContent = `Confirmar: apagar ${marcados.size} registro(s) para sempre`; return; }
+    e.target.dataset.confirmar = ''; e.target.textContent = 'Apagar selecionados';
+    await apagar([...marcados]);
+  };
+  $('#h-filtrar').onclick = async () => {
+    Object.assign(H, { de: $('#h-de').value, ate: $('#h-ate').value, usuario: $('#h-usuario').value, modulo: $('#h-modulo').value, acao: $('#h-acao').value, aluno: $('#h-aluno').value });
+    carregados = []; fim = false; marcados.clear();
+    $('#h-lista').innerHTML = '<div class="carregando">Carregando histórico…</div>';
+    carregados = await buscar(); desenhar();
+  };
+  carregados = await buscar(); desenhar();
 }
 
 // Se a pessoa veio pelo link de recuperação de senha, não entra direto: primeiro define a nova senha
@@ -1784,7 +2218,7 @@ async function paginaNotas() {
   $('#conteudo').innerHTML = `
     <h1>Notas ${ANO_LETIVO}</h1>
     <p class="subtitulo">Cada ciclo tem as notas NM1 (ITA), NM2 (Provão ITA + Provão IME + Prova Qualitativa) e NM3 (IME).</p>
-    ${veTudo() ? `<form class="barra" id="form-ciclo">
+    ${permite('notas', 'editar') ? `<form class="barra" id="form-ciclo">
         <input type="text" id="nome-ciclo" placeholder="Nome do novo ciclo (ex.: I Ciclo)" required style="max-width:320px">
         <button class="botao">Criar ciclo</button></form>
       <div id="msg-ciclo" class="aviso erro escondido"></div>` : ''}
@@ -1828,7 +2262,7 @@ async function paginaCiclo(cicloId) {
     const p = planilhas.find(x => x.nm === nm && x.materia === materia && x.turma_id === turmaId);
     if (p) return `<td><button class="botao leve pequeno" data-planilha="${p.id}">${resumo(p.id)}</button>
       ${doc ? '<span class="status fechada">PDF</span>' : `${eMisto(nm, materia) ? '<span class="status fechada">PDF + redação</span> ' : ''}<span class="status ${p.aberta ? 'aberta' : 'fechada'}">${p.aberta ? 'aberta' : 'fechada'}</span>`}${selo(p.id)}</td>`;
-    if (!veTudo()) return '<td class="pendente">não criada</td>';
+    if (!permite('notas', 'editar')) return '<td class="pendente">não criada</td>';
     return doc
       ? `<td><button class="botao leve pequeno" data-importar="${nm}|${materia}|${turmaId}">Importar PDF</button></td>`
       : `<td><button class="botao pequeno" data-criar="${nm}|${materia}|${turmaId}">+ Criar planilha</button></td>`;
@@ -1980,7 +2414,7 @@ async function paginaPlanilha(planilhaId) {
   const pend = pendencias || [];
   const alunos = estado.matriculas.filter(m => m.turma_id === p.turma_id && m.situacao === 'ativo')
     .sort((a, b) => (a.ordem ?? 999) - (b.ordem ?? 999)).map(m => estado.alunos.get(m.aluno_id)).filter(Boolean);
-  const editar = veTudo();
+  const editar = permite('notas', 'editar');
   const temMult = MULT[p.nm] !== 1;
   // sem multiplicador (NM2) só existe a visão das notas dos professores
   const vista = temMult ? (estado.vistaPlanilha || 'prof') : 'prof';
@@ -2592,7 +3026,7 @@ async function paginaHorarios() {
 
   $('#conteudo').innerHTML = `
     <div class="barra"><div><h1>Horários de aula</h1></div><div class="espaco"></div>
-      ${veTudo() ? `<button class="botao leve" id="hor-salas">Salas das turmas</button>
+      ${permite('horarios', 'editar') ? `<button class="botao leve" id="hor-salas">Salas das turmas</button>
         <button class="botao leve" id="hor-modelo">Baixar planilha (Excel)</button>
         <button class="botao" id="hor-subir">Subir horário (Excel)</button>` : ''}</div>
     <p class="subtitulo">${aulas.length ? `${aulas.length} aulas por semana · ${turmasCom.length} turmas · ${profs.length} professores · ano letivo ${ANO_LETIVO}`
@@ -2609,10 +3043,10 @@ async function paginaHorarios() {
     : `<div class="hor-vazio">
         <div class="hor-vazio-icone">🗓️</div>
         <h2>Comece pelo Excel</h2>
-        <p>${veTudo() ? `Baixe a planilha modelo (uma aba para cada turma, já formatada), preencha o nome do professor em cada aula e suba o arquivo.
+        <p>${permite('horarios', 'editar') ? `Baixe a planilha modelo (uma aba para cada turma, já formatada), preencha o nome do professor em cada aula e suba o arquivo.
           Também dá para subir direto a planilha que vocês já usam, no mesmo formato: uma aba por turma, horários nas linhas e os dias nas colunas.`
           : 'A coordenação ainda não cadastrou o horário deste ano.'}</p>
-        ${veTudo() ? '<div class="barra" style="justify-content:center"><button class="botao leve" id="hor-modelo2">Baixar planilha modelo</button><button class="botao" id="hor-subir2">Subir horário (Excel)</button></div>' : ''}
+        ${permite('horarios', 'editar') ? '<div class="barra" style="justify-content:center"><button class="botao leve" id="hor-modelo2">Baixar planilha modelo</button><button class="botao" id="hor-subir2">Subir horário (Excel)</button></div>' : ''}
       </div>`}`;
   const ligar = (id, fn) => { if ($(id)) $(id).onclick = fn; };
   ligar('#hor-salas', () => editarSalas());
@@ -2715,7 +3149,7 @@ async function paginaHorarios() {
     const sel = H.momento;
     corpo.innerHTML = `
       <div class="hor-chips grande">${turmasCom.map(x => `<button class="hor-chip ${x.id === H.turma ? 'ativa' : ''}" data-hturma="${x.id}">${esc(nomeCurtoTurma(x))}</button>`).join('')}</div>
-      <div class="hor-cabeca"><h2>${esc(t.nome)}</h2>${t.sala ? `<span class="hor-sala grande">${esc(t.sala)}</span>` : (veTudo() ? '<span class="vazio">sala não definida</span>' : '')}
+      <div class="hor-cabeca"><h2>${esc(t.nome)}</h2>${t.sala ? `<span class="hor-sala grande">${esc(t.sala)}</span>` : (permite('horarios', 'editar') ? '<span class="vazio">sala não definida</span>' : '')}
         <span class="subtitulo" style="margin:0">${minhas.length} aulas por semana · clique numa aula para ver onde está cada professor naquele horário</span></div>
       ${grade((d, s, agora, marcado) => { const a = minhas.find(x => x.dia === d && x.ini === s.ini); return a ? caixa(a.prof, '', a.prof, agora, marcado) : '<div class="hor-sem">—</div>'; }, sel)}
       <div id="hor-momento-baixo">${sel ? `<div class="barra" style="margin-top:24px"><div class="espaco"></div><button class="botao leve pequeno" id="hor-fechar-mom">Fechar</button></div>${painelMomento(sel.dia, sel.ini)}` : ''}</div>`;
@@ -3092,6 +3526,31 @@ const alunosAtivosDaTurma = (turmaId) => estado.matriculas
   .sort((x, y) => (x.ordem ?? 999) - (y.ordem ?? 999) || (estado.alunos.get(x.aluno_id)?.nome || '').localeCompare(estado.alunos.get(y.aluno_id)?.nome || '', 'pt-BR'))
   .map(m => m.aluno_id);
 
+// atestados que valem num dia (Map aluno → atestado) e saídas do dia (Map aluno → [saídas])
+async function atestadosDoDia(dia) {
+  const { data, error } = await db.from('atestados').select('*').lte('data_inicio', dia).gte('data_fim', dia);
+  return new Map(error ? [] : (data || []).map(a => [a.aluno_id, a]));
+}
+async function saidasDoDia(dia) {
+  const { data, error } = await db.from('saidas').select('*').eq('data', dia).order('hora_saida');
+  const m = new Map();
+  if (!error) (data || []).forEach(x => { if (!m.has(x.aluno_id)) m.set(x.aluno_id, []); m.get(x.aluno_id).push(x); });
+  return m;
+}
+const hhmm = (t) => t ? String(t).slice(0, 5) : '';
+// verso de toda folha de frequência: "OCORRÊNCIAS DO DIA" com linhas de ponta a ponta
+function svgVerso(turma, dia, rotulo) {
+  const linhas = [];
+  for (let y = 34; y <= 292; y += 8.6) linhas.push(`<line x1="0" y1="${y}" x2="210" y2="${y}" stroke="#777" stroke-width=".3"/>`);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" font-family="Arial, Helvetica, sans-serif">
+    <rect width="210" height="297" fill="#fff"/>
+    <text x="105" y="15" font-size="7" font-weight="700" text-anchor="middle">OCORRÊNCIAS DO DIA</text>
+    <text x="105" y="22.5" font-size="3.3" text-anchor="middle">${esc(`Turma: ${turma} · Data: ${data(dia)}${rotulo ? ' · ' + rotulo : ''}`)}</text>
+    <text x="105" y="28" font-size="2.7" text-anchor="middle" fill="#555">Professor(a): anote aqui as ocorrências da sala durante o dia e devolva esta folha à coordenação no fim do expediente.</text>
+    ${linhas.join('')}
+  </svg>`;
+}
+
 // ---------- desenho da folha (SVG em milímetros: sai igual em qualquer impressora) ----------
 function svgQR(texto, x, y, lado) {
   const qr = qrcode(0, 'M'); qr.addData(texto); qr.make();
@@ -3101,7 +3560,7 @@ function svgQR(texto, x, y, lado) {
   return `<g transform="translate(${x} ${y}) scale(${k})"><rect width="${total}" height="${total}" fill="#fff"/>
     <path d="${d}" fill="#000" shape-rendering="crispEdges"/></g>`;
 }
-function svgFolha(folha, turma, primeiroNum) {
+function svgFolha(folha, turma, primeiroNum, atestados) {
   const g = geometriaFolha(folha.alunos.length), X = FOLHA.x, L = FOLHA.lado, n = folha.alunos.length;
   const fimTab = g.inicio + n * g.h;
   const txt = (x, y, tam, t, extra = '') => `<text x="${x}" y="${y}" font-size="${tam}" ${extra}>${esc(t)}</text>`;
@@ -3116,7 +3575,8 @@ function svgFolha(folha, turma, primeiroNum) {
     return `<line x1="${X.num}" y1="${r.y + g.h}" x2="${X.fim}" y2="${r.y + g.h}" stroke="#666" stroke-width=".2"/>
       ${txt((X.num + X.nome) / 2, base, tam, primeiroNum + i, 'text-anchor="middle"')}
       ${txt(X.nome + 1.5, base, tam, nome, longo ? `textLength="${X.faltou - X.nome - 3}" lengthAdjust="spacingAndGlyphs"` : '')}
-      <rect x="${r.caixa[0]}" y="${r.caixa[1]}" width="${g.caixa}" height="${g.caixa}" fill="#fff" stroke="#000" stroke-width=".35"/>`;
+      <rect x="${r.caixa[0]}" y="${r.caixa[1]}" width="${g.caixa}" height="${g.caixa}" fill="#fff" stroke="#000" stroke-width=".35"/>
+      ${atestados?.has(id) ? txt((X.assin + X.fim) / 2, base, Math.min(2.8, tam), 'ATESTADO MÉDICO (falta abonada)', 'text-anchor="middle" font-weight="700" fill="#555"') : ''}`;
   }).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" font-family="Arial, Helvetica, sans-serif">
     <rect width="210" height="297" fill="#fff"/>${marcas}
@@ -3155,8 +3615,9 @@ function abrirImprimirFolhas() {
       <h3 style="margin:18px 0 8px">Turmas</h3>
       <div class="fr-escolha">${turmas.map(({ t, n }) => `<label class="${n ? '' : 'vazio'}"><input type="checkbox" value="${t.id}" ${n ? 'checked' : 'disabled'}>
         ${esc(t.nome)} <small>${n} ${n === 1 ? 'aluno' : 'alunos'}${n > ALUNOS_POR_FOLHA ? ` · ${Math.ceil(n / ALUNOS_POR_FOLHA)} folhas` : ''}</small></label>`).join('')}</div>
-      <p class="subtitulo" style="margin:14px 0 0">Imprima em A4, <strong>sem ajustar à página</strong> (escala 100%). Cada folha tem um código só dela:
-        imprima de novo se a turma mudar.</p>
+      <p class="subtitulo" style="margin:14px 0 0">Imprima em A4, <strong>frente e verso</strong> (virar na borda longa) e <strong>sem ajustar à página</strong> (escala 100%).
+        A frente é a lista; o verso é a página "Ocorrências do dia" para o professor anotar. Cada folha tem um código só dela: imprima de novo se a turma mudar.
+        Alunos com atestado no dia já saem marcados.</p>
     </div>
     <div id="msg-fi" class="aviso erro escondido" style="margin:0 24px 14px"></div>
     <div class="rodape-ficha"><button class="botao leve" id="fi-cancelar">Cancelar</button>
@@ -3178,7 +3639,9 @@ function abrirImprimirFolhas() {
     if (error) return erro('Não foi possível gerar: ' + error.message);
     const ordem = (f) => [ids.indexOf(f.turma_id), alunosAtivosDaTurma(f.turma_id).indexOf(f.alunos[0])];
     criadas.sort((x, y) => ordem(x)[0] - ordem(y)[0] || ordem(x)[1] - ordem(y)[1]);
-    $('#impressao').innerHTML = criadas.map(f => `<div class="imp-folha">${svgFolha(f, nomeTurma(f.turma_id), ordem(f)[1] + 1)}</div>`).join('');
+    const atestados = await atestadosDoDia(dia);
+    $('#impressao').innerHTML = criadas.map(f => `<div class="imp-folha">${svgFolha(f, nomeTurma(f.turma_id), ordem(f)[1] + 1, atestados)}</div>
+      <div class="imp-folha">${svgVerso(nomeTurma(f.turma_id), f.data, `folha nº ${f.id}`)}</div>`).join('');
     fecharFicha();
     imprimirSemMargem();
   };
@@ -3470,7 +3933,7 @@ function mostrarRevisao(folha, loc, analise, jaTem) {
         <div class="fr-itens">${itens.map((it, i) => `
           <div class="fr-item ${it.conferir && !it.conferido ? 'conferir' : ''}" data-i="${i}">
             <span class="fr-num">${it.num}</span>
-            <div class="fr-nome">${esc(it.nome)}${it.conferir && !it.conferido ? `<small>${esc(it.conferir)}</small>` : ''}</div>
+            <div class="fr-nome">${esc(it.nome)}${it.atestado ? ' <span class="fr-tag-atestado">Atestado</span>' : ''}${it.conferir && !it.conferido ? `<small>${esc(it.conferir)}</small>` : ''}</div>
             ${it.conferir && !it.conferido ? `<button class="botao leve pequeno" data-ok="${i}">Está certo</button>` : ''}
             <button class="fr-estado ${it.falta ? 'falta' : 'presente'}" data-alternar="${i}">${it.falta ? 'Falta' : 'Presente'}</button>
           </div>`).join('')}</div>
@@ -3486,6 +3949,8 @@ function mostrarRevisao(folha, loc, analise, jaTem) {
     $('#lf-outra').onclick = abrirLeituraFolha;
     $('#lf-salvar').onclick = (e) => salvarLeitura(e.target);
   };
+  // quem tem atestado no dia: a falta é abonada (aparece marcado na revisão)
+  atestadosDoDia(folha.data).then(m => { if (!m.size) return; itens.forEach(it => it.atestado = m.has(it.id)); if ($('#lf-salvar') && !$('#lf-salvar').disabled) desenhar(); });
   const salvarLeitura = async (botao) => {
     botao.disabled = true; botao.textContent = 'Salvando…';
     const msg = (m) => { $('#msg-lf').innerHTML = m; $('#msg-lf').classList.remove('escondido'); };
@@ -3524,6 +3989,7 @@ async function editarChamada(turmaId, dia) {
     lista = (fr || []).map(x => ({ id: x.aluno_id, faltou: x.faltou }))
       .sort((a, b) => ((ordem.indexOf(a.id) + 1) || 999) - ((ordem.indexOf(b.id) + 1) || 999) || (estado.alunos.get(a.id)?.nome || '').localeCompare(estado.alunos.get(b.id)?.nome || '', 'pt-BR'));
   } else lista = alunosAtivosDaTurma(turmaId).map(id => ({ id, faltou: false }));
+  const atestadosDia = await atestadosDoDia(dia);
   $('#ficha').innerHTML = `
     <div class="modal-topo"><div><h2>${esc(nomeTurma(turmaId))} · ${esc(data(dia))}</h2>
       <span class="etiqueta">${ch ? (ch.origem === 'manual' ? 'chamada lançada à mão' : `lida da folha nº ${ch.folha_id ?? '—'}`) : 'sem chamada neste dia'}</span>
@@ -3531,7 +3997,8 @@ async function editarChamada(turmaId, dia) {
       <button class="fechar" aria-label="Fechar">×</button></div>
     <div class="secao">
       <p class="subtitulo" style="margin:0 0 10px">Marque quem <strong>faltou</strong>.</p>
-      <div class="fr-lista-manual">${lista.map(x => `<label><input type="checkbox" value="${x.id}" ${x.faltou ? 'checked' : ''}> ${esc(estado.alunos.get(x.id)?.nome || '(aluno apagado)')}</label>`).join('')}</div>
+      <div class="fr-lista-manual">${lista.map(x => `<label><input type="checkbox" value="${x.id}" ${x.faltou ? 'checked' : ''}> ${esc(estado.alunos.get(x.id)?.nome || '(aluno apagado)')}${atestadosDia.has(x.id) ? ' <span class="fr-tag-atestado">Atestado</span>' : ''}</label>`).join('')}</div>
+      ${atestadosDia.size ? '<p class="subtitulo" style="margin:8px 0 0">Quem está com <strong>Atestado</strong> tem a falta abonada: não conta como falta nem gera alerta.</p>' : ''}
       ${ch?.foto ? '<div class="linha-acao"><button class="botao leve" id="ch-foto">Ver a folha fotografada</button></div>' : ''}
       ${ch ? `<div class="linha-acao"><button class="botao leve" id="ch-apagar">Apagar esta chamada…</button></div>
         <div id="ch-confirmar" class="escondido"><div class="aviso erro">Apaga a chamada inteira deste dia (presenças e faltas).</div>
@@ -3565,7 +4032,7 @@ async function editarChamada(turmaId, dia) {
 
 // ---------- página Frequência ----------
 async function paginaFrequencia() {
-  if (!veTudo()) return irPara('turmas');
+  if (!permite('frequencia')) return irPara('turmas');
   const F = estado.freq || (estado.freq = { dia: hojeLocal(), turma: '', mes: hojeLocal().slice(0, 7) });
   $('#conteudo').innerHTML = '<div class="carregando">Carregando frequência…</div>';
   const [ch, det, res] = await Promise.all([
@@ -3585,8 +4052,8 @@ async function paginaFrequencia() {
   const nomeMes = (m) => new Date(m + '-15T12:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
   $('#conteudo').innerHTML = `
     <div class="barra"><h1>Frequência</h1><div class="espaco"></div>
-      <button class="botao leve" id="fr-imprimir">Imprimir folhas</button>
-      <button class="botao" id="fr-ler">📷 Ler folha</button></div>
+      ${permite('frequencia', 'editar') ? `<button class="botao leve" id="fr-imprimir">Imprimir folhas</button>
+      <button class="botao" id="fr-ler">📷 Ler folha</button>` : ''}</div>
     <p class="subtitulo">Imprima a folha do dia, a turma assina e quem faltou ganha um X; depois fotografe a folha com o celular.</p>
 
     <div class="fr-bloco"><div class="barra" style="margin:0 0 10px"><h2>Chamadas do dia</h2>
@@ -3599,6 +4066,17 @@ async function paginaFrequencia() {
           ${c ? `<span class="fr-ok">✓ Chamada feita</span><span>${ls.length - f} presentes · <b>${f} ${f === 1 ? 'falta' : 'faltas'}</b></span>
             <small>${c.origem === 'manual' ? 'lançada à mão' : 'lida da folha'} · toque para ver ou corrigir</small>`
           : '<span class="fr-pendente">Sem chamada</span><small>toque para lançar à mão</small>'}</button>`; }).join('')}</div></div>
+
+    <div class="fr-bloco"><div class="barra" style="margin:0 0 10px"><h2>Lista por aula (para o professor)</h2></div>
+      <p class="subtitulo" style="margin:0 0 10px">Escolha turma, dia e aula: a lista mostra na hora quem está presente, quem faltou, quem tem atestado e quem já saiu com autorização.
+        A impressão sai em frente e verso (no verso, "Ocorrências do dia").</p>
+      <div class="barra" style="flex-wrap:wrap">
+        <select id="pa-turma">${turmas.map(t => `<option value="${t.id}" ${String(t.id) === String(F.paTurma || turmas[0]?.id) ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select>
+        <input type="date" id="pa-dia" value="${F.paDia || F.dia}" style="max-width:190px">
+        <select id="pa-aula"></select>
+        <button class="botao leve" id="pa-atualizar">Atualizar</button>
+        <button class="botao" id="pa-imprimir">Imprimir para o professor</button></div>
+      <div id="pa-lista"></div></div>
 
     <div class="fr-bloco"><h2>Alertas de faltas</h2>
       <p class="subtitulo" style="margin:0 0 10px">Alunos ativos com presença abaixo de ${FREQ_MINIMA}% (depois de ${FREQ_DIAS_MIN} dias de aula) ou com ${FREQ_SEGUIDAS} ou mais faltas seguidas.</p>
@@ -3615,10 +4093,11 @@ async function paginaFrequencia() {
       <select id="fr-mes">${meses.map(m => `<option value="${m}" ${m === F.mes ? 'selected' : ''}>${esc(nomeMes(m))}</option>`).join('')}</select>
       <div class="espaco"></div><button class="botao leve" id="fr-imprimir-rel">Imprimir relatório</button></div>
       <div id="fr-relatorio"><div class="carregando">Carregando…</div></div></div>`;
-  $('#fr-imprimir').onclick = abrirImprimirFolhas;
-  $('#fr-ler').onclick = abrirLeituraFolha;
+  if ($('#fr-imprimir')) $('#fr-imprimir').onclick = abrirImprimirFolhas;
+  if ($('#fr-ler')) $('#fr-ler').onclick = abrirLeituraFolha;
+  ligarListaPorAula(F);
   $('#fr-dia').onchange = (e) => { if (e.target.value) { F.dia = e.target.value; paginaFrequencia(); } };
-  document.querySelectorAll('.fr-card').forEach(b => b.onclick = () => editarChamada(Number(b.dataset.turma), F.dia));
+  document.querySelectorAll('.fr-card').forEach(b => b.onclick = () => permite('frequencia', 'editar') && editarChamada(Number(b.dataset.turma), F.dia));
   document.querySelectorAll('#conteudo [data-aluno]').forEach(b => b.onclick = () => abrirFicha(Number(b.dataset.aluno)));
   let rel = null;
   const carregarRel = async () => {
@@ -3639,7 +4118,7 @@ async function paginaFrequencia() {
 }
 async function relatorioTurma(turmaId, mes) {
   const [ano, m] = mes.split('-').map(Number), ultimo = new Date(ano, m, 0).getDate();
-  const { data: linhas, error } = await db.from('frequencia_detalhe').select('aluno_id, data, faltou')
+  const { data: linhas, error } = await db.from('frequencia_detalhe').select('*')
     .eq('turma_id', turmaId).gte('data', `${mes}-01`).lte('data', `${mes}-${String(ultimo).padStart(2, '0')}`);
   if (error) return { html: `<div class="aviso erro">${esc(error.message)}</div>`, imp: '' };
   const dias = [...new Set(linhas.map(l => l.data))].sort();
@@ -3647,7 +4126,7 @@ async function relatorioTurma(turmaId, mes) {
   const ids = [...new Set([...ordem, ...linhas.map(l => l.aluno_id)])]
     .sort((a, b) => ((ordem.indexOf(a) + 1) || 999) - ((ordem.indexOf(b) + 1) || 999) || (estado.alunos.get(a)?.nome || '').localeCompare(estado.alunos.get(b)?.nome || '', 'pt-BR'));
   if (!dias.length) return { html: '<p class="subtitulo">Nenhuma chamada desta turma neste mês.</p>', imp: '<p>Nenhuma chamada desta turma neste mês.</p>' };
-  const mapa = new Map(linhas.map(l => [l.aluno_id + '|' + l.data, l.faltou]));
+  const mapa = new Map(linhas.map(l => [l.aluno_id + '|' + l.data, l.atestado && l.faltou_folha ? 'A' : l.faltou]));
   const resumo = estado.freqResumo || new Map();
   const corpo = ids.map((id, i) => {
     const marcas = dias.map(d => mapa.get(id + '|' + d));
@@ -3655,19 +4134,258 @@ async function relatorioTurma(turmaId, mes) {
     const pMes = total ? Math.round(1000 * (total - f) / total) / 10 : null, r = resumo.get(id), pAno = pctPresenca(r);
     return { id, num: i + 1, nome: estado.alunos.get(id)?.nome || '(aluno apagado)', marcas, f, total, pMes, pAno, alerta: emAlerta(r) };
   });
-  const cel = (x) => x === true ? '<td class="fr-f">F</td>' : x === false ? '<td class="fr-p">•</td>' : '<td></td>';
+  const cel = (x) => x === true ? '<td class="fr-f">F</td>' : x === 'A' ? '<td class="fr-a" title="Atestado: falta abonada">A</td>' : x === false ? '<td class="fr-p">•</td>' : '<td></td>';
   const cab = `<tr><th>Nº</th><th>Aluno</th>${dias.map(d => `<th class="n">${d.slice(8)}</th>`).join('')}<th class="n">Faltas no mês</th><th class="n">Presença no mês</th><th class="n">Presença no ano</th></tr>`;
   const html = `<div class="rolavel"><table class="fr-rel">
     <thead>${cab.replace(/class="n"/g, 'class="num"')}</thead>
     <tbody>${corpo.map(l => `<tr class="${l.alerta ? 'alerta' : ''}"><td>${l.num}</td><td><button class="link" data-aluno="${l.id}">${esc(l.nome)}</button></td>
       ${l.marcas.map(cel).join('')}<td class="num">${l.f}</td><td class="num">${l.pMes == null ? '—' : fmt(l.pMes) + '%'}</td>
       <td class="num">${l.pAno == null ? '—' : `<span class="fr-pct ${l.alerta ? 'ruim' : ''}">${fmt(l.pAno)}%</span>`}</td></tr>`).join('')}</tbody></table></div>
-    <p class="subtitulo" style="margin:8px 0 0">${dias.length} ${dias.length === 1 ? 'dia' : 'dias'} com chamada no mês · F = falta · • = presente · linhas em destaque estão em alerta.</p>`;
+    <p class="subtitulo" style="margin:8px 0 0">${dias.length} ${dias.length === 1 ? 'dia' : 'dias'} com chamada no mês · F = falta · A = atestado (falta abonada) · • = presente · linhas em destaque estão em alerta.</p>`;
   const imp = `<table class="imp-tabela fr-rel-imp"><thead>${cab}</thead><tbody>${corpo.map(l => `<tr><td class="n">${l.num}</td><td>${esc(l.nome)}${l.alerta ? ' ⚠' : ''}</td>
-    ${l.marcas.map(x => `<td class="n">${x === true ? '<strong>F</strong>' : x === false ? '•' : ''}</td>`).join('')}
+    ${l.marcas.map(x => `<td class="n">${x === true ? '<strong>F</strong>' : x === 'A' ? 'A' : x === false ? '•' : ''}</td>`).join('')}
     <td class="n">${l.f}</td><td class="n">${l.pMes == null ? '—' : fmt(l.pMes) + '%'}</td><td class="n">${l.pAno == null ? '—' : fmt(l.pAno) + '%'}</td></tr>`).join('')}</tbody></table>
-    <p class="imp-rodape">F = falta · • = presente · ⚠ = em alerta (presença abaixo de ${FREQ_MINIMA}% ou ${FREQ_SEGUIDAS}+ faltas seguidas).</p>`;
+    <p class="imp-rodape">F = falta · A = atestado (falta abonada) · • = presente · ⚠ = em alerta (presença abaixo de ${FREQ_MINIMA}% ou ${FREQ_SEGUIDAS}+ faltas seguidas).</p>`;
   return { html, imp };
+}
+
+// ---------- lista por aula (turma + dia + aula): presença do dia, atestados e saídas ----------
+async function aulasDoDia(turmaId, dia) {
+  const ds = new Date(dia + 'T12:00').getDay() || 7;
+  const { data } = await db.from('horarios').select('inicio, fim, professor').eq('ano_letivo', ANO_LETIVO).eq('turma_id', turmaId).eq('dia', ds).order('inicio');
+  return data || [];
+}
+// situação de cada aluno numa aula: atestado > saída > chamada do dia
+function situacaoNaAula(id, aula, ctx) {
+  if (ctx.atestados.has(id)) return { cod: 'atestado', texto: 'Atestado' };
+  const ini = aula ? hhmm(aula.inicio) : null, fim = aula ? hhmm(aula.fim) : null;
+  for (const sd of ctx.saidas.get(id) || []) {
+    const sa = hhmm(sd.hora_saida), ret = sd.retorna ? hhmm(sd.hora_retorno) : null;
+    if (!aula) return { cod: 'saiu', texto: `Saiu às ${sa}${ret ? `, volta às ${ret}` : ''}` };
+    if (sa <= ini && (!ret || ret > ini)) return { cod: 'saiu', texto: `Saiu às ${sa}${ret ? ` (volta às ${ret})` : ''}` };
+    if (sa > ini && sa < fim) return { cod: 'saiu', texto: `Sai às ${sa}, durante a aula` };
+  }
+  if (!ctx.chamada) return { cod: 'sem', texto: 'Chamada do dia não lançada' };
+  const f = ctx.freq.get(id);
+  if (f === undefined) return { cod: 'sem', texto: 'Fora da chamada do dia' };
+  return f ? { cod: 'falta', texto: 'Faltou' } : { cod: 'presente', texto: 'Presente' };
+}
+async function montarListaPorAula(turmaId, dia, aula) {
+  const [ch, atestados, saidas] = await Promise.all([
+    db.from('chamadas').select('id').eq('turma_id', turmaId).eq('data', dia).maybeSingle(),
+    atestadosDoDia(dia), saidasDoDia(dia)]);
+  let freq = new Map();
+  if (ch.data) {
+    const { data: fr } = await db.from('frequencia').select('aluno_id, faltou').eq('chamada_id', ch.data.id);
+    freq = new Map((fr || []).map(x => [x.aluno_id, x.faltou]));
+  }
+  const ctx = { chamada: ch.data, freq, atestados, saidas };
+  const linhas = alunosAtivosDaTurma(turmaId).map((id, i) => ({ id, num: i + 1, nome: estado.alunos.get(id)?.nome || '', ...situacaoNaAula(id, aula, ctx) }));
+  const conta = (c) => linhas.filter(l => l.cod === c).length;
+  return { linhas, chamada: !!ch.data, conta: { presente: conta('presente'), falta: conta('falta'), atestado: conta('atestado'), saiu: conta('saiu'), sem: conta('sem') },
+    geradoEm: new Date() };
+}
+function ligarListaPorAula(F) {
+  let atual = null, aulas = [];
+  const rotuloAula = (a, i) => `${i + 1}ª aula · ${hhmm(a.inicio)}–${hhmm(a.fim)} · ${a.professor}`;
+  const aulaEscolhida = () => { const v = $('#pa-aula').value; return v === '' ? null : aulas[Number(v)]; };
+  const carregarAulas = async () => {
+    F.paTurma = $('#pa-turma').value; F.paDia = $('#pa-dia').value;
+    aulas = await aulasDoDia(Number(F.paTurma), F.paDia);
+    $('#pa-aula').innerHTML = aulas.map((a, i) => `<option value="${i}">${esc(rotuloAula(a, i))}</option>`).join('')
+      + '<option value="">Dia todo (sem aula específica)</option>';
+    // escolhe a aula que está acontecendo agora, se o dia for hoje
+    const agora = new Date().toTimeString().slice(0, 5), k = F.paDia === hojeLocal() ? aulas.findIndex(a => hhmm(a.inicio) <= agora && agora < hhmm(a.fim)) : -1;
+    $('#pa-aula').value = k >= 0 ? String(k) : (aulas.length ? '0' : '');
+    await desenhar();
+  };
+  const desenhar = async () => {
+    if (!$('#pa-dia').value) return;
+    $('#pa-lista').innerHTML = '<div class="carregando">Montando a lista…</div>';
+    atual = await montarListaPorAula(Number($('#pa-turma').value), $('#pa-dia').value, aulaEscolhida());
+    const c = atual.conta;
+    $('#pa-lista').innerHTML = `
+      ${atual.chamada ? '' : '<div class="aviso">A chamada deste dia ainda não foi lançada: a lista mostra só atestados e saídas.</div>'}
+      <div class="tiles">
+        <div class="tile"><span>Presentes</span><strong>${c.presente}</strong></div>
+        <div class="tile ${c.falta ? 'ruim' : ''}"><span>Faltaram</span><strong>${c.falta}</strong></div>
+        <div class="tile"><span>Atestado</span><strong>${c.atestado}</strong></div>
+        <div class="tile"><span>Saíram (autorização)</span><strong>${c.saiu}</strong></div></div>
+      <div class="rolavel"><table class="pa-tabela"><thead><tr><th class="num">Nº</th><th>Aluno</th><th>Situação</th></tr></thead>
+      <tbody>${atual.linhas.map(l => `<tr class="pa-${l.cod}"><td class="num">${l.num}</td><td>${esc(l.nome)}</td><td><span class="pa-sit pa-${l.cod}">${esc(l.texto)}</span></td></tr>`).join('')}</tbody></table></div>
+      <p class="subtitulo" style="margin:8px 0 0">Situação em ${atual.geradoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}. Toque em Atualizar para ver mudanças.</p>`;
+  };
+  $('#pa-turma').onchange = carregarAulas; $('#pa-dia').onchange = carregarAulas;
+  $('#pa-aula').onchange = desenhar; $('#pa-atualizar').onclick = desenhar;
+  $('#pa-imprimir').onclick = async () => {
+    await desenhar();
+    const tid = Number($('#pa-turma').value), dia = $('#pa-dia').value, aula = aulaEscolhida(), i = aulas.indexOf(aula);
+    const turma = nomeTurma(tid), rot = aula ? rotuloAula(aula, i) : 'dia todo', c = atual.conta;
+    $('#impressao').innerHTML = `<div class="imp-folha imp-pa ${atual.linhas.length > 38 ? 'muitos' : ''}"><div class="imp-pa-conteudo">
+        <div class="imp-topo"><h1>LISTA DE FREQUÊNCIA DA AULA</h1><span>impresso em ${atual.geradoEm.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span></div>
+        <p class="imp-sub"><strong>Turma:</strong> ${esc(turma)} · <strong>Data:</strong> ${esc(data(dia))} (${esc(diaSemana(dia))}) · <strong>Aula:</strong> ${esc(rot)}</p>
+        <p class="imp-sub">Presentes: <strong>${c.presente}</strong> · Faltaram: <strong>${c.falta}</strong> · Atestado: <strong>${c.atestado}</strong> · Saíram: <strong>${c.saiu}</strong>${atual.chamada ? '' : ' · <em>chamada do dia ainda não lançada</em>'}</p>
+        <table class="imp-tabela"><thead><tr><th class="n">Nº</th><th>Aluno</th><th>Situação</th><th style="width:30mm">Visto do professor</th></tr></thead>
+        <tbody>${atual.linhas.map(l => `<tr><td class="n">${l.num}</td><td>${esc(l.nome)}</td><td class="${['falta', 'atestado', 'saiu'].includes(l.cod) ? 'imp-destaque' : ''}">${esc(l.texto)}</td><td></td></tr>`).join('')}</tbody></table>
+        <p class="imp-rodape">Situação no momento da impressão: chamada do dia, atestados vigentes e autorizações de saída registradas pela coordenação.</p></div></div>
+      <div class="imp-folha">${svgVerso(turma, dia, aula ? rot.split(' · ').slice(0, 2).join(' · ') : '')}</div>`;
+    imprimirSemMargem();
+  };
+  carregarAulas();
+}
+
+// =====================================================================
+// ATESTADOS E SAÍDAS (coordenação)
+// =====================================================================
+const MEIOS_SAIDA = ['Acompanhado pelo responsável', 'Acompanhado por outra pessoa autorizada', 'Uber / aplicativo', 'Táxi', 'A pé', 'Transporte escolar', 'Ônibus', 'Carro da família'];
+async function paginaAtestados() {
+  if (!permite('atestados')) return irPara(primeiraPagina());
+  const A = estado.filtroAt || (estado.filtroAt = { situacao: 'vigentes', turma: '', dia: hojeLocal() });
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando atestados e saídas…</div>';
+  const [at, sd] = await Promise.all([
+    db.from('atestados').select('*').order('data_inicio', { ascending: false }).limit(1000),
+    db.from('saidas').select('*').eq('data', A.dia).order('hora_saida'),
+  ]);
+  if (at.error || sd.error) return erroNaTela(at.error || sd.error);
+  const ed = permite('atestados', 'editar'), hoje = hojeLocal();
+  const sit = (a) => a.data_fim < hoje ? 'encerrado' : a.data_inicio > hoje ? 'futuro' : 'vigente';
+  const turmaDe = (id) => estado.matriculas.find(m => m.aluno_id === id)?.turma_id;
+  const filtrarTurma = (x) => !A.turma || String(x.turma_id ?? turmaDe(x.aluno_id)) === A.turma;
+  const ats = (at.data || []).filter(a => (A.situacao === 'todos' || sit(a) === 'vigente' || (A.situacao === 'vigentes' && sit(a) === 'futuro')) && filtrarTurma(a));
+  const sds = (sd.data || []).filter(filtrarTurma);
+  $('#conteudo').innerHTML = `
+    <div class="barra"><h1>Atestados e saídas</h1><div class="espaco"></div>
+      ${ed ? `<button class="botao leve" id="at-novo-atestado">+ Atestado médico</button>
+      <button class="botao" id="at-nova-saida">+ Autorização de saída</button>` : ''}</div>
+    <p class="subtitulo">Atestado: nos dias dele, a folha de frequência e a lista por aula mostram "Atestado" e a falta é abonada.
+      Autorização de saída: ao salvar, a ocorrência "Autorização de Saída da Escola" é criada sozinha na ficha do aluno.</p>
+    <div class="barra"><select id="at-f-turma"><option value="">Todas as turmas</option>${estado.turmas.map(t => `<option value="${t.id}" ${String(t.id) === A.turma ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select></div>
+
+    <div class="fr-bloco"><div class="barra" style="margin:0 0 10px"><h2>Atestados médicos</h2>
+      <select id="at-f-sit"><option value="vigentes" ${A.situacao === 'vigentes' ? 'selected' : ''}>Valendo hoje e futuros</option>
+        <option value="todos" ${A.situacao === 'todos' ? 'selected' : ''}>Todos</option></select></div>
+      ${!ats.length ? '<p class="subtitulo">Nenhum atestado com esses filtros.</p>' : `<div class="rolavel"><table>
+        <thead><tr><th>Aluno</th><th>Turma</th><th>De</th><th>Até</th><th>Observação</th><th>Situação</th><th></th></tr></thead>
+        <tbody>${ats.map(a => `<tr><td><button class="link" data-aluno="${a.aluno_id}">${esc(estado.alunos.get(a.aluno_id)?.nome || 'Aluno ' + a.aluno_id)}</button></td>
+          <td>${esc(nomeTurma(a.turma_id ?? turmaDe(a.aluno_id)))}</td><td>${esc(data(a.data_inicio))}</td><td>${esc(data(a.data_fim))}</td>
+          <td>${esc(a.observacao || '—')}</td>
+          <td><span class="status ${sit(a) === 'vigente' ? 'aberta' : 'fechada'}">${{ vigente: 'valendo', encerrado: 'encerrado', futuro: 'começa depois' }[sit(a)]}</span></td>
+          <td>${ed ? `<button class="botao leve pequeno" data-editar-atestado="${a.id}">Editar</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`}</div>
+
+    <div class="fr-bloco"><div class="barra" style="margin:0 0 10px"><h2>Autorizações de saída</h2>
+      <input type="date" id="at-f-dia" value="${A.dia}" style="max-width:190px"><span class="subtitulo" style="margin:0">${esc(diaSemana(A.dia))} · ${sds.length} ${sds.length === 1 ? 'saída' : 'saídas'}</span></div>
+      ${!sds.length ? '<p class="subtitulo">Nenhuma saída registrada neste dia.</p>' : `<div class="rolavel"><table>
+        <thead><tr><th>Saída</th><th>Aluno</th><th>Turma</th><th>Autorizado por</th><th>Motivo</th><th>Deslocamento / acompanhante</th><th>Retorno</th><th></th></tr></thead>
+        <tbody>${sds.map(x => `<tr><td><strong>${esc(hhmm(x.hora_saida))}</strong></td>
+          <td><button class="link" data-aluno="${x.aluno_id}">${esc(estado.alunos.get(x.aluno_id)?.nome || 'Aluno ' + x.aluno_id)}</button></td>
+          <td>${esc(nomeTurma(x.turma_id ?? turmaDe(x.aluno_id)))}</td><td>${esc(x.autorizado_por)}</td><td>${esc(x.motivo)}</td><td>${esc(x.deslocamento)}</td>
+          <td>${x.retorna ? `volta às ${esc(hhmm(x.hora_retorno))}${x.observacao ? `<small class="vazio" style="display:block">${esc(x.observacao)}</small>` : ''}` : 'não retorna'}</td>
+          <td>${ed ? `<button class="botao leve pequeno" data-editar-saida="${x.id}">Editar</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`}</div>`;
+  $('#at-f-turma').onchange = (e) => { A.turma = e.target.value; paginaAtestados(); };
+  $('#at-f-sit').onchange = (e) => { A.situacao = e.target.value; paginaAtestados(); };
+  $('#at-f-dia').onchange = (e) => { if (e.target.value) { A.dia = e.target.value; paginaAtestados(); } };
+  document.querySelectorAll('#conteudo [data-aluno]').forEach(b => b.onclick = () => abrirFicha(Number(b.dataset.aluno)));
+  const depois = () => { fecharFicha(); paginaAtestados(); };
+  if ($('#at-novo-atestado')) $('#at-novo-atestado').onclick = () => formAtestado(null, depois);
+  if ($('#at-nova-saida')) $('#at-nova-saida').onclick = () => formSaida(null, depois);
+  document.querySelectorAll('[data-editar-atestado]').forEach(b => b.onclick = () => formAtestado(at.data.find(x => x.id === Number(b.dataset.editarAtestado)), depois));
+  document.querySelectorAll('[data-editar-saida]').forEach(b => b.onclick = () => formSaida(sd.data.find(x => x.id === Number(b.dataset.editarSaida)), depois));
+}
+// campos Turma → Aluno (a lista de alunos acompanha a turma escolhida)
+function camposTurmaAluno(turmaId, alunoId) {
+  const turmaIni = turmaId || estado.matriculas.find(m => m.aluno_id === alunoId)?.turma_id || '';
+  return `<div><label for="ta-turma">Turma</label><select id="ta-turma"><option value="">Escolha…</option>
+      ${estado.turmas.filter(t => alunosAtivosDaTurma(t.id).length).map(t => `<option value="${t.id}" ${t.id === turmaIni ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select></div>
+    <div><label for="ta-aluno">Aluno</label><select id="ta-aluno" data-inicial="${alunoId || ''}"></select></div>`;
+}
+function ligarTurmaAluno() {
+  const encher = () => {
+    const tid = Number($('#ta-turma').value), ini = $('#ta-aluno').dataset.inicial;
+    const ids = tid ? alunosAtivosDaTurma(tid) : [];
+    if (ini && !ids.includes(Number(ini))) ids.push(Number(ini));
+    $('#ta-aluno').innerHTML = '<option value="">Escolha…</option>' + ids.map(id => `<option value="${id}" ${String(id) === ini ? 'selected' : ''}>${esc(estado.alunos.get(id)?.nome || '')}</option>`).join('');
+  };
+  $('#ta-turma').onchange = () => { $('#ta-aluno').dataset.inicial = ''; encher(); };
+  encher();
+}
+function modalForm(titulo, etiqueta, corpo, novo) {
+  $('#fundo-ficha').classList.remove('escondido'); $('#ficha').classList.remove('largo');
+  $('#ficha').innerHTML = `
+    <div class="modal-topo"><div><h2>${titulo}</h2>${etiqueta ? `<span class="etiqueta">${etiqueta}</span>` : ''}</div><button class="fechar" aria-label="Fechar">×</button></div>
+    <div class="secao"><div class="form-edicao">${corpo}</div></div>
+    <div id="msg-form" class="aviso erro escondido" style="margin:0 24px 14px"></div>
+    <div class="rodape-ficha">${novo ? '' : '<button class="botao leve" id="form-apagar" style="margin-right:auto">Apagar…</button>'}
+      <button class="botao leve" id="form-cancelar">Cancelar</button><button class="botao" id="form-salvar">${novo ? 'Salvar' : 'Salvar alterações'}</button></div>`;
+  $('#ficha .fechar').onclick = fecharFicha; $('#form-cancelar').onclick = fecharFicha;
+  return (m) => { $('#msg-form').textContent = m; $('#msg-form').classList.remove('escondido'); $('#form-salvar').disabled = false; };
+}
+function ligarApagar(tabela, id, depois, erro) {
+  if (!$('#form-apagar')) return;
+  $('#form-apagar').onclick = async (e) => {
+    if (e.target.dataset.confirmar !== '1') { e.target.dataset.confirmar = '1'; e.target.textContent = 'Clique de novo para apagar de vez'; e.target.classList.add('perigo'); return; }
+    const { error } = await db.from(tabela).delete().eq('id', id);
+    if (error) return erro('Não foi possível apagar: ' + error.message);
+    depois();
+  };
+}
+function formAtestado(at, depois) {
+  const novo = !at; at = at || { data_inicio: hojeLocal(), data_fim: hojeLocal(), observacao: '' };
+  const erro = modalForm(novo ? 'Lançar atestado médico' : 'Editar atestado médico', 'nos dias do atestado a falta é abonada', `
+    ${camposTurmaAluno(at.turma_id, at.aluno_id)}
+    <div><label for="as-ini">Data de início</label><input type="date" id="as-ini" value="${esc(at.data_inicio)}"></div>
+    <div><label for="as-fim">Data final (validade)</label><input type="date" id="as-fim" value="${esc(at.data_fim)}"></div>
+    <div class="largo"><label for="as-obs">Observação (opcional)</label><input type="text" id="as-obs" value="${esc(at.observacao || '')}" placeholder="Ex.: CID não informado, atestado entregue pela mãe"></div>`, novo);
+  ligarTurmaAluno();
+  $('#form-salvar').onclick = async () => {
+    const aluno = Number($('#ta-aluno').value), turma = Number($('#ta-turma').value) || null, ini = $('#as-ini').value, fim = $('#as-fim').value;
+    if (!aluno) return erro('Escolha a turma e o aluno.');
+    if (!ini || !fim) return erro('Informe a data de início e a data final.');
+    if (fim < ini) return erro('A data final não pode ser antes da data de início.');
+    $('#form-salvar').disabled = true;
+    const dados = { aluno_id: aluno, turma_id: turma, data_inicio: ini, data_fim: fim, observacao: $('#as-obs').value.trim() || null };
+    const { error } = novo ? await db.from('atestados').insert(dados) : await db.from('atestados').update(dados).eq('id', at.id);
+    if (error) return erro('Não foi possível salvar: ' + error.message);
+    depois();
+  };
+  ligarApagar('atestados', at.id, depois, erro);
+}
+function formSaida(sd, depois) {
+  const novo = !sd;
+  const agora = new Date().toTimeString().slice(0, 5);
+  sd = sd || { data: hojeLocal(), hora_saida: agora, autorizado_por: '', motivo: '', deslocamento: '', retorna: false, hora_retorno: '', observacao: '' };
+  const erro = modalForm(novo ? 'Autorização de saída da escola' : 'Editar autorização de saída', 'ao salvar, vira ocorrência na ficha do aluno', `
+    ${camposTurmaAluno(sd.turma_id, sd.aluno_id)}
+    <div><label for="sd-data">Data</label><input type="date" id="sd-data" value="${esc(sd.data)}"></div>
+    <div><label for="sd-hora">Horário de saída</label><input type="time" id="sd-hora" value="${esc(hhmm(sd.hora_saida))}"></div>
+    <div class="largo"><label for="sd-autorizado">Autorizado por</label><input type="text" id="sd-autorizado" value="${esc(sd.autorizado_por)}" placeholder="Nome do responsável ou de quem autorizou"></div>
+    <div class="largo"><label for="sd-motivo">Motivo da saída</label><input type="text" id="sd-motivo" value="${esc(sd.motivo)}" placeholder="Ex.: consulta médica"></div>
+    <div class="largo"><label for="sd-desloc">Meio de deslocamento / acompanhante</label><input type="text" id="sd-desloc" list="sd-meios" value="${esc(sd.deslocamento)}" placeholder="Ex.: Uber, a pé, acompanhado pela mãe">
+      <datalist id="sd-meios">${MEIOS_SAIDA.map(m => `<option value="${esc(m)}">`).join('')}</datalist></div>
+    <label class="marcar largo"><input type="checkbox" id="sd-retorna" ${sd.retorna ? 'checked' : ''}> O aluno vai retornar à escola no mesmo dia</label>
+    <div id="sd-caixa-retorno" class="${sd.retorna ? '' : 'escondido'}"><label for="sd-hora-ret">Horário de retorno</label><input type="time" id="sd-hora-ret" value="${esc(hhmm(sd.hora_retorno))}"></div>
+    <div id="sd-caixa-obs" class="largo ${sd.retorna ? '' : 'escondido'}"><label for="sd-obs">Observação</label><input type="text" id="sd-obs" value="${esc(sd.observacao || '')}" placeholder="Ex.: pediu liberação na véspera de feriado"></div>`, novo);
+  ligarTurmaAluno();
+  $('#sd-retorna').onchange = () => ['#sd-caixa-retorno', '#sd-caixa-obs'].forEach(c => $(c).classList.toggle('escondido', !$('#sd-retorna').checked));
+  $('#form-salvar').onclick = async () => {
+    const aluno = Number($('#ta-aluno').value), turma = Number($('#ta-turma').value) || null, retorna = $('#sd-retorna').checked;
+    const v = (k) => $(k).value.trim();
+    if (!aluno) return erro('Escolha a turma e o aluno.');
+    if (!v('#sd-data') || !v('#sd-hora')) return erro('Informe a data e o horário de saída.');
+    if (!v('#sd-autorizado')) return erro('Informe quem autorizou a saída.');
+    if (!v('#sd-motivo')) return erro('Informe o motivo da saída.');
+    if (!v('#sd-desloc')) return erro('Informe o meio de deslocamento ou o acompanhante.');
+    if (retorna && !v('#sd-hora-ret')) return erro('Informe o horário de retorno.');
+    if (retorna && v('#sd-hora-ret') <= v('#sd-hora')) return erro('O horário de retorno precisa ser depois do horário de saída.');
+    $('#form-salvar').disabled = true;
+    const dados = { aluno_id: aluno, turma_id: turma, data: v('#sd-data'), hora_saida: v('#sd-hora'), autorizado_por: v('#sd-autorizado'), motivo: v('#sd-motivo'),
+      deslocamento: v('#sd-desloc'), retorna, hora_retorno: retorna ? v('#sd-hora-ret') : null, observacao: retorna ? (v('#sd-obs') || null) : null };
+    const { error } = novo ? await db.from('saidas').insert(dados) : await db.from('saidas').update(dados).eq('id', sd.id);
+    if (error) return erro('Não foi possível salvar: ' + error.message);
+    if (novo) { estado.contOc.set(aluno, (estado.contOc.get(aluno) || 0) + 1); }
+    depois();
+    if (novo) setTimeout(() => alert(`Saída registrada. A ocorrência "Autorização de Saída da Escola" foi criada na ficha de ${estado.alunos.get(aluno)?.nome || 'aluno'}.`), 50);
+  };
+  ligarApagar('saidas', sd.id, depois, erro);
 }
 
 // ---------- frequência na ficha e no boletim ----------
@@ -3676,6 +4394,7 @@ function htmlFrequenciaAluno(r, faltas) {
   const p = pctPresenca(r), alerta = emAlerta(r);
   return `<div class="fr-resumo"><span class="fr-pct grande ${alerta ? 'ruim' : 'bom'}">${fmt(p)}%</span>
       <div>de presença em ${ANO_LETIVO} · <strong>${r.faltas}</strong> ${Number(r.faltas) === 1 ? 'falta' : 'faltas'} em ${r.dias} ${Number(r.dias) === 1 ? 'dia' : 'dias'} de aula
+      ${Number(r.abonadas) ? `<br><span class="fr-tag-atestado">${r.abonadas} ${Number(r.abonadas) === 1 ? 'falta abonada' : 'faltas abonadas'} por atestado</span>` : ''}
       ${Number(r.faltas_seguidas) >= FREQ_SEGUIDAS ? `<br><strong class="fr-txt-ruim">${r.faltas_seguidas} faltas seguidas</strong>` : ''}
       ${alerta && p < FREQ_MINIMA && Number(r.dias) >= FREQ_DIAS_MIN ? `<br><strong class="fr-txt-ruim">Abaixo de ${FREQ_MINIMA}%</strong>` : ''}</div></div>
     ${faltas?.length ? `<p class="subtitulo" style="margin:8px 0 0">Faltou em: ${faltas.map(d => esc(data(d).slice(0, 5))).join(', ')}</p>` : ''}`;
@@ -3700,7 +4419,7 @@ const faixaBolsa = (n) => n == null ? null : n >= 8 ? FAIXAS_BOLSA[0] : n > 6 ? 
 const media2 = (xs) => xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length * 100) / 100 : null;
 
 async function paginaBolsas() {
-  if (estado.papel !== 'admin') return irPara('turmas');
+  if (!permite('bolsas')) return irPara('turmas');
   $('#conteudo').innerHTML = '<div class="carregando">Carregando bolsas…</div>';
   const { data: ciclos, error } = await db.from('ciclos').select('*').eq('ano_letivo', ANO_LETIVO).order('criado_em');
   if (error) return erroNaTela(error);
@@ -3826,6 +4545,11 @@ async function paginaProfessores() {
         <td><button class="botao leve pequeno" data-editar-prof="${p.id}">Editar</button></td></tr>`).join('')
         || '<tr><td colspan="6" class="pendente">Nenhum professor cadastrado ainda.</td></tr>'}</tbody></table></div>`;
   const aviso = (t, erro) => { const m = $('#msg-prof'); m.textContent = t; m.classList.toggle('erro', !!erro); m.classList.remove('escondido'); };
+  if (!permite('professores', 'editar')) {   // só visualizar
+    document.querySelectorAll('#conteudo .caixa-link, #form-prof, [data-editar-prof]').forEach(el => el.remove());
+    document.querySelectorAll('[data-prof]').forEach(c => c.disabled = true);
+    return;
+  }
 
   $('#form-prof').onsubmit = async (e) => {
     e.preventDefault();
@@ -3974,7 +4698,7 @@ async function paginaComparativos() {
   const ciclos = ciclosR.data || [];
   const f = estado.filtroComp || (estado.filtroComp = { turma: TURMAS_NOTAS[0], ciclo: ciclos.at(-1)?.id || null, nm: 'NM2' });
   if (!ciclos.some(c => c.id === f.ciclo)) f.ciclo = ciclos.at(-1)?.id || null;
-  const pode = veTudo();
+  const pode = permite('notas', 'editar') || permite('comparativos', 'editar');
   const { vestibulares } = estado.cortes;
   $('#conteudo').innerHTML = `
     <h1>Comparativos ${ANO_LETIVO}</h1>
