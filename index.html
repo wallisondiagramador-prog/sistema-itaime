@@ -71,6 +71,9 @@
   .reg-quadro.sit-atencao { border-top-color: var(--alerta); }
   .reg-quadro-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
   .reg-quadro-topo strong { font-size: 15px; }
+  .reg-sub { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+  .reg-mat { font-size: 12px; color: var(--verde-escuro); background: var(--verde-claro); border-radius: 99px; padding: 1px 8px; font-weight: 600; }
+  .reg-semcad { font-size: 12px; color: var(--alerta); background: var(--alerta-fundo); border-radius: 99px; padding: 1px 8px; font-weight: 600; }
   .reg-disc { font-size: 12px; color: var(--suave); background: var(--fundo); border-radius: 99px; padding: 1px 8px; }
   .reg-tabela { width: 100%; font-size: 14px; border-collapse: collapse; }
   .reg-tabela th { font-size: 11px; color: var(--suave); font-weight: 600; text-align: left; padding: 2px 4px; }
@@ -4886,6 +4889,16 @@ function mesmoProfessor(a, b) {
   return d[a.length][b.length] <= 1;
 }
 const turmaCurta = (id) => nomeTurma(id).replace(' Série ', ' ');
+// cadastro de professores (nome completo + matéria)
+const tituloMat = (m) => m ? m.charAt(0).toUpperCase() + m.slice(1).toLowerCase() : '';
+const rotuloCadastro = (p) => p.nome + (p.materia ? ' — ' + tituloMat(p.materia) : '');
+async function cadastroProfessores() {
+  const { data: ps, error } = await db.from('professores').select('id, nome, materia, ativo').order('nome');
+  return error ? [] : (ps || []);
+}
+// só liga sozinho quando um único professor do cadastro tem aquele primeiro nome
+const acharNoCadastro = (apelido, cadastro) => { const ms = cadastro.filter(p => mesmoProfessor(p.nome, apelido)); return ms.length === 1 ? ms[0] : null; };
+const chaveDiario = (r) => r.professor_id ? 'P' + r.professor_id : chaveProf(r.professor);
 async function horariosDoAno() {
   if (estado.horariosAno) return estado.horariosAno;
   const { data: h, error } = await db.from('horarios').select('turma_id, dia, inicio, fim, professor').eq('ano_letivo', ANO_LETIVO);
@@ -4900,11 +4913,12 @@ async function carregarAlertaRegistros() {
   botao?.querySelector('.balao-oc')?.remove();
   if (!permite('registros')) return;
   try {
-    const { data: todos, error } = await db.from('registro_aulas').select('professor, ultima_data, acompanhar');
+    const [{ data: todos, error }, cadastro] = await Promise.all([
+      db.from('registro_aulas').select('professor, professor_id, ultima_data, acompanhar'), cadastroProfessores()]);
     if (error || !todos) return;
     const rs = todos.filter(r => r.acompanhar !== false);
     const nomes = new Map();
-    rs.forEach(r => { if (['sem', 'atrasado'].includes(situacaoRegistro(r.ultima_data))) nomes.set(chaveProf(r.professor), r.professor); });
+    rs.forEach(r => { if (['sem', 'atrasado'].includes(situacaoRegistro(r.ultima_data))) nomes.set(chaveDiario(r), cadastro.find(p => p.id === r.professor_id)?.nome || r.professor); });
     estado.alertaReg = { professores: [...nomes.values()].sort((a, b) => a.localeCompare(b)), diarios: rs.filter(r => ['sem', 'atrasado'].includes(situacaoRegistro(r.ultima_data))).length };
     const n = estado.alertaReg.professores.length;
     if (n && botao) botao.insertAdjacentHTML('beforeend', ` <span class="balao-oc" title="${n} professor${n > 1 ? 'es' : ''} com registro de aulas atrasado">${n}</span>`);
@@ -4949,7 +4963,7 @@ async function paginaProfessores(aba) {
 async function paginaRegistroAulas() {
   const F = estado.filtroReg || (estado.filtroReg = { busca: '', situacao: 'todos', ordem: 'atraso' });
   $('#conteudo').innerHTML = cabecalhoProfessores('registro') + '<div class="carregando">Carregando registros…</div>';
-  const { data: rs, error } = await db.from('registro_aulas').select('*');
+  const [{ data: rs, error }, cadastro] = await Promise.all([db.from('registro_aulas').select('*'), cadastroProfessores()]);
   if (error) return erroNaTela(error);
   const ed = permite('registros', 'editar');
   const linhas = rs || [];
@@ -4957,8 +4971,8 @@ async function paginaRegistroAulas() {
   const grupos = () => {
     const m = new Map();
     linhas.forEach(r => {
-      const k = chaveProf(r.professor) + '|' + semAcento(r.disciplina || '');
-      if (!m.has(k)) m.set(k, { k, professor: r.professor, disciplina: r.disciplina, linhas: [] });
+      const k = chaveDiario(r) + '|' + semAcento(r.disciplina || '');
+      if (!m.has(k)) m.set(k, { k, professor: r.professor, professor_id: r.professor_id, disciplina: r.disciplina, linhas: [] });
       m.get(k).linhas.push(r);
     });
     const gs = [...m.values()];
@@ -4968,12 +4982,15 @@ async function paginaRegistroAulas() {
       g.maxDias = Math.max(...g.linhas.map(r => r.ultima_data ? diasDesde(r.ultima_data) : 9999));
       g.conferido = g.linhas.reduce((x, r) => !x || r.conferido_em < x.conferido_em ? r : x, null);
       g.acompanhar = g.linhas.some(r => r.acompanhar !== false);
+      g.cad = cadastro.find(p => p.id === g.professor_id) || null;
+      g.nome = g.cad?.nome || g.professor;
+      g.materia = tituloMat(g.cad?.materia || '');
     });
     return gs;
   };
   const resumo = () => {
     const gs = grupos().filter(g => g.acompanhar), porProf = new Map();
-    gs.forEach(g => { const k = chaveProf(g.professor); porProf.set(k, piorSituacao([porProf.get(k) || 'em_dia', g.sit])); });
+    gs.forEach(g => { const k = chaveDiario(g); porProf.set(k, piorSituacao([porProf.get(k) || 'em_dia', g.sit])); });
     const c = { sem: 0, atrasado: 0, atencao: 0, em_dia: 0 };
     porProf.forEach(s => c[s]++);
     const ultima = linhas.reduce((x, r) => !x || r.conferido_em > x ? r.conferido_em : x, null);
@@ -4992,7 +5009,11 @@ async function paginaRegistroAulas() {
   const quadroHtml = (g) => {
     const velho = g.conferido && (Date.now() - new Date(g.conferido.conferido_em)) / 864e5 > CONFERENCIA_VELHA;
     return `<div class="reg-quadro sit-${g.sit}" data-grupo="${esc(g.k)}">
-      <div class="reg-quadro-topo"><div><strong>${esc(g.professor)}</strong>${g.disciplina ? ` <span class="reg-disc">${esc(g.disciplina)}</span>` : ''}</div>
+      <div class="reg-quadro-topo"><div><strong>${esc(g.nome)}</strong>
+        <div class="reg-sub">${g.materia ? `<span class="reg-mat">${esc(g.materia)}</span>` : ''}${g.disciplina ? `<span class="reg-disc">${esc(g.disciplina)}</span>` : ''}${!g.cad
+          ? `<span class="reg-semcad" title="Escolha o professor do cadastro em Editar para mostrar nome completo e matéria">⚠ falta nome completo</span>`
+          : !g.cad.nome.trim().includes(' ') ? `<span class="reg-semcad" title="O cadastro deste professor só tem um nome: complete o sobrenome na aba Cadastro">⚠ falta sobrenome no cadastro</span>` : ''}${g.cad && !g.cad.materia
+          ? `<span class="reg-semcad" title="Informe a matéria na aba Cadastro">⚠ falta matéria</span>` : ''}</div></div>
         <span class="status ${SIT_REG[g.sit].cls}">${SIT_REG[g.sit].nome}</span></div>
       <table class="reg-tabela"><thead><tr><th>Turma</th><th>Última data registrada</th><th>Sem registrar</th></tr></thead>
         <tbody>${g.linhas.map(linhaHtml).join('')}</tbody></table>
@@ -5003,19 +5024,19 @@ async function paginaRegistroAulas() {
   };
   const filtrados = () => {
     const b = chaveProf(F.busca);
-    let gs = grupos().filter(g => (!b || chaveProf(g.professor + ' ' + (g.disciplina || '')).includes(b))
+    let gs = grupos().filter(g => (!b || chaveProf(g.nome + ' ' + g.professor + ' ' + g.materia + ' ' + (g.disciplina || '')).includes(b))
       && (F.situacao === 'nao_acompanha' ? !g.acompanhar : g.acompanhar)
       && (['todos', 'nao_acompanha'].includes(F.situacao) || (F.situacao === 'atrasados' ? ['sem', 'atrasado'].includes(g.sit) : g.sit === F.situacao)));
-    gs.sort(F.ordem === 'nome' ? (a, b) => a.professor.localeCompare(b.professor) || (a.disciplina || '').localeCompare(b.disciplina || '')
-      : (a, b) => b.maxDias - a.maxDias || a.professor.localeCompare(b.professor));
+    gs.sort(F.ordem === 'nome' ? (a, b) => a.nome.localeCompare(b.nome) || (a.disciplina || '').localeCompare(b.disciplina || '')
+      : (a, b) => b.maxDias - a.maxDias || a.nome.localeCompare(b.nome));
     return gs;
   };
   const desenharQuadros = () => {
     const gs = filtrados();
     $('#reg-quadros').innerHTML = gs.length ? gs.map(quadroHtml).join('') : `<p class="subtitulo">${F.situacao === 'nao_acompanha' ? 'Todos os professores estão sendo acompanhados.' : 'Nenhum professor com esses filtros.'}</p>`;
-    const fora = grupos().filter(g => !g.acompanhar).sort((a, b) => a.professor.localeCompare(b.professor));
+    const fora = grupos().filter(g => !g.acompanhar).sort((a, b) => a.nome.localeCompare(b.nome));
     $('#reg-fora').innerHTML = F.situacao === 'nao_acompanha' || !fora.length ? '' : `<div class="reg-fora"><strong>Não acompanhados (${fora.length}):</strong>
-      ${fora.map(g => `<span class="reg-fora-item">${esc(g.professor)}${g.disciplina ? ' · ' + esc(g.disciplina) : ''}${ed ? ` <button class="link" data-acompanhar="${esc(g.k)}" data-valor="1">acompanhar</button>` : ''}</span>`).join('')}
+      ${fora.map(g => `<span class="reg-fora-item">${esc(g.nome)}${g.materia ? ' · ' + esc(g.materia) : ''}${g.disciplina ? ' · ' + esc(g.disciplina) : ''}${ed ? ` <button class="link" data-acompanhar="${esc(g.k)}" data-valor="1">acompanhar</button>` : ''}</span>`).join('')}
       <small>Ficam guardados, mas fora dos avisos de atraso.</small></div>`;
     $('#reg-resumo').innerHTML = resumo();
     ligarQuadros();
@@ -5083,7 +5104,7 @@ async function paginaRegistroAulas() {
       const { error: e } = await db.from('registro_aulas').update({ acompanhar: valor }).in('id', g.linhas.map(r => r.id));
       if (e) return aviso('Não foi possível salvar: ' + e.message, true);
       g.linhas.forEach(r => { r.acompanhar = valor; });
-      aviso(valor ? `${g.professor} voltou a ser acompanhado.` : `${g.professor} não será mais acompanhado (saiu dos avisos de atraso).`);
+      aviso(valor ? `${g.nome} voltou a ser acompanhado.` : `${g.nome} não será mais acompanhado (saiu dos avisos de atraso).`);
       desenharQuadros(); carregarAlertaRegistros();
     });
   }
@@ -5095,8 +5116,8 @@ async function paginaRegistroAulas() {
     const lins = gs.flatMap(g => g.linhas.filter(r => situacaoRegistro(r.ultima_data) !== 'em_dia').map(r => ({ g, r })));
     $('#impressao').innerHTML = `<div class="reg-imp"><div class="imp-topo"><h1>REGISTRO DE AULAS · ATRASOS</h1>
       <span>impresso em ${new Date().toLocaleDateString('pt-BR')} · atrasado = ${PRAZO_REGISTRO}+ dias sem registrar</span></div>
-      ${lins.length ? `<table class="imp-tabela"><thead><tr><th>Professor</th><th>Disciplina</th><th>Turma</th><th>Última data registrada</th><th class="n">Dias sem registrar</th><th>Situação</th><th>Conferido em</th></tr></thead>
-      <tbody>${lins.map(({ g, r }) => { const s = situacaoRegistro(r.ultima_data), n = diasDesde(r.ultima_data); return `<tr class="${s === 'atencao' ? '' : 'reg-imp-atraso'}"><td>${esc(g.professor)}</td><td>${esc(g.disciplina || '')}</td><td>${esc(turmaCurta(r.turma_id))}</td>
+      ${lins.length ? `<table class="imp-tabela"><thead><tr><th>Professor</th><th>Matéria</th><th>Turma</th><th>Última data registrada</th><th class="n">Dias sem registrar</th><th>Situação</th><th>Conferido em</th></tr></thead>
+      <tbody>${lins.map(({ g, r }) => { const s = situacaoRegistro(r.ultima_data), n = diasDesde(r.ultima_data); return `<tr class="${s === 'atencao' ? '' : 'reg-imp-atraso'}"><td>${esc(g.nome)}</td><td>${esc([g.materia, g.disciplina].filter(Boolean).join(' · '))}</td><td>${esc(turmaCurta(r.turma_id))}</td>
         <td>${r.ultima_data ? esc(data(r.ultima_data)) : 'sem registro'}</td><td class="n">${n === null ? '—' : n}</td><td>${SIT_REG[s].nome}</td><td>${esc(quando(r.conferido_em))}</td></tr>`; }).join('')}</tbody></table>`
       : '<p>Nenhum professor atrasado ou em atenção.</p>'}
       <p class="imp-rodape">Atrasado: ${PRAZO_REGISTRO} dias ou mais sem registro no portal. Atenção: ${AVISO_REGISTRO} a ${PRAZO_REGISTRO - 1} dias. Dados lançados à mão a partir da conferência no portal.</p></div>`;
@@ -5113,27 +5134,56 @@ async function paginaRegistroAulas() {
   async function formDiario(g) {
     const novo = !g, nomes = await nomesConhecidos();
     const tem = new Map((g?.linhas || []).map(r => [r.turma_id, r]));
+    const sugerido = g?.cad || (g ? acharNoCadastro(g.professor, cadastro) : null);
+    const materiasConhecidas = [...new Set([...MATERIAS, 'Redação', ...cadastro.map(p => tituloMat(p.materia)).filter(Boolean)])].sort((a, b) => a.localeCompare(b));
     const erro = modalForm(novo ? 'Novo diário' : 'Editar diário', novo ? 'professor + turmas que ele registra no portal' : 'desmarque uma turma para tirá-la do controle', `
-      <div class="largo"><label for="dr-prof">Professor</label><input type="text" id="dr-prof" list="dr-nomes" value="${esc(g?.professor || '')}" autocomplete="off">
+      <div class="largo"><label for="dr-cad">Professor (nome completo e matéria, do cadastro)</label>
+        <select id="dr-cad"><option value="">— escolha o professor —</option>
+          ${cadastro.map(p => `<option value="${p.id}" ${sugerido?.id === p.id ? 'selected' : ''}>${esc(rotuloCadastro(p))}${p.ativo === false ? ' (inativo)' : ''}</option>`).join('')}
+          <option value="novo">➕ Cadastrar professor novo…</option></select>
+        ${g && !g.cad && sugerido ? `<small class="vazio">Sugestão pelo primeiro nome: confira e salve.</small>` : ''}</div>
+      <div class="largo dr-novo escondido"><label for="dr-novo-nome">Nome completo do professor novo</label><input type="text" id="dr-novo-nome" placeholder="Ex.: HÉLCIO SOUSA"></div>
+      <div class="largo dr-novo escondido"><label for="dr-novo-mat">Matéria</label><input type="text" id="dr-novo-mat" list="dr-mats" placeholder="Ex.: Linguagens">
+        <datalist id="dr-mats">${materiasConhecidas.map(m => `<option value="${esc(m)}">`).join('')}</datalist></div>
+      <div class="largo"><label for="dr-prof">Nome curto <small>(como aparece no horário e na planilha, ex.: HERB; serve para achar as aulas no horário)</small></label>
+        <input type="text" id="dr-prof" list="dr-nomes" value="${esc(g?.professor || '')}" autocomplete="off">
         <datalist id="dr-nomes">${nomes.map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
       <div class="largo"><label for="dr-disc">Disciplina <small>(opcional: só quando o professor tem diários separados, ex.: Gramática / Interpretação)</small></label>
         <input type="text" id="dr-disc" value="${esc(g?.disciplina || '')}"></div>
       <div class="largo"><label>Turmas</label><div class="reg-turmas">${estado.turmas.map(t => `<label class="check"><input type="checkbox" value="${t.id}" ${tem.has(t.id) ? 'checked' : ''}> ${esc(t.nome)}</label>`).join('')}</div></div>`, novo);
     if (!novo) $('#form-apagar').textContent = 'Tirar do controle…';
+    const primeiroNome = (n) => String(n || '').trim().split(/\s+/)[0].toUpperCase();
+    $('#dr-cad').onchange = () => {
+      const v = $('#dr-cad').value;
+      document.querySelectorAll('.dr-novo').forEach(x => x.classList.toggle('escondido', v !== 'novo'));
+      const p = cadastro.find(x => String(x.id) === v);
+      if (p && !$('#dr-prof').value.trim()) $('#dr-prof').value = primeiroNome(p.nome);
+    };
+    $('#dr-novo-nome').oninput = () => { if (!$('#dr-prof').dataset.mexeu) $('#dr-prof').value = primeiroNome($('#dr-novo-nome').value); };
+    $('#dr-prof').oninput = () => { $('#dr-prof').dataset.mexeu = '1'; };
     $('#form-salvar').onclick = async () => {
-      const professor = $('#dr-prof').value.trim().toUpperCase(), disciplina = $('#dr-disc').value.trim() || null;
+      const disciplina = $('#dr-disc').value.trim() || null, sel = $('#dr-cad').value;
       const marcadas = [...document.querySelectorAll('.reg-turmas input:checked')].map(c => Number(c.value));
-      if (!professor) return erro('Informe o nome do professor.');
+      if (!sel) return erro('Escolha o professor do cadastro (nome completo e matéria) ou cadastre um professor novo.');
+      if (sel === 'novo' && !$('#dr-novo-nome').value.trim().includes(' ')) return erro('Informe nome e sobrenome do professor novo.');
+      if (sel === 'novo' && !$('#dr-novo-mat').value.trim()) return erro('Informe a matéria do professor novo.');
       if (!marcadas.length) return erro('Marque pelo menos uma turma (ou use "Tirar do controle").');
       $('#form-salvar').disabled = true;
+      let professor_id = Number(sel) || null;
+      if (sel === 'novo') {
+        const { data: criado, error: e0 } = await db.from('professores').insert({ nome: $('#dr-novo-nome').value.trim().toUpperCase(), materia: $('#dr-novo-mat').value.trim().toUpperCase() }).select('id').single();
+        if (e0) return erro('Não foi possível cadastrar o professor: ' + e0.message);
+        professor_id = criado.id;
+      }
+      const professor = $('#dr-prof').value.trim().toUpperCase() || primeiroNome(cadastro.find(p => p.id === professor_id)?.nome || $('#dr-novo-nome').value);
       const ids = (g?.linhas || []).map(r => r.id);
       if (ids.length) {
-        const { error: e1 } = await db.from('registro_aulas').update({ professor, disciplina }).in('id', ids);
+        const { error: e1 } = await db.from('registro_aulas').update({ professor, professor_id, disciplina }).in('id', ids);
         if (e1) return erro(/duplicate|unique/i.test(e1.message) ? 'Já existe um diário desse professor nessa turma.' : e1.message);
         const tirar = (g.linhas || []).filter(r => !marcadas.includes(r.turma_id)).map(r => r.id);
         if (tirar.length) { const { error: e2 } = await db.from('registro_aulas').delete().in('id', tirar); if (e2) return erro(e2.message); }
       }
-      const incluir = marcadas.filter(t => !tem.has(t)).map(turma_id => ({ professor, disciplina, turma_id, ultima_data: null, conferido_por: estado.email }));
+      const incluir = marcadas.filter(t => !tem.has(t)).map(turma_id => ({ professor, professor_id, disciplina, turma_id, ultima_data: null, conferido_por: estado.email }));
       if (incluir.length) {
         const { error: e3 } = await db.from('registro_aulas').insert(incluir);
         if (e3) return erro(/duplicate|unique/i.test(e3.message) ? 'Já existe um diário desse professor numa dessas turmas.' : e3.message);
@@ -5166,7 +5216,7 @@ async function paginaRegistroAulas() {
     $('#form-salvar').onclick = async () => {
       const sel = [...document.querySelectorAll('[data-falta]:checked')].map(c => faltam[Number(c.dataset.falta)]);
       if (!sel.length) return fecharFicha();
-      const { error: e } = await db.from('registro_aulas').insert(sel.map(x => ({ professor: x.professor.toUpperCase(), turma_id: x.turma_id, ultima_data: null, conferido_por: estado.email })));
+      const { error: e } = await db.from('registro_aulas').insert(sel.map(x => ({ professor: x.professor.toUpperCase(), professor_id: acharNoCadastro(x.professor, cadastro)?.id ?? null, turma_id: x.turma_id, ultima_data: null, conferido_por: estado.email })));
       if (e) return erro(e.message);
       fecharFicha(); await carregarAlertaRegistros(); paginaRegistroAulas();
     };
@@ -5194,7 +5244,7 @@ async function paginaRegistroAulas() {
         <ul class="reg-lista-imp"><li><strong>${mudar.length}</strong> com data nova</li><li><strong>${novos.length}</strong> diários novos (entram no controle)</li>
           <li>${iguais.length} sem mudança</li>${lidas.erros.length ? `<li class="reg-velho">${lidas.erros.length} datas que não entendi (ficam como estão): ${lidas.erros.slice(0, 8).map(esc).join('; ')}${lidas.erros.length > 8 ? '…' : ''}</li>` : ''}</ul>
         ${mudar.length ? `<div class="rolavel" style="max-height:260px"><table><thead><tr><th>Professor</th><th>Turma</th><th>Antes</th><th>Agora</th></tr></thead><tbody>
-          ${mudar.map(({ r, it }) => `<tr><td>${esc(r.professor)}${r.disciplina ? ' · ' + esc(r.disciplina) : ''}</td><td>${esc(turmaCurta(r.turma_id))}</td><td>${r.ultima_data ? esc(data(r.ultima_data)) : 'sem registro'}</td><td><strong>${it.ultima_data ? esc(data(it.ultima_data)) : 'sem registro'}</strong></td></tr>`).join('')}</tbody></table></div>` : ''}
+          ${mudar.map(({ r, it }) => `<tr><td>${esc(cadastro.find(p => p.id === r.professor_id)?.nome || r.professor)}${r.disciplina ? ' · ' + esc(r.disciplina) : ''}</td><td>${esc(turmaCurta(r.turma_id))}</td><td>${r.ultima_data ? esc(data(r.ultima_data)) : 'sem registro'}</td><td><strong>${it.ultima_data ? esc(data(it.ultima_data)) : 'sem registro'}</strong></td></tr>`).join('')}</tbody></table></div>` : ''}
         <p class="subtitulo" style="margin:0">Todos os diários da planilha ficam marcados como conferidos agora.</p>`, true);
       $('#form-salvar').textContent = 'Aplicar';
       $('#form-salvar').onclick = async () => {
@@ -5205,7 +5255,7 @@ async function paginaRegistroAulas() {
           if (e1) return erro('Parou no meio: ' + e1.message);
         }
         if (iguais.length) { const { error: e2 } = await db.from('registro_aulas').update(base).in('id', iguais.map(r => r.id)); if (e2) return erro(e2.message); }
-        if (novos.length) { const { error: e3 } = await db.from('registro_aulas').insert(novos.map(it => ({ ...it, conferido_por: estado.email }))); if (e3) return erro(e3.message); }
+        if (novos.length) { const { error: e3 } = await db.from('registro_aulas').insert(novos.map(it => ({ ...it, professor_id: acharNoCadastro(it.professor, cadastro)?.id ?? null, conferido_por: estado.email }))); if (e3) return erro(e3.message); }
         fecharFicha(); await carregarAlertaRegistros(); await paginaRegistroAulas();
         aviso(`Planilha aplicada: ${mudar.length} datas atualizadas, ${novos.length} diários novos.`);
       };
@@ -5258,17 +5308,20 @@ async function paginaFaltasProfessores() {
   const F = estado.filtroFaltas || (estado.filtroFaltas = { periodo: 'mes', de: '', ate: '', professor: '', tipo: '' });
   $('#conteudo').innerHTML = cabecalhoProfessores('faltas') + '<div class="carregando">Carregando faltas…</div>';
   const [de, ate] = periodoFaltas(F);
-  const { data: fs, error } = await db.from('faltas_professores').select('*').gte('data', de).lte('data', ate).order('data', { ascending: false });
+  const [{ data: fs, error }, cadastro] = await Promise.all([
+    db.from('faltas_professores').select('*').gte('data', de).lte('data', ate).order('data', { ascending: false }), cadastroProfessores()]);
   if (error) return erroNaTela(error);
   const ed = permite('registros', 'editar');
+  const nomeF = (f) => cadastro.find(p => p.id === f.professor_id)?.nome || f.professor;
+  const matF = (f) => tituloMat(cadastro.find(p => p.id === f.professor_id)?.materia || '');
   const todas = fs || [];
-  const lista = todas.filter(f => (!F.professor || chaveProf(f.professor) === F.professor) && (!F.tipo || f.tipo === F.tipo));
-  const nomesPeriodo = [...new Map(todas.map(f => [chaveProf(f.professor), f.professor])).entries()].sort((x, y) => x[1].localeCompare(y[1]));
+  const lista = todas.filter(f => (!F.professor || chaveDiario(f) === F.professor) && (!F.tipo || f.tipo === F.tipo));
+  const nomesPeriodo = [...new Map(todas.map(f => [chaveDiario(f), nomeF(f)])).entries()].sort((x, y) => x[1].localeCompare(y[1]));
   // resumo por professor
   const porProf = new Map();
   lista.forEach(f => {
-    const k = chaveProf(f.professor);
-    if (!porProf.has(k)) porProf.set(k, { k, nome: f.professor, dias: new Set(), aulas: 0, atestado: 0, justificada: 0, nao_justificada: 0, repor: 0 });
+    const k = chaveDiario(f);
+    if (!porProf.has(k)) porProf.set(k, { k, nome: nomeF(f), materia: matF(f), dias: new Set(), aulas: 0, atestado: 0, justificada: 0, nao_justificada: 0, repor: 0 });
     const p = porProf.get(k);
     p.dias.add(f.data); p.aulas += f.aulas; p[f.tipo] += f.aulas;
     if (f.reposicao !== 'feita') p.repor += f.aulas;
@@ -5276,14 +5329,14 @@ async function paginaFaltasProfessores() {
   const resumo = [...porProf.values()].sort((a, b) => b.aulas - a.aulas || a.nome.localeCompare(b.nome));
   const tot = resumo.reduce((t, p) => ({ dias: t.dias + p.dias.size, aulas: t.aulas + p.aulas, sem: t.sem + p.nao_justificada, repor: t.repor + p.repor }), { dias: 0, aulas: 0, sem: 0, repor: 0 });
   const rotuloPeriodo = `${data(de)} a ${data(ate)}`;
-  const tabelaResumo = (imp) => `<table class="${imp ? 'imp-tabela' : ''}"><thead><tr><th>Professor</th><th class="n">Dias de falta</th><th class="n">Aulas perdidas</th>
+  const tabelaResumo = (imp) => `<table class="${imp ? 'imp-tabela' : ''}"><thead><tr><th>Professor</th><th>Matéria</th><th class="n">Dias de falta</th><th class="n">Aulas perdidas</th>
     <th class="n">Atestado</th><th class="n">Justificadas</th><th class="n">Sem justificativa</th><th class="n">Aulas a repor</th></tr></thead>
-    <tbody>${resumo.map(p => `<tr><td>${imp ? esc(p.nome) : `<button class="link" data-filtrar-prof="${esc(p.k)}">${esc(p.nome)}</button>`}</td><td class="n">${p.dias.size}</td><td class="n"><strong>${p.aulas}</strong></td>
+    <tbody>${resumo.map(p => `<tr><td>${imp ? esc(p.nome) : `<button class="link" data-filtrar-prof="${esc(p.k)}">${esc(p.nome)}</button>`}</td><td>${esc(p.materia || '—')}</td><td class="n">${p.dias.size}</td><td class="n"><strong>${p.aulas}</strong></td>
       <td class="n">${p.atestado || '—'}</td><td class="n">${p.justificada || '—'}</td><td class="n">${p.nao_justificada ? `<span class="${imp ? '' : 'status vermelho'}">${p.nao_justificada}</span>` : '—'}</td><td class="n">${p.repor || '—'}</td></tr>`).join('')}
-      <tr class="linha-total"><td><strong>Total</strong></td><td class="n"><strong>${tot.dias}</strong></td><td class="n"><strong>${tot.aulas}</strong></td><td class="n">${resumo.reduce((s, p) => s + p.atestado, 0)}</td>
+      <tr class="linha-total"><td><strong>Total</strong></td><td></td><td class="n"><strong>${tot.dias}</strong></td><td class="n"><strong>${tot.aulas}</strong></td><td class="n">${resumo.reduce((s, p) => s + p.atestado, 0)}</td>
       <td class="n">${resumo.reduce((s, p) => s + p.justificada, 0)}</td><td class="n">${tot.sem}</td><td class="n">${tot.repor}</td></tr></tbody></table>`;
   const tabelaDetalhe = (imp) => `<table class="${imp ? 'imp-tabela' : ''}"><thead><tr><th>Data</th><th>Professor</th><th class="n">Aulas</th><th>Turmas</th><th>Tipo</th><th>Substituto</th><th>Reposição</th><th>Observação</th>${imp || !ed ? '' : '<th></th>'}</tr></thead>
-    <tbody>${lista.map(f => `<tr><td style="white-space:nowrap">${esc(data(f.data))} <small class="vazio">${esc(diaSemana(f.data).split('-')[0])}</small></td><td>${esc(f.professor)}</td><td class="n">${f.aulas}</td>
+    <tbody>${lista.map(f => `<tr><td style="white-space:nowrap">${esc(data(f.data))} <small class="vazio">${esc(diaSemana(f.data).split('-')[0])}</small></td><td>${esc(nomeF(f))}${matF(f) ? `<small class="vazio" style="display:block">${esc(matF(f))}</small>` : ''}</td><td class="n">${f.aulas}</td>
       <td>${esc(f.turmas || '—')}</td><td>${imp ? TIPOS_FALTA[f.tipo] : `<span class="status ${f.tipo === 'nao_justificada' ? 'vermelho' : f.tipo === 'atestado' ? 'fechada' : 'aberta'}">${TIPOS_FALTA[f.tipo]}</span>`}</td>
       <td>${esc(f.substituto || '—')}</td><td>${REPOSICAO[f.reposicao]}</td><td>${esc(f.observacao || '')}</td>
       ${imp || !ed ? '' : `<td><button class="botao leve pequeno" data-editar-falta="${f.id}">Editar</button></td>`}</tr>`).join('')}</tbody></table>`;
@@ -5324,10 +5377,10 @@ async function paginaFaltasProfessores() {
   $('#fp-excel').onclick = async () => {
     await carregarScript(XLSX_URL);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Professor', 'Dias de falta', 'Aulas perdidas', 'Atestado', 'Justificadas', 'Sem justificativa', 'Aulas a repor'],
-      ...resumo.map(p => [p.nome, p.dias.size, p.aulas, p.atestado, p.justificada, p.nao_justificada, p.repor])]), 'Resumo');
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Data', 'Professor', 'Aulas', 'Turmas', 'Tipo', 'Substituto', 'Reposição', 'Observação'],
-      ...lista.map(f => [data(f.data), f.professor, f.aulas, f.turmas || '', TIPOS_FALTA[f.tipo], f.substituto || '', REPOSICAO[f.reposicao], f.observacao || ''])]), 'Faltas');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Professor', 'Matéria', 'Dias de falta', 'Aulas perdidas', 'Atestado', 'Justificadas', 'Sem justificativa', 'Aulas a repor'],
+      ...resumo.map(p => [p.nome, p.materia, p.dias.size, p.aulas, p.atestado, p.justificada, p.nao_justificada, p.repor])]), 'Resumo');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Data', 'Professor', 'Matéria', 'Aulas', 'Turmas', 'Tipo', 'Substituto', 'Reposição', 'Observação'],
+      ...lista.map(f => [data(f.data), nomeF(f), matF(f), f.aulas, f.turmas || '', TIPOS_FALTA[f.tipo], f.substituto || '', REPOSICAO[f.reposicao], f.observacao || ''])]), 'Faltas');
     XLSX.writeFile(wb, `faltas_professores_${de}_a_${ate}.xlsx`);
   };
   if (!ed) return;
@@ -5338,12 +5391,19 @@ async function formFaltaProfessor(f) {
   const novo = !f;
   f = f || { professor: '', data: hojeLocal(), aulas: 1, turmas: '', tipo: 'nao_justificada', substituto: '', reposicao: 'nao', observacao: '' };
   const h = await horariosDoAno();
-  const { data: rs } = await db.from('registro_aulas').select('professor');
-  const nomes = [];
-  [...(rs || []).map(r => r.professor), ...h.map(x => x.professor)].forEach(n => { if (!nomes.some(v => mesmoProfessor(v, n))) nomes.push(n); });
-  nomes.sort((a, b) => a.localeCompare(b));
+  const cadastro = await cadastroProfessores();
+  const { data: rs } = await db.from('registro_aulas').select('professor, professor_id');
+  // nome curto do professor (o do horário), para achar as aulas do dia
+  const apelidoDe = (pid) => (rs || []).find(r => r.professor_id === pid)?.professor;
+  const nomes = cadastro.filter(p => p.ativo !== false).map(rotuloCadastro);
+  const valorInicial = f.professor_id ? rotuloCadastro(cadastro.find(p => p.id === f.professor_id) || { nome: f.professor }) : f.professor;
+  const lerProfessor = () => {
+    const v = $('#fp-f-prof').value.trim();
+    const p = cadastro.find(x => rotuloCadastro(x).toUpperCase() === v.toUpperCase() || x.nome.toUpperCase() === v.toUpperCase());
+    return p ? { professor_id: p.id, professor: p.nome, busca: apelidoDe(p.id) || p.nome } : { professor_id: null, professor: v.toUpperCase(), busca: v };
+  };
   const erro = modalForm(novo ? 'Registrar falta do professor' : 'Editar falta do professor', 'entra no relatório de faltas', `
-    <div><label for="fp-f-prof">Professor</label><input type="text" id="fp-f-prof" list="fp-nomes" value="${esc(f.professor)}" autocomplete="off">
+    <div class="largo"><label for="fp-f-prof">Professor <small>(comece a digitar e escolha: nome completo — matéria)</small></label><input type="text" id="fp-f-prof" list="fp-nomes" value="${esc(valorInicial)}" autocomplete="off">
       <datalist id="fp-nomes">${nomes.map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
     <div><label for="fp-f-data">Dia da falta</label><input type="date" id="fp-f-data" value="${esc(f.data)}" max="${hojeLocal()}"></div>
     <div id="fp-f-aulas-dia" class="largo"></div>
@@ -5355,7 +5415,7 @@ async function formFaltaProfessor(f) {
     <div class="largo"><label for="fp-f-obs">Observação <small>(opcional)</small></label><textarea id="fp-f-obs" rows="2">${esc(f.observacao || '')}</textarea></div>`, novo);
   // aulas do professor naquele dia, pelo horário
   const mostrarAulasDoDia = (manterTexto) => {
-    const prof = $('#fp-f-prof').value.trim(), dia = $('#fp-f-data').value;
+    const escolhido = lerProfessor(), prof = escolhido.busca, dia = $('#fp-f-data').value;
     const box = $('#fp-f-aulas-dia');
     if (!prof || !dia) { box.innerHTML = ''; return; }
     const dow = new Date(dia + 'T12:00').getDay();
@@ -5378,7 +5438,7 @@ async function formFaltaProfessor(f) {
   ligarApagar('faltas_professores', f.id, () => { fecharFicha(); paginaFaltasProfessores(); }, erro);
   $('#form-salvar').onclick = async () => {
     const dados = {
-      professor: $('#fp-f-prof').value.trim().toUpperCase(), data: $('#fp-f-data').value, aulas: Number($('#fp-f-aulas').value),
+      ...(({ professor_id, professor }) => ({ professor_id, professor }))(lerProfessor()), data: $('#fp-f-data').value, aulas: Number($('#fp-f-aulas').value),
       turmas: $('#fp-f-turmas').value.trim() || null, tipo: document.querySelector('[name="fp-f-tipo"]:checked')?.value,
       substituto: $('#fp-f-sub').value.trim().toUpperCase() || null, reposicao: $('#fp-f-rep').value, observacao: $('#fp-f-obs').value.trim() || null,
     };
