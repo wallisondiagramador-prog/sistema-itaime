@@ -348,6 +348,9 @@
   .bo-tabela button.link { padding: 0; margin: 0; text-align: left; }
   .bo-faixa { color: var(--c); font-weight: 800; }
   .bo-falta { display: block; color: var(--alerta); font-size: 11.5px; }
+  .rel-tabela td, .rel-tabela th { padding: 6px 8px; }
+  .rel-tabela tfoot td { font-weight: 700; border-top: 2px solid var(--borda, #ccd); }
+  .rel-baixa { color: var(--erro); font-weight: 700; }
 
   /* ---------- Impressão do carômetro ---------- */
   #impressao { display: none; }
@@ -390,6 +393,8 @@
     .bo-imp:last-child { break-after: auto; }
     .bo-imp .imp-tabela { font-size: 8pt; }
     .bo-imp-nota { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .rel-imp .imp-tabela { font-size: 8.5pt; }
+    .rel-imp .rel-baixa { color: #b42318; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .fr-rel-imp td, .fr-rel-imp th { padding: 2px 3px; }
     /* horário: A4 deitado, uma grade por página */
     @page horario { size: A4 landscape; margin: 10mm; }
@@ -4297,6 +4302,7 @@ async function paginaDesempenho(alunoInicial) {
         <tbody>${calor.map(c => `<tr><td><strong>${esc(nomeTurma(c.t))}</strong></td>${c.vals.map((v, i) => v == null ? '<td class="num">—</td>' :
           `<td class="num" style="background:${corCalor(v)};color:${v >= 6 ? '#fff' : '#1d2420'}" title="${esc(nomeTurma(c.t))} · ${mats[i]}: ${fmt(r2(v))}">${fmt(r2(v))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
         <p class="subtitulo" style="margin:8px 0 0">Quanto mais escuro o verde, maior a média. Use para ver em que matéria cada turma está mais forte ou mais fraca.</p></div>
+      <div class="painel" id="de-relacao"></div>
       <div class="grade-paineis">
         <div class="painel"><h3>Destaques (${dest.length})</h3>${dest.length ? `<div class="rolavel lista-alunos"><table><thead><tr><th>Aluno</th><th>Turma</th><th class="num">Média</th><th>Por quê</th></tr></thead>
           <tbody>${dest.map(r => linhaAluno(r, 'bom')).join('')}</tbody></table></div>` : '<p class="subtitulo">Nenhum destaque com esses filtros.</p>'}</div>
@@ -4308,6 +4314,7 @@ async function paginaDesempenho(alunoInicial) {
         <tbody>${provas.map(p => `<tr><td>${esc(nomeTurma(p.turma_id))}</td><td>${p.nm} · ${esc(p.materia)}</td><td>${esc(p.profs || '—')}</td><td class="num">${p.notas.length}</td>
           <td class="num forte">${fmt(r2(p.media))}</td><td class="num">${fmt(p.min)}</td><td class="num">${fmt(p.max)}</td><td class="num">${Math.round(p.baixo * 100)}%</td>
           <td>${p.media < 4 ? '<span class="razao ruim">Muito difícil?</span>' : p.media > 8.5 ? '<span class="razao bom">Muito fácil?</span>' : ''}</td></tr>`).join('')}</tbody></table></div></div>`;
+    desenharRelacao(atual, nms);
     document.querySelectorAll('[data-ver-aluno]').forEach(el => el.onclick = () => mostrarIndividual(Number(el.dataset.verAluno)));
     if (estado.desempAluno) mostrarIndividual(estado.desempAluno, true);
   }
@@ -4345,6 +4352,53 @@ async function paginaDesempenho(alunoInicial) {
     $('#de-fechar').onclick = () => { estado.desempAluno = null; box.innerHTML = ''; };
     $('#de-ficha').onclick = () => abrirFicha(id);
     if (!semRolar) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Relação da turma por matéria: todos os alunos da turma, com a nota de cada matéria no ciclo
+  // (média das provas escolhidas no filtro, nota final com multiplicador). Abaixo de 5 fica em vermelho.
+  function relacaoTurma(atual, turma, ordem) {
+    const ids = estado.matriculas.filter(m => m.turma_id === turma && m.situacao === 'ativo').map(m => m.aluno_id);
+    [...atual.values()].forEach(r => { if (r.turma === turma && !ids.includes(r.id)) ids.push(r.id); });
+    const linhas = ids.map(id => ({ id, nome: nomeAluno(id), r: atual.get(id) }));
+    const mats = MATERIAS.filter(m => linhas.some(l => l.r?.porMateria[m] != null));
+    linhas.sort(ordem === 'media'
+      ? (a, b) => (b.r?.media ?? -1) - (a.r?.media ?? -1) || a.nome.localeCompare(b.nome)
+      : (a, b) => a.nome.localeCompare(b.nome));
+    const mediaMat = Object.fromEntries(mats.map(m => [m, media(linhas.map(l => l.r?.porMateria[m]).filter(v => v != null))]));
+    const mediaTurma = media(linhas.map(l => l.r?.media).filter(v => v != null));
+    return { linhas, mats, mediaMat, mediaTurma };
+  }
+  function desenharRelacao(atual, nms) {
+    const box = $('#de-relacao'); if (!box) return;
+    const turma = f.turma || f.relTurma || TURMAS_NOTAS[0];
+    const ordem = f.relOrdem || 'nome';
+    const { linhas, mats, mediaMat, mediaTurma } = relacaoTurma(atual, turma, ordem);
+    const cel = (v) => v == null ? '<td class="num vazio">—</td>' : `<td class="num${r2(v) < 5 ? ' rel-baixa' : ''}">${fmt(r2(v))}</td>`;
+    box.innerHTML = `
+      <div class="barra" style="margin-bottom:8px"><h3 style="margin:0">Relação da turma por matéria</h3><div class="espaco"></div>
+        ${f.turma ? `<strong>${esc(nomeTurma(turma))}</strong>` : `<select id="rel-turma" aria-label="Turma da relação">${TURMAS_NOTAS.map(t => `<option value="${t}" ${t === turma ? 'selected' : ''}>${esc(nomeTurma(t))}</option>`).join('')}</select>`}
+        <select id="rel-ordem" aria-label="Ordem"><option value="nome" ${ordem === 'nome' ? 'selected' : ''}>Ordem alfabética</option><option value="media" ${ordem === 'media' ? 'selected' : ''}>Maior média primeiro</option></select>
+        <button class="botao leve" id="rel-imprimir">Imprimir relação</button></div>
+      ${mats.length ? `<div class="rolavel"><table class="rel-tabela"><thead><tr><th class="num">Nº</th><th>Aluno</th>${mats.map(m => `<th class="num">${m}</th>`).join('')}<th class="num">Média</th></tr></thead>
+        <tbody>${linhas.map((l, i) => `<tr class="clicavel" data-ver-aluno="${l.id}"><td class="num">${i + 1}</td><td>${esc(l.nome)}</td>${mats.map(m => cel(l.r?.porMateria[m])).join('')}
+          <td class="num forte${l.r?.media != null && r2(l.r.media) < 5 ? ' rel-baixa' : ''}">${l.r?.media == null ? '—' : fmt(r2(l.r.media))}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td></td><td>Média da turma</td>${mats.map(m => `<td class="num">${mediaMat[m] == null ? '—' : fmt(r2(mediaMat[m]))}</td>`).join('')}<td class="num">${mediaTurma == null ? '—' : fmt(r2(mediaTurma))}</td></tr></tfoot></table></div>
+        <p class="subtitulo" style="margin:8px 0 0">${nms.join(' + ')} deste ciclo · nota final (com multiplicador); com mais de uma NM, a nota da matéria é a média delas. Em vermelho: abaixo de 5. "—" = sem nota. Clique no aluno para ver o detalhe.</p>`
+        : '<p class="subtitulo">Essa turma ainda não tem notas neste ciclo com as provas escolhidas.</p>'}`;
+    if ($('#rel-turma')) $('#rel-turma').onchange = () => { f.relTurma = Number($('#rel-turma').value); desenharRelacao(atual, nms); };
+    $('#rel-ordem').onchange = () => { f.relOrdem = $('#rel-ordem').value; desenharRelacao(atual, nms); };
+    box.querySelectorAll('[data-ver-aluno]').forEach(el => el.onclick = () => mostrarIndividual(Number(el.dataset.verAluno)));
+    $('#rel-imprimir').onclick = () => {
+      const ciclo = ciclosCom.find(c => c.id === f.ciclo);
+      $('#impressao').innerHTML = `<div class="imp-paisagem rel-imp"><div class="imp-topo"><h1>RELAÇÃO POR MATÉRIA · ${esc(nomeTurma(turma).toUpperCase())}</h1>
+        <span>${esc(ciclo?.nome || '')} · ${nms.join(' + ')} · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+        <table class="imp-tabela"><thead><tr><th class="n">Nº</th><th>Aluno</th>${mats.map(m => `<th class="n">${m}</th>`).join('')}<th class="n">Média</th></tr></thead>
+        <tbody>${linhas.map((l, i) => `<tr><td class="n">${i + 1}</td><td>${esc(l.nome)}</td>${mats.map(m => { const v = l.r?.porMateria[m]; return `<td class="n${v != null && r2(v) < 5 ? ' rel-baixa' : ''}">${v == null ? '—' : fmt(r2(v))}</td>`; }).join('')}
+          <td class="n"><strong>${l.r?.media == null ? '—' : fmt(r2(l.r.media))}</strong></td></tr>`).join('')}
+          <tr><td></td><td><strong>Média da turma</strong></td>${mats.map(m => `<td class="n"><strong>${mediaMat[m] == null ? '—' : fmt(r2(mediaMat[m]))}</strong></td>`).join('')}<td class="n"><strong>${mediaTurma == null ? '—' : fmt(r2(mediaTurma))}</strong></td></tr></tbody></table>
+        <p class="imp-rodape">Nota final (com multiplicador) de ${nms.join(' + ')}; com mais de uma NM, a nota da matéria é a média delas. Em vermelho: abaixo de 5.</p></div>`;
+      setTimeout(() => window.print(), 100);
+    };
   }
 
   $('#de-ciclo').onchange = () => { f.ciclo = Number($('#de-ciclo').value); desenhar(); };
