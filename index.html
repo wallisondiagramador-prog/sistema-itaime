@@ -53,6 +53,47 @@
   .usuario { font-size: 13px; color: var(--suave); text-align: right; line-height: 1.25; }
   .usuario strong { color: var(--texto); display: block; font-size: 14px; }
   #menu-botao { display: none; align-items: center; gap: 8px; }
+  .status.amarelo { background: var(--alerta-fundo); color: var(--alerta); }
+  .aviso-registro { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 0 0 18px; padding: 12px 14px; border-radius: 10px;
+    background: #fdecea; color: var(--erro); border: 1px solid #f5c2bd; font-size: 14px; }
+  .aviso-registro .botao { background: var(--erro); }
+  .reg-resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 0 0 18px; }
+  .reg-num { display: flex; gap: 10px; align-items: center; background: var(--branco); border: 1px solid var(--borda); border-left: 5px solid var(--borda); border-radius: 10px; padding: 10px 14px; }
+  .reg-num strong { font-size: 26px; line-height: 1; }
+  .reg-num span { display: flex; flex-direction: column; font-weight: 600; font-size: 14px; }
+  .reg-num small { font-weight: 400; color: var(--suave); font-size: 12px; }
+  .reg-num.vermelho { border-left-color: var(--erro); } .reg-num.vermelho strong { color: var(--erro); }
+  .reg-num.amarelo { border-left-color: var(--alerta); } .reg-num.amarelo strong { color: var(--alerta); }
+  .reg-num.verde { border-left-color: var(--verde); } .reg-num.verde strong { color: var(--verde); }
+  .reg-quadros { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .reg-quadro { background: var(--branco); border: 1px solid var(--borda); border-top: 5px solid var(--verde); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .reg-quadro.sit-sem, .reg-quadro.sit-atrasado { border-top-color: var(--erro); background: #fffafa; }
+  .reg-quadro.sit-atencao { border-top-color: var(--alerta); }
+  .reg-quadro-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .reg-quadro-topo strong { font-size: 15px; }
+  .reg-disc { font-size: 12px; color: var(--suave); background: var(--fundo); border-radius: 99px; padding: 1px 8px; }
+  .reg-tabela { width: 100%; font-size: 14px; border-collapse: collapse; }
+  .reg-tabela th { font-size: 11px; color: var(--suave); font-weight: 600; text-align: left; padding: 2px 4px; }
+  .reg-tabela td { padding: 3px 4px; border-top: 1px solid var(--fundo); }
+  .reg-data { width: 92px !important; padding: 5px 8px !important; border: 1px solid var(--borda); border-radius: 6px; font: inherit; }
+  .reg-data.invalido { border-color: var(--erro); background: #fdecea; }
+  .reg-data.salvo { border-color: var(--verde); background: var(--verde-claro); transition: background .3s; }
+  .reg-quadro-pe { display: flex; justify-content: space-between; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+  .reg-quadro-pe small { color: var(--suave); font-size: 11.5px; }
+  .reg-velho { color: var(--alerta) !important; font-weight: 600; }
+  .reg-turmas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 12px; }
+  .reg-tipos { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+  .form-edicao label.check { display: flex; gap: 6px; align-items: center; margin: 2px 0; color: var(--texto); font-size: 14px; }
+  .form-edicao label.check input { width: auto; }
+  .reg-lista-imp { margin: 6px 0; padding-left: 20px; }
+  tr.linha-total td { border-top: 2px solid var(--borda); background: var(--fundo); }
+  .ev-lista { max-height: 220px; overflow: auto; border: 1px solid var(--borda); border-radius: 8px; padding: 6px 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0 12px; }
+  .ev-escolhidos { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .ev-chip { background: #e0ecff; color: #1f4f9c; border-radius: 99px; padding: 2px 4px 2px 10px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 2px; }
+  .ev-chip button { border: 0; background: transparent; color: inherit; font-size: 15px; line-height: 1; padding: 0 4px; cursor: pointer; }
+  .ev-alunos summary { cursor: pointer; color: var(--verde); font-size: 13px; }
+  .ev-alunos div { font-size: 13px; padding-left: 8px; }
+  .fr-eventos { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
   #faixa-simulacao { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 14px; background: #b54708; color: #fff;
     padding: 7px 14px; font-size: 14px; font-weight: 600; text-align: center; }
   #faixa-simulacao.escondido { display: none; }
@@ -432,6 +473,10 @@
     .imp-tabela tr { break-inside: avoid; }
     .imp-tabela td.forte { font-weight: 700; }
     .imp-rodape { margin-top: 8px; font-size: 8.5pt; color: #333; }
+    .reg-imp .imp-tabela { font-size: 8.5pt; }
+    .reg-imp .reg-imp-atraso td { font-weight: 700; }
+    .reg-imp-h2 { font-size: 11pt; margin: 14px 0 6px; }
+    .ev-imp-alunos { font-size: 7.5pt; font-weight: 400; color: #333; }
     /* folha de frequência: A4 inteiro, sem margem (o desenho já tem as margens) */
     @page folha { size: A4 portrait; margin: 0; }
     .imp-folha { page: folha; width: 210mm; height: 296mm; overflow: hidden; break-after: page; margin: 0; }
@@ -582,6 +627,7 @@ const MODULOS = [
   { id: 'ocorrencias', nome: 'Ocorrências', desc: 'ocorrências dos alunos; editar = registrar e corrigir' },
   { id: 'atendimento', nome: 'Relatório psicológico', desc: 'SIGILOSO: ver = ler o texto dos atendimentos; editar = registrar atendimentos' },
   { id: 'professores', nome: 'Professores', desc: 'cadastro dos professores' },
+  { id: 'registros', nome: 'Registro de aulas e faltas (professores)', desc: 'aviso de atraso no registro de aulas e faltas dos professores; editar = atualizar datas e lançar faltas' },
   { id: 'bolsas', nome: 'Bolsas', desc: 'classificação para bolsas' },
 ];
 // padrão de cada papel (igual ao do banco: permissoes_padrao)
@@ -750,6 +796,7 @@ async function iniciar() {
   estado.matriculas = m.data;
   estado.alunos = new Map(a.data.map(x => [x.id, x]));
   await carregarContOc();
+  await carregarAlertaRegistros();
   irPara(primeiraPagina(), undefined, 'replace');
 }
 // ---------- "Ver como": o administrador vê a plataforma com o acesso de outra pessoa ----------
@@ -774,6 +821,7 @@ async function verComo(pessoa) {
   aplicarAcessoNaTela();
   fecharFicha();
   await carregarContOc();
+  await carregarAlertaRegistros();
   irPara(primeiraPagina());
   window.scrollTo(0, 0);
 }
@@ -785,6 +833,7 @@ async function sairSimulacao() {
   aplicarAcessoNaTela();
   fecharFicha();
   await carregarContOc();
+  await carregarAlertaRegistros();
   irPara('equipe');
 }
 // na simulação, quem não tem a permissão de ler relatórios psicológicos não vê o texto (igual ao banco faria)
@@ -795,6 +844,7 @@ const MODULO_PAGINA = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' };
 function podePagina(pagina) {
   if (pagina === 'equipe') return estado.papel === 'admin';
   if (pagina === 'ocorrencias') return permite('ocorrencias') || permite('atendimento');
+  if (pagina === 'professores') return permite('professores') || permite('registros');
   return permite(MODULO_PAGINA[pagina] || pagina);
 }
 function primeiraPagina() {
@@ -879,6 +929,7 @@ function paginaTurmas() {
       ${editaAlunos() ? `<button class="botao leve" id="importar-alunos">Importar alunos (Excel)</button>
       <button class="botao" id="novo-aluno">+ Novo aluno</button>` : ''}</div>
     <p class="subtitulo">${ativos} alunos matriculados. Clique numa turma para ver o carômetro.</p>
+    ${avisoRegistrosHtml()}
     <div class="grade-turmas">
       ${estado.turmas.map(t => `
         <button class="turma ${cont(t.id) ? '' : 'vazia'}" data-turma="${t.id}">
@@ -2146,7 +2197,8 @@ const NOMES_TABELA = { alunos: 'Cadastro do aluno', matriculas: 'Matrícula', re
   notas_questao: 'Nota', segunda_chamada: '2ª chamada', pendencias_notas: 'Pendência de nota', sem_multiplicador: 'Sem multiplicador', vestibulares: 'Vestibular',
   notas_corte: 'Nota de corte', horarios: 'Horário de aula', folhas_frequencia: 'Folha de frequência', chamadas: 'Chamada', frequencia: 'Presença/falta',
   ocorrencias: 'Ocorrência', atendimentos: 'Relatório de atendimento', atestados: 'Atestado médico', saidas: 'Autorização de saída',
-  professores: 'Professor', equipe: 'Usuário / permissões' };
+  professores: 'Professor', equipe: 'Usuário / permissões', registro_aulas: 'Registro de aulas (professor)', faltas_professores: 'Falta do professor',
+  eventos: 'Evento', evento_alunos: 'Aluno no evento' };
 const NOMES_MODULO_HIST = { ...Object.fromEntries(MODULOS.map(m => [m.id, m.nome])), equipe: 'Painel admin' };
 const ACOES_HIST = { criou: 'Criou', alterou: 'Alterou', apagou: 'Apagou' };
 const CAMPOS_OCULTOS_HIST = ['id', 'criado_em', 'atualizado_em', 'registrado_em', 'registrado_por', 'criado_por', 'feito_em', 'feito_por'];
@@ -3642,9 +3694,18 @@ const alunosAtivosDaTurma = (turmaId) => estado.matriculas
   .map(m => m.aluno_id);
 
 // atestados que valem num dia (Map aluno → atestado) e saídas do dia (Map aluno → [saídas])
+// atestado vigente ou evento no dia (o evento aparece só como "Justificado"); o atestado tem prioridade
 async function atestadosDoDia(dia) {
-  const { data, error } = await db.from('atestados').select('*').lte('data_inicio', dia).gte('data_fim', dia);
-  return new Map(error ? [] : (data || []).map(a => [a.aluno_id, a]));
+  const [at, ev] = await Promise.all([
+    db.from('atestados').select('*').lte('data_inicio', dia).gte('data_fim', dia),
+    db.from('eventos').select('id, nome, hora_inicio, hora_fim').lte('data_inicio', dia).gte('data_fim', dia)]);
+  const m = new Map();
+  if (!ev.error && ev.data?.length) {
+    const { data: ps, error } = await db.from('evento_alunos').select('evento_id, aluno_id').in('evento_id', ev.data.map(e => e.id));
+    if (!error) (ps || []).forEach(p => { const e = ev.data.find(x => x.id === p.evento_id); m.set(p.aluno_id, { aluno_id: p.aluno_id, _evento: e.nome, hora_inicio: e.hora_inicio, hora_fim: e.hora_fim }); });
+  }
+  if (!at.error) (at.data || []).forEach(a => m.set(a.aluno_id, a));
+  return m;
 }
 async function saidasDoDia(dia) {
   const { data, error } = await db.from('saidas').select('*').eq('data', dia).order('hora_saida');
@@ -3718,8 +3779,8 @@ function svgFolha(folha, turma, primeiroNum, atestados) {
     return `<line x1="${X.num}" y1="${r.y + g.h}" x2="${X.fim}" y2="${r.y + g.h}" stroke="#666" stroke-width=".2"/>
       ${txt((X.num + X.nome) / 2, base, tam, primeiroNum + i, 'text-anchor="middle"')}
       ${txt(X.nome + 1.5, base, tam, nome, longo ? `textLength="${X.faltou - X.nome - 3}" lengthAdjust="spacingAndGlyphs"` : '')}
-      <rect x="${r.caixa[0]}" y="${r.caixa[1]}" width="${g.caixa}" height="${g.caixa}" fill="#fff" stroke="#000" stroke-width=".35"/>
-      ${atestados?.has(id) ? txt((X.assin + X.fim) / 2, base, Math.min(2.8, tam), 'ATESTADO MÉDICO (falta abonada)', 'text-anchor="middle" font-weight="700" fill="#555"') : ''}`;
+      <rect x="${r.caixa[0]}" y="${r.caixa[1]}" width="${g.caixa}" height="${g.caixa}" fill="${atestados?.has(id) ? '#000' : '#fff'}" stroke="#000" stroke-width=".35"/>
+      ${atestados?.has(id) ? txt((X.assin + X.fim) / 2, base, Math.min(2.8, tam), atestados.get(id)._evento ? 'JUSTIFICADO' : 'ATESTADO MÉDICO (falta abonada)', 'text-anchor="middle" font-weight="700" fill="#555"') : ''}`;
   }).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" font-family="Arial, Helvetica, sans-serif">
     <rect width="210" height="297" fill="#fff"/>${marcas}
@@ -3760,7 +3821,7 @@ function abrirImprimirFolhas() {
         ${esc(t.nome)} <small>${n} ${n === 1 ? 'aluno' : 'alunos'}${n > ALUNOS_POR_FOLHA ? ` · ${Math.ceil(n / ALUNOS_POR_FOLHA)} folhas` : ''}</small></label>`).join('')}</div>
       <p class="subtitulo" style="margin:14px 0 0">Imprima em A4, <strong>frente e verso</strong> (virar na borda longa) e <strong>sem ajustar à página</strong> (escala 100%).
         A frente é a lista; o verso é a página "Ocorrências do dia" para o professor anotar. Cada folha tem um código só dela: imprima de novo se a turma mudar.
-        Alunos com atestado no dia já saem marcados.</p>
+        Alunos com atestado ou em evento no dia já saem com o quadradinho preenchido de preto (falta abonada).</p>
     </div>
     <div id="msg-fi" class="aviso erro escondido" style="margin:0 24px 14px"></div>
     <div class="rodape-ficha"><button class="botao leve" id="fi-cancelar">Cancelar</button>
@@ -4076,7 +4137,7 @@ function mostrarRevisao(folha, loc, analise, jaTem) {
         <div class="fr-itens">${itens.map((it, i) => `
           <div class="fr-item ${it.conferir && !it.conferido ? 'conferir' : ''}" data-i="${i}">
             <span class="fr-num">${it.num}</span>
-            <div class="fr-nome">${esc(it.nome)}${it.atestado ? ' <span class="fr-tag-atestado">Atestado</span>' : ''}${it.conferir && !it.conferido ? `<small>${esc(it.conferir)}</small>` : ''}</div>
+            <div class="fr-nome">${esc(it.nome)}${it.atestado ? ` <span class="fr-tag-atestado">${it.rotuloJust || 'Atestado'}</span>` : ''}${it.conferir && !it.conferido ? `<small>${esc(it.conferir)}</small>` : ''}</div>
             ${it.conferir && !it.conferido ? `<button class="botao leve pequeno" data-ok="${i}">Está certo</button>` : ''}
             <button class="fr-estado ${it.falta ? 'falta' : 'presente'}" data-alternar="${i}">${it.falta ? 'Falta' : 'Presente'}</button>
           </div>`).join('')}</div>
@@ -4093,7 +4154,10 @@ function mostrarRevisao(folha, loc, analise, jaTem) {
     $('#lf-salvar').onclick = (e) => salvarLeitura(e.target);
   };
   // quem tem atestado no dia: a falta é abonada (aparece marcado na revisão)
-  atestadosDoDia(folha.data).then(m => { if (!m.size) return; itens.forEach(it => it.atestado = m.has(it.id)); if ($('#lf-salvar') && !$('#lf-salvar').disabled) desenhar(); });
+  atestadosDoDia(folha.data).then(m => {
+    if (!m.size) return;
+    itens.forEach(it => { const a = m.get(it.id); it.atestado = !!a; if (a) { it.rotuloJust = rotuloJustificativa(a); it.falta = true; it.conferir = null; } });
+    if ($('#lf-salvar') && !$('#lf-salvar').disabled) desenhar(); });
   const salvarLeitura = async (botao) => {
     botao.disabled = true; botao.textContent = 'Salvando…';
     const msg = (m) => { $('#msg-lf').innerHTML = m; $('#msg-lf').classList.remove('escondido'); };
@@ -4140,8 +4204,8 @@ async function editarChamada(turmaId, dia) {
       <button class="fechar" aria-label="Fechar">×</button></div>
     <div class="secao">
       <p class="subtitulo" style="margin:0 0 10px">Marque quem <strong>faltou</strong>.</p>
-      <div class="fr-lista-manual">${lista.map(x => `<label><input type="checkbox" value="${x.id}" ${x.faltou ? 'checked' : ''}> ${esc(estado.alunos.get(x.id)?.nome || '(aluno apagado)')}${atestadosDia.has(x.id) ? ' <span class="fr-tag-atestado">Atestado</span>' : ''}</label>`).join('')}</div>
-      ${atestadosDia.size ? '<p class="subtitulo" style="margin:8px 0 0">Quem está com <strong>Atestado</strong> tem a falta abonada: não conta como falta nem gera alerta.</p>' : ''}
+      <div class="fr-lista-manual">${lista.map(x => `<label><input type="checkbox" value="${x.id}" ${x.faltou ? 'checked' : ''}> ${esc(estado.alunos.get(x.id)?.nome || '(aluno apagado)')}${atestadosDia.has(x.id) ? ` <span class="fr-tag-atestado">${rotuloJustificativa(atestadosDia.get(x.id))}</span>` : ''}</label>`).join('')}</div>
+      ${atestadosDia.size ? '<p class="subtitulo" style="margin:8px 0 0">Quem está com <strong>Atestado</strong> ou <strong>Justificado</strong> (evento) tem a falta abonada: não conta como falta nem gera alerta.</p>' : ''}
       ${ch?.foto ? '<div class="linha-acao"><button class="botao leve" id="ch-foto">Ver a folha fotografada</button></div>' : ''}
       ${ch ? `<div class="linha-acao"><button class="botao leve" id="ch-apagar">Apagar esta chamada…</button></div>
         <div id="ch-confirmar" class="escondido"><div class="aviso erro">Apaga a chamada inteira deste dia (presenças e faltas).</div>
@@ -4174,7 +4238,8 @@ async function editarChamada(turmaId, dia) {
 }
 
 // ---------- página Frequência ----------
-async function paginaFrequencia() {
+async function paginaFrequencia(extra) {
+  if (extra === 'eventos') return paginaEventos();
   if (!permite('frequencia')) return irPara('turmas');
   const F = estado.freq || (estado.freq = { dia: hojeLocal(), turma: '', mes: hojeLocal().slice(0, 7) });
   $('#conteudo').innerHTML = '<div class="carregando">Carregando frequência…</div>';
@@ -4221,6 +4286,11 @@ async function paginaFrequencia() {
         <button class="botao" id="pa-imprimir">Imprimir para o professor</button></div>
       <div id="pa-lista"></div></div>
 
+    <div class="fr-bloco"><div class="barra" style="margin:0 0 6px"><h2 style="margin:0">Eventos (ausência justificada)</h2></div>
+      <div class="fr-eventos"><span class="subtitulo" style="margin:0">Aluno em olimpíada, competição, visita… Na chamada aparece só como <span class="fr-tag-atestado">Justificado</span> e a falta não conta.
+        A coordenação vê o relatório dos eventos e das aulas perdidas.</span>
+        <button class="botao leve" id="fr-eventos">Eventos e relatório</button></div></div>
+
     <div class="fr-bloco"><h2>Alertas de faltas</h2>
       <p class="subtitulo" style="margin:0 0 10px">Alunos ativos com presença abaixo de ${FREQ_MINIMA}% (depois de ${FREQ_DIAS_MIN} dias de aula) ou com ${FREQ_SEGUIDAS} ou mais faltas seguidas.</p>
       ${!alertas.length ? '<p class="subtitulo">Nenhum aluno em alerta. 🎉</p>' : `<div class="rolavel"><table>
@@ -4238,6 +4308,7 @@ async function paginaFrequencia() {
       <div id="fr-relatorio"><div class="carregando">Carregando…</div></div></div>`;
   if ($('#fr-imprimir')) $('#fr-imprimir').onclick = abrirImprimirFolhas;
   if ($('#fr-ler')) $('#fr-ler').onclick = abrirLeituraFolha;
+  $('#fr-eventos').onclick = () => irPara('frequencia', 'eventos');
   ligarListaPorAula(F);
   $('#fr-dia').onchange = (e) => { if (e.target.value) { F.dia = e.target.value; paginaFrequencia(); } };
   document.querySelectorAll('.fr-card').forEach(b => b.onclick = () => permite('frequencia', 'editar') && editarChamada(Number(b.dataset.turma), F.dia));
@@ -4269,7 +4340,7 @@ async function relatorioTurma(turmaId, mes) {
   const ids = [...new Set([...ordem, ...linhas.map(l => l.aluno_id)])]
     .sort((a, b) => ((ordem.indexOf(a) + 1) || 999) - ((ordem.indexOf(b) + 1) || 999) || (estado.alunos.get(a)?.nome || '').localeCompare(estado.alunos.get(b)?.nome || '', 'pt-BR'));
   if (!dias.length) return { html: '<p class="subtitulo">Nenhuma chamada desta turma neste mês.</p>', imp: '<p>Nenhuma chamada desta turma neste mês.</p>' };
-  const mapa = new Map(linhas.map(l => [l.aluno_id + '|' + l.data, l.atestado && l.faltou_folha ? 'A' : l.faltou]));
+  const mapa = new Map(linhas.map(l => [l.aluno_id + '|' + l.data, l.atestado && l.faltou_folha ? 'A' : l.evento && l.faltou_folha ? 'J' : l.faltou]));
   const resumo = estado.freqResumo || new Map();
   const corpo = ids.map((id, i) => {
     const marcas = dias.map(d => mapa.get(id + '|' + d));
@@ -4277,18 +4348,18 @@ async function relatorioTurma(turmaId, mes) {
     const pMes = total ? Math.round(1000 * (total - f) / total) / 10 : null, r = resumo.get(id), pAno = pctPresenca(r);
     return { id, num: i + 1, nome: estado.alunos.get(id)?.nome || '(aluno apagado)', marcas, f, total, pMes, pAno, alerta: emAlerta(r) };
   });
-  const cel = (x) => x === true ? '<td class="fr-f">F</td>' : x === 'A' ? '<td class="fr-a" title="Atestado: falta abonada">A</td>' : x === false ? '<td class="fr-p">•</td>' : '<td></td>';
+  const cel = (x) => x === true ? '<td class="fr-f">F</td>' : x === 'A' ? '<td class="fr-a" title="Atestado: falta abonada">A</td>' : x === 'J' ? '<td class="fr-a" title="Justificado (evento): falta abonada">J</td>' : x === false ? '<td class="fr-p">•</td>' : '<td></td>';
   const cab = `<tr><th>Nº</th><th>Aluno</th>${dias.map(d => `<th class="n">${d.slice(8)}</th>`).join('')}<th class="n">Faltas no mês</th><th class="n">Presença no mês</th><th class="n">Presença no ano</th></tr>`;
   const html = `<div class="rolavel"><table class="fr-rel">
     <thead>${cab.replace(/class="n"/g, 'class="num"')}</thead>
     <tbody>${corpo.map(l => `<tr class="${l.alerta ? 'alerta' : ''}"><td>${l.num}</td><td><button class="link" data-aluno="${l.id}">${esc(l.nome)}</button></td>
       ${l.marcas.map(cel).join('')}<td class="num">${l.f}</td><td class="num">${l.pMes == null ? '—' : fmt(l.pMes) + '%'}</td>
       <td class="num">${l.pAno == null ? '—' : `<span class="fr-pct ${l.alerta ? 'ruim' : ''}">${fmt(l.pAno)}%</span>`}</td></tr>`).join('')}</tbody></table></div>
-    <p class="subtitulo" style="margin:8px 0 0">${dias.length} ${dias.length === 1 ? 'dia' : 'dias'} com chamada no mês · F = falta · A = atestado (falta abonada) · • = presente · linhas em destaque estão em alerta.</p>`;
+    <p class="subtitulo" style="margin:8px 0 0">${dias.length} ${dias.length === 1 ? 'dia' : 'dias'} com chamada no mês · F = falta · A = atestado · J = justificado por evento (os dois abonam a falta) · • = presente · linhas em destaque estão em alerta.</p>`;
   const imp = `<table class="imp-tabela fr-rel-imp"><thead>${cab}</thead><tbody>${corpo.map(l => `<tr><td class="n">${l.num}</td><td>${esc(l.nome)}${l.alerta ? ' ⚠' : ''}</td>
     ${l.marcas.map(x => `<td class="n">${x === true ? '<strong>F</strong>' : x === 'A' ? 'A' : x === false ? '•' : ''}</td>`).join('')}
     <td class="n">${l.f}</td><td class="n">${l.pMes == null ? '—' : fmt(l.pMes) + '%'}</td><td class="n">${l.pAno == null ? '—' : fmt(l.pAno) + '%'}</td></tr>`).join('')}</tbody></table>
-    <p class="imp-rodape">F = falta · A = atestado (falta abonada) · • = presente · ⚠ = em alerta (presença abaixo de ${FREQ_MINIMA}% ou ${FREQ_SEGUIDAS}+ faltas seguidas).</p>`;
+    <p class="imp-rodape">F = falta · A = atestado · J = justificado por evento (os dois abonam a falta) · • = presente · ⚠ = em alerta (presença abaixo de ${FREQ_MINIMA}% ou ${FREQ_SEGUIDAS}+ faltas seguidas).</p>`;
   return { html, imp };
 }
 
@@ -4300,7 +4371,9 @@ async function aulasDoDia(turmaId, dia) {
 }
 // situação de cada aluno numa aula: atestado > saída > chamada do dia
 function situacaoNaAula(id, aula, ctx) {
-  if (ctx.atestados.has(id)) return { cod: 'atestado', texto: 'Atestado' };
+  const just = ctx.atestados.get(id);
+  if (just && !(just._evento && aula && ((just.hora_inicio && hhmm(aula.fim) <= hhmm(just.hora_inicio)) || (just.hora_fim && hhmm(aula.inicio) >= hhmm(just.hora_fim)))))
+    return { cod: 'atestado', texto: rotuloJustificativa(just) };
   const ini = aula ? hhmm(aula.inicio) : null, fim = aula ? hhmm(aula.fim) : null;
   for (const sd of ctx.saidas.get(id) || []) {
     const sa = hhmm(sd.hora_saida), ret = sd.retorna ? hhmm(sd.hora_retorno) : null;
@@ -4352,7 +4425,7 @@ function ligarListaPorAula(F) {
       <div class="tiles">
         <div class="tile"><span>Presentes</span><strong>${c.presente}</strong></div>
         <div class="tile ${c.falta ? 'ruim' : ''}"><span>Faltaram</span><strong>${c.falta}</strong></div>
-        <div class="tile"><span>Atestado</span><strong>${c.atestado}</strong></div>
+        <div class="tile"><span>Atestado / justificado</span><strong>${c.atestado}</strong></div>
         <div class="tile"><span>Saíram (autorização)</span><strong>${c.saiu}</strong></div></div>
       <div class="rolavel"><table class="pa-tabela"><thead><tr><th class="num">Nº</th><th>Aluno</th><th>Situação</th></tr></thead>
       <tbody>${atual.linhas.map(l => `<tr class="pa-${l.cod}"><td class="num">${l.num}</td><td>${esc(l.nome)}</td><td><span class="pa-sit pa-${l.cod}">${esc(l.texto)}</span></td></tr>`).join('')}</tbody></table></div>
@@ -4367,7 +4440,7 @@ function ligarListaPorAula(F) {
     $('#impressao').innerHTML = `<div class="imp-folha imp-pa ${atual.linhas.length > 38 ? 'muitos' : ''}"><div class="imp-pa-conteudo">
         <div class="imp-topo"><h1>LISTA DE FREQUÊNCIA DA AULA</h1><span>impresso em ${atual.geradoEm.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span></div>
         <p class="imp-sub"><strong>Turma:</strong> ${esc(turma)} · <strong>Data:</strong> ${esc(data(dia))} (${esc(diaSemana(dia))}) · <strong>Aula:</strong> ${esc(rot)}</p>
-        <p class="imp-sub">Presentes: <strong>${c.presente}</strong> · Faltaram: <strong>${c.falta}</strong> · Atestado: <strong>${c.atestado}</strong> · Saíram: <strong>${c.saiu}</strong>${atual.chamada ? '' : ' · <em>chamada do dia ainda não lançada</em>'}</p>
+        <p class="imp-sub">Presentes: <strong>${c.presente}</strong> · Faltaram: <strong>${c.falta}</strong> · Atestado/justificado: <strong>${c.atestado}</strong> · Saíram: <strong>${c.saiu}</strong>${atual.chamada ? '' : ' · <em>chamada do dia ainda não lançada</em>'}</p>
         <table class="imp-tabela"><thead><tr><th class="n">Nº</th><th>Aluno</th><th>Situação</th><th style="width:30mm">Visto do professor</th></tr></thead>
         <tbody>${atual.linhas.map(l => `<tr><td class="n">${l.num}</td><td>${esc(l.nome)}</td><td class="${['falta', 'atestado', 'saiu'].includes(l.cod) ? 'imp-destaque' : ''}">${esc(l.texto)}</td><td></td></tr>`).join('')}</tbody></table>
         <p class="imp-rodape">Situação no momento da impressão: chamada do dia, atestados vigentes e autorizações de saída registradas pela coordenação.</p></div></div>
@@ -4661,12 +4734,12 @@ function carregarScript(url) {
   });
 }
 
-async function paginaProfessores() {
+async function paginaCadastroProfessores() {
   $('#conteudo').innerHTML = '<div class="carregando">Carregando professores…</div>';
   const { data: profs, error } = await db.from('professores').select('*').order('nome');
   if (error) return erroNaTela(error);
   $('#conteudo').innerHTML = `
-    <h1>Professores</h1>
+    ${cabecalhoProfessores('cadastro')}
     <p class="subtitulo">Usados para preencher automaticamente as planilhas de notas e os avisos por e-mail.</p>
     <div class="caixa-link">
       <strong>Importar do Excel:</strong>
@@ -4753,6 +4826,733 @@ async function paginaProfessores() {
       await paginaProfessores();
       aviso(`${lista.length} professores importados.`);
     } catch (err) { aviso('Não consegui ler o arquivo: ' + err.message, true); }
+  };
+}
+
+// =====================================================================
+// PROFESSORES: REGISTRO DE AULAS NO PORTAL (aviso de atraso) E FALTAS DO PROFESSOR
+// =====================================================================
+const PRAZO_REGISTRO = 14;   // dias sem registrar no portal = atrasado (aviso vermelho)
+const AVISO_REGISTRO = 10;   // a partir daqui, "atenção" (amarelo): vai vencer em breve
+const CONFERENCIA_VELHA = 7; // conferência no portal mais antiga que isso: lembrar de conferir de novo
+const SIT_REG = {
+  sem: { nome: 'Sem registro', cls: 'vermelho', ordem: 0 },
+  atrasado: { nome: 'Atrasado', cls: 'vermelho', ordem: 1 },
+  atencao: { nome: 'Atenção', cls: 'amarelo', ordem: 2 },
+  em_dia: { nome: 'Em dia', cls: 'aberta', ordem: 3 },
+};
+const TIPOS_FALTA = { atestado: 'Atestado médico', justificada: 'Falta justificada', nao_justificada: 'Falta sem justificativa' };
+const REPOSICAO = { nao: 'Não reposta', agendada: 'Reposição agendada', feita: 'Reposta' };
+const doisDig = (n) => String(n).padStart(2, '0');
+const diasDesde = (d) => d ? Math.round((new Date(hojeLocal() + 'T12:00') - new Date(d + 'T12:00')) / 864e5) : null;
+const situacaoRegistro = (d) => { const n = diasDesde(d); return n === null ? 'sem' : n >= PRAZO_REGISTRO ? 'atrasado' : n >= AVISO_REGISTRO ? 'atencao' : 'em_dia'; };
+const piorSituacao = (lista) => lista.reduce((p, s) => SIT_REG[s].ordem < SIT_REG[p].ordem ? s : p, 'em_dia');
+const dataCurta = (d) => !d ? '' : d.slice(0, 4) === hojeLocal().slice(0, 4) ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : data(d);
+const quando = (ts) => ts ? new Date(ts).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+const quem = (email) => !email ? '' : email.includes('@') ? email.split('@')[0] : email;
+// "23/11", "23/11/26", "23/11/2026", "2311" -> data ISO (nunca no futuro; sem ano = o último 23/11 que já passou)
+function lerDataCurta(txt) {
+  txt = String(txt || '').trim();
+  if (!txt || /^sem/i.test(txt)) return { ok: true, valor: null };
+  const m = txt.match(/^(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2,4}))?$/) || txt.match(/^(\d{2})(\d{2})()$/);
+  if (!m) return { ok: false, msg: 'Use o formato dia/mês, ex.: 23/11' };
+  const hoje = hojeLocal();
+  let ano = m[3] ? (m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3])) : Number(hoje.slice(0, 4));
+  const montar = (a) => `${a}-${doisDig(m[2])}-${doisDig(m[1])}`;
+  let iso = montar(ano);
+  const dt = new Date(iso + 'T12:00');
+  if (isNaN(dt) || dt.toISOString().slice(0, 10) !== iso) return { ok: false, msg: 'Data inválida' };
+  if (!m[3] && iso > hoje) iso = montar(ano - 1);
+  if (iso > hoje) return { ok: false, msg: 'A data não pode ser depois de hoje' };
+  return { ok: true, valor: iso };
+}
+// mesmo professor escrito de jeitos diferentes: "HERB" x "HERBERT", "ISABEL" x "HISABEL", "JOHN" x "JHON", acentos
+function mesmoProfessor(a, b) {
+  a = chaveProf(a).split(' ')[0]; b = chaveProf(b).split(' ')[0];
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (Math.min(a.length, b.length) >= 4 && (a.startsWith(b) || b.startsWith(a))) return true;
+  if (Math.min(a.length, b.length) < 4 || Math.abs(a.length - b.length) > 1) return false;
+  // distância de edição <= 1 (inclui letras trocadas de lugar)
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) {
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+  }
+  return d[a.length][b.length] <= 1;
+}
+const turmaCurta = (id) => nomeTurma(id).replace(' Série ', ' ');
+async function horariosDoAno() {
+  if (estado.horariosAno) return estado.horariosAno;
+  const { data: h, error } = await db.from('horarios').select('turma_id, dia, inicio, fim, professor').eq('ano_letivo', ANO_LETIVO);
+  if (error) return [];
+  return (estado.horariosAno = h || []);
+}
+
+// ---------- aviso no menu e na página inicial ----------
+async function carregarAlertaRegistros() {
+  estado.alertaReg = null;
+  const botao = $('#nav-professores');
+  botao?.querySelector('.balao-oc')?.remove();
+  if (!permite('registros')) return;
+  try {
+    const { data: rs, error } = await db.from('registro_aulas').select('professor, ultima_data');
+    if (error || !rs) return;
+    const nomes = new Map();
+    rs.forEach(r => { if (['sem', 'atrasado'].includes(situacaoRegistro(r.ultima_data))) nomes.set(chaveProf(r.professor), r.professor); });
+    estado.alertaReg = { professores: [...nomes.values()].sort((a, b) => a.localeCompare(b)), diarios: rs.filter(r => ['sem', 'atrasado'].includes(situacaoRegistro(r.ultima_data))).length };
+    const n = estado.alertaReg.professores.length;
+    if (n && botao) botao.insertAdjacentHTML('beforeend', ` <span class="balao-oc" title="${n} professor${n > 1 ? 'es' : ''} com registro de aulas atrasado">${n}</span>`);
+  } catch (e) { /* segue sem o aviso */ }
+}
+function avisoRegistrosHtml() {
+  const a = estado.alertaReg;
+  if (!a || !a.professores.length) return '';
+  const n = a.professores.length;
+  return `<div class="aviso-registro"><strong>⚠ ${n} professor${n > 1 ? 'es estão' : ' está'} com o registro de aulas atrasado</strong>
+    (${PRAZO_REGISTRO} dias ou mais sem registrar no portal, ou sem nenhum registro): ${a.professores.map(esc).join(', ')}.
+    <button class="botao pequeno" id="ir-registros">Ver controle de registros</button></div>`;
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#ir-registros')) irPara('professores', 'registro');
+  const aba = e.target.closest('[data-aba-prof]');
+  if (aba) { estado.abaProf = aba.dataset.abaProf; irPara('professores', aba.dataset.abaProf); }
+});
+
+// ---------- página Professores com abas ----------
+function abasProfessores() {
+  return [permite('registros') && ['registro', 'Registro de aulas'], permite('registros') && ['faltas', 'Faltas do professor'],
+    permite('professores') && ['cadastro', 'Cadastro']].filter(Boolean);
+}
+function cabecalhoProfessores(atual) {
+  const abas = abasProfessores();
+  return `<div class="barra"><h1 style="margin:0">Professores</h1></div>
+    ${abas.length > 1 ? `<div class="alternar" style="margin:12px 0 18px;width:fit-content">${abas.map(([id, nome]) =>
+      `<button data-aba-prof="${id}" class="${id === atual ? 'ativa' : ''}">${nome}${id === 'registro' && estado.alertaReg?.professores.length ? ` <span class="balao-oc">${estado.alertaReg.professores.length}</span>` : ''}</button>`).join('')}</div>` : ''}`;
+}
+async function paginaProfessores(aba) {
+  const abas = abasProfessores();
+  if (!abas.length) return irPara(primeiraPagina());
+  aba = abas.some(a => a[0] === (aba || estado.abaProf)) ? (aba || estado.abaProf) : abas[0][0];
+  estado.abaProf = aba;
+  if (aba === 'registro') return paginaRegistroAulas();
+  if (aba === 'faltas') return paginaFaltasProfessores();
+  return paginaCadastroProfessores();
+}
+
+// ---------- Registro de aulas ----------
+async function paginaRegistroAulas() {
+  const F = estado.filtroReg || (estado.filtroReg = { busca: '', situacao: 'todos', ordem: 'atraso' });
+  $('#conteudo').innerHTML = cabecalhoProfessores('registro') + '<div class="carregando">Carregando registros…</div>';
+  const { data: rs, error } = await db.from('registro_aulas').select('*');
+  if (error) return erroNaTela(error);
+  const ed = permite('registros', 'editar');
+  const linhas = rs || [];
+  // um quadro por professor + disciplina (como na planilha)
+  const grupos = () => {
+    const m = new Map();
+    linhas.forEach(r => {
+      const k = chaveProf(r.professor) + '|' + semAcento(r.disciplina || '');
+      if (!m.has(k)) m.set(k, { k, professor: r.professor, disciplina: r.disciplina, linhas: [] });
+      m.get(k).linhas.push(r);
+    });
+    const gs = [...m.values()];
+    gs.forEach(g => {
+      g.linhas.sort((a, b) => a.turma_id - b.turma_id);
+      g.sit = piorSituacao(g.linhas.map(r => situacaoRegistro(r.ultima_data)));
+      g.maxDias = Math.max(...g.linhas.map(r => r.ultima_data ? diasDesde(r.ultima_data) : 9999));
+      g.conferido = g.linhas.reduce((x, r) => !x || r.conferido_em < x.conferido_em ? r : x, null);
+    });
+    return gs;
+  };
+  const resumo = () => {
+    const gs = grupos(), porProf = new Map();
+    gs.forEach(g => { const k = chaveProf(g.professor); porProf.set(k, piorSituacao([porProf.get(k) || 'em_dia', g.sit])); });
+    const c = { sem: 0, atrasado: 0, atencao: 0, em_dia: 0 };
+    porProf.forEach(s => c[s]++);
+    const ultima = linhas.reduce((x, r) => !x || r.conferido_em > x ? r.conferido_em : x, null);
+    return `<div class="reg-resumo">
+      <div class="reg-num vermelho"><strong>${c.sem + c.atrasado}</strong><span>professor${c.sem + c.atrasado === 1 ? '' : 'es'} atrasado${c.sem + c.atrasado === 1 ? '' : 's'}<small>${PRAZO_REGISTRO}+ dias sem registrar</small></span></div>
+      <div class="reg-num amarelo"><strong>${c.atencao}</strong><span>em atenção<small>${AVISO_REGISTRO} a ${PRAZO_REGISTRO - 1} dias: vence em breve</small></span></div>
+      <div class="reg-num verde"><strong>${c.em_dia}</strong><span>em dia<small>menos de ${AVISO_REGISTRO} dias</small></span></div>
+      <div class="reg-num"><strong>${ultima ? quando(ultima).split(',')[0] : '—'}</strong><span>última conferência<small>${linhas.length} diários no controle</small></span></div></div>`;
+  };
+  const linhaHtml = (r) => {
+    const s = situacaoRegistro(r.ultima_data), n = diasDesde(r.ultima_data);
+    return `<tr data-reg="${r.id}"><td>${esc(turmaCurta(r.turma_id))}</td>
+      <td><input type="text" class="reg-data" data-reg-data="${r.id}" value="${esc(dataCurta(r.ultima_data))}" placeholder="dd/mm" inputmode="numeric" aria-label="Última data registrada ${esc(r.professor)} ${esc(turmaCurta(r.turma_id))}" ${ed ? '' : 'disabled'}></td>
+      <td class="reg-dias"><span class="status ${SIT_REG[s].cls}">${n === null ? 'sem registro' : n === 0 ? 'hoje' : n + (n === 1 ? ' dia' : ' dias')}</span></td></tr>`;
+  };
+  const quadroHtml = (g) => {
+    const velho = g.conferido && (Date.now() - new Date(g.conferido.conferido_em)) / 864e5 > CONFERENCIA_VELHA;
+    return `<div class="reg-quadro sit-${g.sit}" data-grupo="${esc(g.k)}">
+      <div class="reg-quadro-topo"><div><strong>${esc(g.professor)}</strong>${g.disciplina ? ` <span class="reg-disc">${esc(g.disciplina)}</span>` : ''}</div>
+        <span class="status ${SIT_REG[g.sit].cls}">${SIT_REG[g.sit].nome}</span></div>
+      <table class="reg-tabela"><thead><tr><th>Turma</th><th>Última data registrada</th><th>Sem registrar</th></tr></thead>
+        <tbody>${g.linhas.map(linhaHtml).join('')}</tbody></table>
+      <div class="reg-quadro-pe"><small class="${velho ? 'reg-velho' : ''}" title="${velho ? 'Faz mais de ' + CONFERENCIA_VELHA + ' dias: confira de novo no portal' : ''}">${g.conferido ? `Conferido ${quando(g.conferido.conferido_em)}${g.conferido.conferido_por ? ' · ' + esc(quem(g.conferido.conferido_por)) : ''}${velho ? ' ⏱' : ''}` : ''}</small>
+        ${ed ? `<span><button class="botao leve pequeno" data-conferi="${esc(g.k)}" title="Conferi no portal e nada mudou">✓ Conferido</button>
+          <button class="botao leve pequeno" data-editar-diario="${esc(g.k)}">Editar</button></span>` : ''}</div></div>`;
+  };
+  const filtrados = () => {
+    const b = chaveProf(F.busca);
+    let gs = grupos().filter(g => (!b || chaveProf(g.professor + ' ' + (g.disciplina || '')).includes(b))
+      && (F.situacao === 'todos' || (F.situacao === 'atrasados' ? ['sem', 'atrasado'].includes(g.sit) : g.sit === F.situacao)));
+    gs.sort(F.ordem === 'nome' ? (a, b) => a.professor.localeCompare(b.professor) || (a.disciplina || '').localeCompare(b.disciplina || '')
+      : (a, b) => b.maxDias - a.maxDias || a.professor.localeCompare(b.professor));
+    return gs;
+  };
+  const desenharQuadros = () => {
+    const gs = filtrados();
+    $('#reg-quadros').innerHTML = gs.length ? gs.map(quadroHtml).join('') : '<p class="subtitulo">Nenhum professor com esses filtros.</p>';
+    $('#reg-resumo').innerHTML = resumo();
+    ligarQuadros();
+  };
+  $('#conteudo').innerHTML = cabecalhoProfessores('registro') + `
+    <div class="barra"><h2 style="margin:0">Registro de aulas no portal</h2><div class="espaco"></div>
+      <button class="botao leve" id="reg-imprimir">Imprimir atrasos</button>
+      ${ed ? `<button class="botao leve" id="reg-importar">Importar planilha</button><input type="file" id="reg-arquivo" accept=".xlsx,.xls" class="escondido">
+      <button class="botao leve" id="reg-horario">Buscar no horário</button>
+      <button class="botao" id="reg-novo">+ Diário</button>` : ''}</div>
+    <p class="subtitulo">Confira no portal de aulas a última data que cada professor registrou em cada turma e digite aqui (ex.: <strong>23/11</strong>, depois Tab para a próxima).
+      Salva sozinho. O aviso <span class="status vermelho">vermelho</span> aparece quando o professor fica <strong>${PRAZO_REGISTRO} dias ou mais</strong> sem registrar; em <span class="status amarelo">amarelo</span>, faltam poucos dias para vencer.
+      Se conferiu e nada mudou, clique em <strong>✓ Conferido</strong>.</p>
+    <div id="reg-resumo"></div>
+    <div class="barra"><input type="search" id="reg-busca" placeholder="Procurar professor…" value="${esc(F.busca)}">
+      <select id="reg-sit"><option value="todos">Todas as situações</option><option value="atrasados">Só atrasados</option><option value="atencao">Só em atenção</option><option value="em_dia">Só em dia</option></select>
+      <select id="reg-ordem"><option value="atraso">Mais atrasados primeiro</option><option value="nome">Ordem alfabética</option></select></div>
+    <div id="msg-reg" class="aviso escondido"></div>
+    <div id="reg-quadros" class="reg-quadros"></div>`;
+  $('#reg-sit').value = F.situacao; $('#reg-ordem').value = F.ordem;
+  const aviso = (t, erro) => { const m = $('#msg-reg'); m.textContent = t; m.classList.toggle('erro', !!erro); m.classList.remove('escondido'); };
+  $('#reg-busca').oninput = (e) => { F.busca = e.target.value; desenharQuadros(); };
+  $('#reg-sit').onchange = (e) => { F.situacao = e.target.value; desenharQuadros(); };
+  $('#reg-ordem').onchange = (e) => { F.ordem = e.target.value; desenharQuadros(); };
+  // depois de salvar: atualiza só o quadro (sem perder o lugar do cursor) e os avisos
+  const atualizarQuadro = (k) => {
+    const g = grupos().find(x => x.k === k), el = document.querySelector(`.reg-quadro[data-grupo="${CSS.escape(k)}"]`);
+    if (!g || !el) return;
+    el.className = `reg-quadro sit-${g.sit}`;
+    const topo = el.querySelector('.reg-quadro-topo .status'); topo.className = `status ${SIT_REG[g.sit].cls}`; topo.textContent = SIT_REG[g.sit].nome;
+    g.linhas.forEach(r => { const td = el.querySelector(`tr[data-reg="${r.id}"] .reg-dias`); if (td) td.innerHTML = linhaHtml(r).match(/<td class="reg-dias">([\s\S]*)<\/td><\/tr>$/)[1]; });
+    el.querySelector('.reg-quadro-pe small').outerHTML = quadroHtml(g).match(/<small[\s\S]*?<\/small>/)[0];
+    $('#reg-resumo').innerHTML = resumo();
+    carregarAlertaRegistros();
+  };
+  function ligarQuadros() {
+    if (!ed) return;
+    document.querySelectorAll('[data-reg-data]').forEach(inp => {
+      inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); const todos = [...document.querySelectorAll('[data-reg-data]')]; todos[todos.indexOf(inp) + 1]?.focus(); } };
+      inp.onchange = async () => {
+        const r = linhas.find(x => x.id === Number(inp.dataset.regData)), lido = lerDataCurta(inp.value);
+        if (!lido.ok) { inp.classList.add('invalido'); inp.title = lido.msg; return aviso(`${r.professor} · ${turmaCurta(r.turma_id)}: ${lido.msg}.`, true); }
+        inp.classList.remove('invalido'); inp.title = '';
+        const novo = { ultima_data: lido.valor, conferido_em: new Date().toISOString(), conferido_por: estado.email };
+        const { error: e } = await db.from('registro_aulas').update(novo).eq('id', r.id);
+        if (e) { inp.classList.add('invalido'); return aviso('Não foi possível salvar: ' + e.message, true); }
+        Object.assign(r, novo);
+        inp.value = dataCurta(r.ultima_data);
+        inp.classList.add('salvo'); setTimeout(() => inp.classList.remove('salvo'), 1200);
+        $('#msg-reg').classList.add('escondido');
+        atualizarQuadro(inp.closest('.reg-quadro').dataset.grupo);
+      };
+    });
+    document.querySelectorAll('[data-conferi]').forEach(b => b.onclick = async () => {
+      const g = grupos().find(x => x.k === b.dataset.conferi), agora = new Date().toISOString();
+      const { error: e } = await db.from('registro_aulas').update({ conferido_em: agora, conferido_por: estado.email }).in('id', g.linhas.map(r => r.id));
+      if (e) return aviso('Não foi possível salvar: ' + e.message, true);
+      g.linhas.forEach(r => { r.conferido_em = agora; r.conferido_por = estado.email; });
+      atualizarQuadro(g.k);
+    });
+    document.querySelectorAll('[data-editar-diario]').forEach(b => b.onclick = () => formDiario(grupos().find(x => x.k === b.dataset.editarDiario)));
+  }
+  desenharQuadros();
+
+  // ----- imprimir a lista de atrasos -----
+  $('#reg-imprimir').onclick = () => {
+    const gs = grupos().filter(g => g.sit !== 'em_dia').sort((a, b) => b.maxDias - a.maxDias);
+    const lins = gs.flatMap(g => g.linhas.filter(r => situacaoRegistro(r.ultima_data) !== 'em_dia').map(r => ({ g, r })));
+    $('#impressao').innerHTML = `<div class="reg-imp"><div class="imp-topo"><h1>REGISTRO DE AULAS · ATRASOS</h1>
+      <span>impresso em ${new Date().toLocaleDateString('pt-BR')} · atrasado = ${PRAZO_REGISTRO}+ dias sem registrar</span></div>
+      ${lins.length ? `<table class="imp-tabela"><thead><tr><th>Professor</th><th>Disciplina</th><th>Turma</th><th>Última data registrada</th><th class="n">Dias sem registrar</th><th>Situação</th><th>Conferido em</th></tr></thead>
+      <tbody>${lins.map(({ g, r }) => { const s = situacaoRegistro(r.ultima_data), n = diasDesde(r.ultima_data); return `<tr class="${s === 'atencao' ? '' : 'reg-imp-atraso'}"><td>${esc(g.professor)}</td><td>${esc(g.disciplina || '')}</td><td>${esc(turmaCurta(r.turma_id))}</td>
+        <td>${r.ultima_data ? esc(data(r.ultima_data)) : 'sem registro'}</td><td class="n">${n === null ? '—' : n}</td><td>${SIT_REG[s].nome}</td><td>${esc(quando(r.conferido_em))}</td></tr>`; }).join('')}</tbody></table>`
+      : '<p>Nenhum professor atrasado ou em atenção.</p>'}
+      <p class="imp-rodape">Atrasado: ${PRAZO_REGISTRO} dias ou mais sem registro no portal. Atenção: ${AVISO_REGISTRO} a ${PRAZO_REGISTRO - 1} dias. Dados lançados à mão a partir da conferência no portal.</p></div>`;
+    setTimeout(() => window.print(), 100);
+  };
+  if (!ed) return;
+
+  // ----- novo diário / editar diário -----
+  const nomesConhecidos = async () => {
+    const h = await horariosDoAno(), vistos = [];
+    [...linhas.map(r => r.professor), ...h.map(x => x.professor)].forEach(n => { if (!vistos.some(v => mesmoProfessor(v, n))) vistos.push(n); });
+    return vistos.sort((a, b) => a.localeCompare(b));
+  };
+  async function formDiario(g) {
+    const novo = !g, nomes = await nomesConhecidos();
+    const tem = new Map((g?.linhas || []).map(r => [r.turma_id, r]));
+    const erro = modalForm(novo ? 'Novo diário' : 'Editar diário', novo ? 'professor + turmas que ele registra no portal' : 'desmarque uma turma para tirá-la do controle', `
+      <div class="largo"><label for="dr-prof">Professor</label><input type="text" id="dr-prof" list="dr-nomes" value="${esc(g?.professor || '')}" autocomplete="off">
+        <datalist id="dr-nomes">${nomes.map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
+      <div class="largo"><label for="dr-disc">Disciplina <small>(opcional: só quando o professor tem diários separados, ex.: Gramática / Interpretação)</small></label>
+        <input type="text" id="dr-disc" value="${esc(g?.disciplina || '')}"></div>
+      <div class="largo"><label>Turmas</label><div class="reg-turmas">${estado.turmas.map(t => `<label class="check"><input type="checkbox" value="${t.id}" ${tem.has(t.id) ? 'checked' : ''}> ${esc(t.nome)}</label>`).join('')}</div></div>`, novo);
+    if (!novo) $('#form-apagar').textContent = 'Tirar do controle…';
+    $('#form-salvar').onclick = async () => {
+      const professor = $('#dr-prof').value.trim().toUpperCase(), disciplina = $('#dr-disc').value.trim() || null;
+      const marcadas = [...document.querySelectorAll('.reg-turmas input:checked')].map(c => Number(c.value));
+      if (!professor) return erro('Informe o nome do professor.');
+      if (!marcadas.length) return erro('Marque pelo menos uma turma (ou use "Tirar do controle").');
+      $('#form-salvar').disabled = true;
+      const ids = (g?.linhas || []).map(r => r.id);
+      if (ids.length) {
+        const { error: e1 } = await db.from('registro_aulas').update({ professor, disciplina }).in('id', ids);
+        if (e1) return erro(/duplicate|unique/i.test(e1.message) ? 'Já existe um diário desse professor nessa turma.' : e1.message);
+        const tirar = (g.linhas || []).filter(r => !marcadas.includes(r.turma_id)).map(r => r.id);
+        if (tirar.length) { const { error: e2 } = await db.from('registro_aulas').delete().in('id', tirar); if (e2) return erro(e2.message); }
+      }
+      const incluir = marcadas.filter(t => !tem.has(t)).map(turma_id => ({ professor, disciplina, turma_id, ultima_data: null, conferido_por: estado.email }));
+      if (incluir.length) {
+        const { error: e3 } = await db.from('registro_aulas').insert(incluir);
+        if (e3) return erro(/duplicate|unique/i.test(e3.message) ? 'Já existe um diário desse professor numa dessas turmas.' : e3.message);
+      }
+      fecharFicha(); await carregarAlertaRegistros(); paginaRegistroAulas();
+    };
+    if (!novo) $('#form-apagar').onclick = async (e) => {
+      if (e.target.dataset.confirmar !== '1') { e.target.dataset.confirmar = '1'; e.target.textContent = 'Clique de novo para tirar do controle'; e.target.classList.add('perigo'); return; }
+      const { error: e4 } = await db.from('registro_aulas').delete().in('id', g.linhas.map(r => r.id));
+      if (e4) return erro('Não foi possível tirar: ' + e4.message);
+      fecharFicha(); await carregarAlertaRegistros(); paginaRegistroAulas();
+    };
+  }
+  $('#reg-novo').onclick = () => formDiario(null);
+
+  // ----- buscar no horário: professor x turma que dá aula e ainda não está no controle -----
+  $('#reg-horario').onclick = async () => {
+    const h = await horariosDoAno(), faltam = [], visto = new Set();
+    h.forEach(x => {
+      const k = chaveProf(x.professor) + '|' + x.turma_id;
+      if (visto.has(k)) return; visto.add(k);
+      if (!linhas.some(r => r.turma_id === x.turma_id && mesmoProfessor(r.professor, x.professor))) faltam.push(x);
+    });
+    faltam.sort((a, b) => a.professor.localeCompare(b.professor) || a.turma_id - b.turma_id);
+    const erro = modalForm('Professores do horário fora do controle', `horário ${ANO_LETIVO}`, !faltam.length
+      ? '<p>Todos os professores do horário já estão no controle. 👍</p>'
+      : `<p class="subtitulo" style="margin:0">Marque os que devem entrar no controle (entram como "sem registro" até você digitar a data).</p>
+        <div class="reg-turmas" style="grid-template-columns:1fr 1fr">${faltam.map((x, i) => `<label class="check"><input type="checkbox" data-falta="${i}" checked> ${esc(x.professor)} · ${esc(turmaCurta(x.turma_id))}</label>`).join('')}</div>`, true);
+    $('#form-salvar').textContent = faltam.length ? 'Incluir marcados' : 'Fechar';
+    $('#form-salvar').onclick = async () => {
+      const sel = [...document.querySelectorAll('[data-falta]:checked')].map(c => faltam[Number(c.dataset.falta)]);
+      if (!sel.length) return fecharFicha();
+      const { error: e } = await db.from('registro_aulas').insert(sel.map(x => ({ professor: x.professor.toUpperCase(), turma_id: x.turma_id, ultima_data: null, conferido_por: estado.email })));
+      if (e) return erro(e.message);
+      fecharFicha(); await carregarAlertaRegistros(); paginaRegistroAulas();
+    };
+  };
+
+  // ----- importar a planilha no formato de quadros (igual à "Controle de registro") -----
+  $('#reg-importar').onclick = () => $('#reg-arquivo').click();
+  $('#reg-arquivo').onchange = async (e) => {
+    const arq = e.target.files[0]; if (!arq) return;
+    e.target.value = '';
+    try {
+      await carregarScript(XLSX_URL);
+      const wb = XLSX.read(await arq.arrayBuffer(), { cellDates: true });
+      const lidas = lerPlanilhaRegistro(wb);
+      if (!lidas.itens.length) return aviso('Não achei quadros na planilha. Cada quadro precisa ter o nome do professor, embaixo "TURMA" e "ÚLTIMA DATA REGISTRADA", e as turmas (1º A, 1º B…).', true);
+      const chave = (p, d, t) => chaveProf(p) + '|' + semAcento(d || '') + '|' + t;
+      const mudar = [], novos = [], iguais = [];
+      lidas.itens.forEach(it => {
+        const r = linhas.find(x => chave(x.professor, x.disciplina, x.turma_id) === chave(it.professor, it.disciplina, it.turma_id))
+          || linhas.find(x => x.turma_id === it.turma_id && semAcento(x.disciplina || '') === semAcento(it.disciplina || '') && mesmoProfessor(x.professor, it.professor));
+        if (!r) novos.push(it); else if ((r.ultima_data || null) !== it.ultima_data) mudar.push({ r, it }); else iguais.push(r);
+      });
+      const erro = modalForm('Importar planilha de registros', esc(arq.name), `
+        <p style="margin:0">Encontrei <strong>${lidas.itens.length}</strong> turmas em ${lidas.quadros} quadros de professores:</p>
+        <ul class="reg-lista-imp"><li><strong>${mudar.length}</strong> com data nova</li><li><strong>${novos.length}</strong> diários novos (entram no controle)</li>
+          <li>${iguais.length} sem mudança</li>${lidas.erros.length ? `<li class="reg-velho">${lidas.erros.length} datas que não entendi (ficam como estão): ${lidas.erros.slice(0, 8).map(esc).join('; ')}${lidas.erros.length > 8 ? '…' : ''}</li>` : ''}</ul>
+        ${mudar.length ? `<div class="rolavel" style="max-height:260px"><table><thead><tr><th>Professor</th><th>Turma</th><th>Antes</th><th>Agora</th></tr></thead><tbody>
+          ${mudar.map(({ r, it }) => `<tr><td>${esc(r.professor)}${r.disciplina ? ' · ' + esc(r.disciplina) : ''}</td><td>${esc(turmaCurta(r.turma_id))}</td><td>${r.ultima_data ? esc(data(r.ultima_data)) : 'sem registro'}</td><td><strong>${it.ultima_data ? esc(data(it.ultima_data)) : 'sem registro'}</strong></td></tr>`).join('')}</tbody></table></div>` : ''}
+        <p class="subtitulo" style="margin:0">Todos os diários da planilha ficam marcados como conferidos agora.</p>`, true);
+      $('#form-salvar').textContent = 'Aplicar';
+      $('#form-salvar').onclick = async () => {
+        $('#form-salvar').disabled = true;
+        const agora = new Date().toISOString(), base = { conferido_em: agora, conferido_por: estado.email };
+        for (const { r, it } of mudar) {
+          const { error: e1 } = await db.from('registro_aulas').update({ ultima_data: it.ultima_data, ...base }).eq('id', r.id);
+          if (e1) return erro('Parou no meio: ' + e1.message);
+        }
+        if (iguais.length) { const { error: e2 } = await db.from('registro_aulas').update(base).in('id', iguais.map(r => r.id)); if (e2) return erro(e2.message); }
+        if (novos.length) { const { error: e3 } = await db.from('registro_aulas').insert(novos.map(it => ({ ...it, conferido_por: estado.email }))); if (e3) return erro(e3.message); }
+        fecharFicha(); await carregarAlertaRegistros(); await paginaRegistroAulas();
+        aviso(`Planilha aplicada: ${mudar.length} datas atualizadas, ${novos.length} diários novos.`);
+      };
+    } catch (err) { aviso('Não consegui ler a planilha: ' + err.message, true); }
+  };
+}
+// lê os quadros "PROFESSOR / TURMA | ÚLTIMA DATA REGISTRADA" de qualquer aba
+function lerPlanilhaRegistro(wb) {
+  const itens = [], erros = []; let quadros = 0;
+  const turmaPor = (txt) => {
+    const m = semAcento(String(txt || '')).match(/^\s*(\d)\s*[ºª°O]?\s*(?:SERIE)?\s*([AB])\s*$/);
+    return m ? estado.turmas.find(t => t.serie === Number(m[1]) && semAcento(t.letra || '') === m[2])?.id : null;
+  };
+  const lerData = (v) => {
+    if (v instanceof Date) { const d = new Date(v.getTime() - v.getTimezoneOffset() * 60000).toISOString().slice(0, 10); return d > hojeLocal() ? null : d; }
+    if (typeof v === 'number') return lerData(new Date(Math.round((v - 25569) * 864e5) + new Date().getTimezoneOffset() * 60000));
+    const r = lerDataCurta(v); return r.ok ? r.valor : undefined;
+  };
+  const titulo = (s) => s.toLowerCase().replace(/(^|\s)\S/g, x => x.toUpperCase()).replace(/\b(I{1,3}|Iv|Vi{0,3})\b/g, x => x.toUpperCase());
+  wb.SheetNames.forEach(nomeAba => {
+    const g = XLSX.utils.sheet_to_json(wb.Sheets[nomeAba], { header: 1, defval: '', raw: true });
+    g.forEach((linha, i) => linha.forEach((v, j) => {
+      if (semAcento(String(v)).trim() !== 'TURMA' || i === 0) return;
+      const nome = String(g[i - 1]?.[j] || '').trim();
+      if (!nome || semAcento(nome) === 'PROFESSOR') return;
+      quadros++;
+      const [p, ...d] = nome.split(/\s+-\s+/);
+      for (let k = i + 1; k < g.length; k++) {
+        const t = turmaPor(g[k]?.[j]);
+        if (!t) break;
+        const dt = lerData(g[k][j + 1]);
+        if (dt === undefined) { erros.push(`${nome} ${g[k][j]}: "${g[k][j + 1]}"`); continue; }
+        itens.push({ professor: p.trim().toUpperCase(), disciplina: d.length ? titulo(d.join(' - ').trim()) : null, turma_id: t, ultima_data: dt });
+      }
+    }));
+  });
+  return { itens, erros, quadros };
+}
+
+// ---------- Faltas do professor ----------
+function periodoFaltas(F) {
+  const hoje = hojeLocal(), [a, m] = [Number(hoje.slice(0, 4)), Number(hoje.slice(5, 7))];
+  const fimMes = (ano, mes) => `${ano}-${doisDig(mes)}-${doisDig(new Date(ano, mes, 0).getDate())}`;
+  if (F.periodo === 'mes') return [`${a}-${doisDig(m)}-01`, fimMes(a, m)];
+  if (F.periodo === 'mes_passado') { const [aa, mm] = m === 1 ? [a - 1, 12] : [a, m - 1]; return [`${aa}-${doisDig(mm)}-01`, fimMes(aa, mm)]; }
+  if (F.periodo === 'ano') return [`${a}-01-01`, `${a}-12-31`];
+  return [F.de || `${a}-01-01`, F.ate || hoje];
+}
+async function paginaFaltasProfessores() {
+  const F = estado.filtroFaltas || (estado.filtroFaltas = { periodo: 'mes', de: '', ate: '', professor: '', tipo: '' });
+  $('#conteudo').innerHTML = cabecalhoProfessores('faltas') + '<div class="carregando">Carregando faltas…</div>';
+  const [de, ate] = periodoFaltas(F);
+  const { data: fs, error } = await db.from('faltas_professores').select('*').gte('data', de).lte('data', ate).order('data', { ascending: false });
+  if (error) return erroNaTela(error);
+  const ed = permite('registros', 'editar');
+  const todas = fs || [];
+  const lista = todas.filter(f => (!F.professor || chaveProf(f.professor) === F.professor) && (!F.tipo || f.tipo === F.tipo));
+  const nomesPeriodo = [...new Map(todas.map(f => [chaveProf(f.professor), f.professor])).entries()].sort((x, y) => x[1].localeCompare(y[1]));
+  // resumo por professor
+  const porProf = new Map();
+  lista.forEach(f => {
+    const k = chaveProf(f.professor);
+    if (!porProf.has(k)) porProf.set(k, { k, nome: f.professor, dias: new Set(), aulas: 0, atestado: 0, justificada: 0, nao_justificada: 0, repor: 0 });
+    const p = porProf.get(k);
+    p.dias.add(f.data); p.aulas += f.aulas; p[f.tipo] += f.aulas;
+    if (f.reposicao !== 'feita') p.repor += f.aulas;
+  });
+  const resumo = [...porProf.values()].sort((a, b) => b.aulas - a.aulas || a.nome.localeCompare(b.nome));
+  const tot = resumo.reduce((t, p) => ({ dias: t.dias + p.dias.size, aulas: t.aulas + p.aulas, sem: t.sem + p.nao_justificada, repor: t.repor + p.repor }), { dias: 0, aulas: 0, sem: 0, repor: 0 });
+  const rotuloPeriodo = `${data(de)} a ${data(ate)}`;
+  const tabelaResumo = (imp) => `<table class="${imp ? 'imp-tabela' : ''}"><thead><tr><th>Professor</th><th class="n">Dias de falta</th><th class="n">Aulas perdidas</th>
+    <th class="n">Atestado</th><th class="n">Justificadas</th><th class="n">Sem justificativa</th><th class="n">Aulas a repor</th></tr></thead>
+    <tbody>${resumo.map(p => `<tr><td>${imp ? esc(p.nome) : `<button class="link" data-filtrar-prof="${esc(p.k)}">${esc(p.nome)}</button>`}</td><td class="n">${p.dias.size}</td><td class="n"><strong>${p.aulas}</strong></td>
+      <td class="n">${p.atestado || '—'}</td><td class="n">${p.justificada || '—'}</td><td class="n">${p.nao_justificada ? `<span class="${imp ? '' : 'status vermelho'}">${p.nao_justificada}</span>` : '—'}</td><td class="n">${p.repor || '—'}</td></tr>`).join('')}
+      <tr class="linha-total"><td><strong>Total</strong></td><td class="n"><strong>${tot.dias}</strong></td><td class="n"><strong>${tot.aulas}</strong></td><td class="n">${resumo.reduce((s, p) => s + p.atestado, 0)}</td>
+      <td class="n">${resumo.reduce((s, p) => s + p.justificada, 0)}</td><td class="n">${tot.sem}</td><td class="n">${tot.repor}</td></tr></tbody></table>`;
+  const tabelaDetalhe = (imp) => `<table class="${imp ? 'imp-tabela' : ''}"><thead><tr><th>Data</th><th>Professor</th><th class="n">Aulas</th><th>Turmas</th><th>Tipo</th><th>Substituto</th><th>Reposição</th><th>Observação</th>${imp || !ed ? '' : '<th></th>'}</tr></thead>
+    <tbody>${lista.map(f => `<tr><td style="white-space:nowrap">${esc(data(f.data))} <small class="vazio">${esc(diaSemana(f.data).split('-')[0])}</small></td><td>${esc(f.professor)}</td><td class="n">${f.aulas}</td>
+      <td>${esc(f.turmas || '—')}</td><td>${imp ? TIPOS_FALTA[f.tipo] : `<span class="status ${f.tipo === 'nao_justificada' ? 'vermelho' : f.tipo === 'atestado' ? 'fechada' : 'aberta'}">${TIPOS_FALTA[f.tipo]}</span>`}</td>
+      <td>${esc(f.substituto || '—')}</td><td>${REPOSICAO[f.reposicao]}</td><td>${esc(f.observacao || '')}</td>
+      ${imp || !ed ? '' : `<td><button class="botao leve pequeno" data-editar-falta="${f.id}">Editar</button></td>`}</tr>`).join('')}</tbody></table>`;
+  $('#conteudo').innerHTML = cabecalhoProfessores('faltas') + `
+    <div class="barra"><h2 style="margin:0">Faltas do professor</h2><div class="espaco"></div>
+      <button class="botao leve" id="fp-imprimir">Imprimir relatório</button><button class="botao leve" id="fp-excel">Baixar Excel</button>
+      ${ed ? '<button class="botao" id="fp-nova">+ Registrar falta</button>' : ''}</div>
+    <p class="subtitulo">Ao registrar, escolha o professor e o dia: o sistema puxa do horário as aulas que ele teria naquele dia (turma e hora) e já conta as aulas perdidas.</p>
+    <div class="barra">
+      <select id="fp-periodo"><option value="mes">Este mês</option><option value="mes_passado">Mês passado</option><option value="ano">Ano todo</option><option value="outro">Outro período…</option></select>
+      <span id="fp-datas" class="${F.periodo === 'outro' ? '' : 'escondido'}" style="display:inline-flex;gap:6px;align-items:center"><input type="date" id="fp-de" value="${esc(F.de || de)}"> a <input type="date" id="fp-ate" value="${esc(F.ate || ate)}"></span>
+      <select id="fp-prof"><option value="">Todos os professores</option>${nomesPeriodo.map(([k, n]) => `<option value="${esc(k)}">${esc(n)}</option>`).join('')}</select>
+      <select id="fp-tipo"><option value="">Todos os tipos</option>${Object.entries(TIPOS_FALTA).map(([v, n]) => `<option value="${v}">${n}</option>`).join('')}</select>
+      <span class="subtitulo" style="margin:0">${rotuloPeriodo}</span></div>
+    <div class="reg-resumo">
+      <div class="reg-num"><strong>${tot.dias}</strong><span>dias de falta<small>${resumo.length} professor${resumo.length === 1 ? '' : 'es'}</small></span></div>
+      <div class="reg-num"><strong>${tot.aulas}</strong><span>aulas perdidas<small>no período</small></span></div>
+      <div class="reg-num vermelho"><strong>${tot.sem}</strong><span>aulas sem justificativa<small>faltas não justificadas</small></span></div>
+      <div class="reg-num amarelo"><strong>${tot.repor}</strong><span>aulas a repor<small>ainda não repostas</small></span></div></div>
+    ${!lista.length ? '<p class="subtitulo">Nenhuma falta registrada com esses filtros.</p>' : `
+    <div class="fr-bloco"><h2>Resumo por professor</h2><div class="rolavel">${tabelaResumo(false)}</div></div>
+    <div class="fr-bloco"><h2>Faltas, uma por uma</h2><div class="rolavel">${tabelaDetalhe(false)}</div></div>`}`;
+  $('#fp-periodo').value = F.periodo; $('#fp-prof').value = F.professor; $('#fp-tipo').value = F.tipo;
+  $('#fp-periodo').onchange = (e) => { F.periodo = e.target.value; if (F.periodo === 'outro') { F.de = de; F.ate = ate; } paginaFaltasProfessores(); };
+  $('#fp-de').onchange = (e) => { if (e.target.value) { F.de = e.target.value; paginaFaltasProfessores(); } };
+  $('#fp-ate').onchange = (e) => { if (e.target.value) { F.ate = e.target.value; paginaFaltasProfessores(); } };
+  $('#fp-prof').onchange = (e) => { F.professor = e.target.value; paginaFaltasProfessores(); };
+  $('#fp-tipo').onchange = (e) => { F.tipo = e.target.value; paginaFaltasProfessores(); };
+  document.querySelectorAll('[data-filtrar-prof]').forEach(b => b.onclick = () => { F.professor = b.dataset.filtrarProf; paginaFaltasProfessores(); });
+  const filtroTxt = [F.professor ? nomesPeriodo.find(([k]) => k === F.professor)?.[1] : '', F.tipo ? TIPOS_FALTA[F.tipo] : ''].filter(Boolean).join(' · ');
+  $('#fp-imprimir').onclick = () => {
+    $('#impressao').innerHTML = `<div class="reg-imp"><div class="imp-topo"><h1>RELATÓRIO DE FALTAS DOS PROFESSORES</h1>
+      <span>${rotuloPeriodo}${filtroTxt ? ' · ' + esc(filtroTxt) : ''} · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+      ${lista.length ? `<h2 class="reg-imp-h2">Resumo por professor</h2>${tabelaResumo(true)}<h2 class="reg-imp-h2">Faltas, uma por uma</h2>${tabelaDetalhe(true)}` : '<p>Nenhuma falta no período.</p>'}
+      <div class="imp-assinaturas" style="grid-template-columns:1fr 1fr;margin-top:50px"><div>Coordenação</div><div>Direção</div></div></div>`;
+    setTimeout(() => window.print(), 100);
+  };
+  $('#fp-excel').onclick = async () => {
+    await carregarScript(XLSX_URL);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Professor', 'Dias de falta', 'Aulas perdidas', 'Atestado', 'Justificadas', 'Sem justificativa', 'Aulas a repor'],
+      ...resumo.map(p => [p.nome, p.dias.size, p.aulas, p.atestado, p.justificada, p.nao_justificada, p.repor])]), 'Resumo');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Data', 'Professor', 'Aulas', 'Turmas', 'Tipo', 'Substituto', 'Reposição', 'Observação'],
+      ...lista.map(f => [data(f.data), f.professor, f.aulas, f.turmas || '', TIPOS_FALTA[f.tipo], f.substituto || '', REPOSICAO[f.reposicao], f.observacao || ''])]), 'Faltas');
+    XLSX.writeFile(wb, `faltas_professores_${de}_a_${ate}.xlsx`);
+  };
+  if (!ed) return;
+  $('#fp-nova').onclick = () => formFaltaProfessor(null);
+  document.querySelectorAll('[data-editar-falta]').forEach(b => b.onclick = () => formFaltaProfessor(todas.find(f => f.id === Number(b.dataset.editarFalta))));
+}
+async function formFaltaProfessor(f) {
+  const novo = !f;
+  f = f || { professor: '', data: hojeLocal(), aulas: 1, turmas: '', tipo: 'nao_justificada', substituto: '', reposicao: 'nao', observacao: '' };
+  const h = await horariosDoAno();
+  const { data: rs } = await db.from('registro_aulas').select('professor');
+  const nomes = [];
+  [...(rs || []).map(r => r.professor), ...h.map(x => x.professor)].forEach(n => { if (!nomes.some(v => mesmoProfessor(v, n))) nomes.push(n); });
+  nomes.sort((a, b) => a.localeCompare(b));
+  const erro = modalForm(novo ? 'Registrar falta do professor' : 'Editar falta do professor', 'entra no relatório de faltas', `
+    <div><label for="fp-f-prof">Professor</label><input type="text" id="fp-f-prof" list="fp-nomes" value="${esc(f.professor)}" autocomplete="off">
+      <datalist id="fp-nomes">${nomes.map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
+    <div><label for="fp-f-data">Dia da falta</label><input type="date" id="fp-f-data" value="${esc(f.data)}" max="${hojeLocal()}"></div>
+    <div id="fp-f-aulas-dia" class="largo"></div>
+    <div><label for="fp-f-aulas">Aulas perdidas</label><input type="number" id="fp-f-aulas" min="1" max="20" value="${f.aulas}" style="max-width:120px"></div>
+    <div class="largo"><label for="fp-f-turmas">Turmas</label><input type="text" id="fp-f-turmas" value="${esc(f.turmas || '')}" placeholder="ex.: 1ª Série A, 2ª Série B"></div>
+    <div class="largo"><label>Tipo</label><div class="reg-tipos">${Object.entries(TIPOS_FALTA).map(([v, n]) => `<label class="check"><input type="radio" name="fp-f-tipo" value="${v}" ${f.tipo === v ? 'checked' : ''}> ${n}</label>`).join('')}</div></div>
+    <div><label for="fp-f-sub">Professor substituto <small>(opcional)</small></label><input type="text" id="fp-f-sub" list="fp-nomes" value="${esc(f.substituto || '')}" autocomplete="off"></div>
+    <div><label for="fp-f-rep">Reposição das aulas</label><select id="fp-f-rep">${Object.entries(REPOSICAO).map(([v, n]) => `<option value="${v}" ${f.reposicao === v ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
+    <div class="largo"><label for="fp-f-obs">Observação <small>(opcional)</small></label><textarea id="fp-f-obs" rows="2">${esc(f.observacao || '')}</textarea></div>`, novo);
+  // aulas do professor naquele dia, pelo horário
+  const mostrarAulasDoDia = (manterTexto) => {
+    const prof = $('#fp-f-prof').value.trim(), dia = $('#fp-f-data').value;
+    const box = $('#fp-f-aulas-dia');
+    if (!prof || !dia) { box.innerHTML = ''; return; }
+    const dow = new Date(dia + 'T12:00').getDay();
+    const aulas = h.filter(x => x.dia === dow && mesmoProfessor(x.professor, prof)).sort((a, b) => a.inicio.localeCompare(b.inicio));
+    if (!aulas.length) { box.innerHTML = `<p class="subtitulo" style="margin:0">Não achei aulas de ${esc(prof)} na ${esc(diaSemana(dia))} no horário. Informe as aulas e turmas à mão.</p>`; return; }
+    box.innerHTML = `<label>Aulas de ${esc(prof)} na ${esc(diaSemana(dia))} (pelo horário)</label>
+      <div class="reg-turmas" style="grid-template-columns:1fr 1fr">${aulas.map((x, i) => `<label class="check"><input type="checkbox" data-aula-dia="${i}" checked> ${esc(hhmm(x.inicio))}–${esc(hhmm(x.fim))} · ${esc(turmaCurta(x.turma_id))}</label>`).join('')}</div>
+      <small class="vazio">Desmarque as aulas que ele deu (ex.: faltou só à tarde).</small>`;
+    const recontar = () => {
+      const sel = [...box.querySelectorAll('[data-aula-dia]:checked')].map(c => aulas[Number(c.dataset.aulaDia)]);
+      $('#fp-f-aulas').value = Math.max(1, sel.length);
+      $('#fp-f-turmas').value = [...new Set(sel.map(x => nomeTurma(x.turma_id)))].join(', ');
+    };
+    box.querySelectorAll('[data-aula-dia]').forEach(c => c.onchange = recontar);
+    if (!manterTexto) recontar();
+  };
+  $('#fp-f-prof').onchange = () => mostrarAulasDoDia(false);
+  $('#fp-f-data').onchange = () => mostrarAulasDoDia(false);
+  mostrarAulasDoDia(!novo);
+  ligarApagar('faltas_professores', f.id, () => { fecharFicha(); paginaFaltasProfessores(); }, erro);
+  $('#form-salvar').onclick = async () => {
+    const dados = {
+      professor: $('#fp-f-prof').value.trim().toUpperCase(), data: $('#fp-f-data').value, aulas: Number($('#fp-f-aulas').value),
+      turmas: $('#fp-f-turmas').value.trim() || null, tipo: document.querySelector('[name="fp-f-tipo"]:checked')?.value,
+      substituto: $('#fp-f-sub').value.trim().toUpperCase() || null, reposicao: $('#fp-f-rep').value, observacao: $('#fp-f-obs').value.trim() || null,
+    };
+    if (!dados.professor) return erro('Informe o professor.');
+    if (!dados.data) return erro('Informe o dia da falta.');
+    if (dados.data > hojeLocal()) return erro('O dia da falta não pode ser depois de hoje.');
+    if (!(dados.aulas >= 1 && dados.aulas <= 20)) return erro('Aulas perdidas: de 1 a 20.');
+    if (!dados.tipo) return erro('Escolha o tipo da falta.');
+    $('#form-salvar').disabled = true;
+    const { error } = novo ? await db.from('faltas_professores').insert(dados) : await db.from('faltas_professores').update(dados).eq('id', f.id);
+    if (error) return erro('Não foi possível salvar: ' + error.message);
+    fecharFicha(); paginaFaltasProfessores();
+  };
+}
+
+// =====================================================================
+// EVENTOS DOS ALUNOS (ausência justificada): na chamada aparece só "Justificado"
+// =====================================================================
+const rotuloJustificativa = (a) => a?._evento ? 'Justificado' : 'Atestado';
+// datas de um intervalo (inclui as duas pontas)
+function diasEntre(de, ate) {
+  const out = [];
+  for (let d = new Date(de + 'T12:00'); d <= new Date(ate + 'T12:00'); d.setDate(d.getDate() + 1)) out.push(d.toISOString().slice(0, 10));
+  return out;
+}
+// aulas que o aluno perdeu no evento: aulas da turma em cada dia (pelo horário), só as que cruzam o horário do evento
+function aulasPerdidasEvento(ev, turmaId, horarios, de, ate) {
+  const ini = ev.data_inicio > de ? ev.data_inicio : de, fim = ev.data_fim < ate ? ev.data_fim : ate;
+  if (ini > fim || !turmaId) return { dias: 0, aulas: 0 };
+  let dias = 0, aulas = 0;
+  diasEntre(ini, fim).forEach(d => {
+    const dow = new Date(d + 'T12:00').getDay() || 7;
+    const doDia = horarios.filter(h => h.turma_id === turmaId && h.dia === dow
+      && (!ev.hora_inicio || hhmm(h.fim) > hhmm(ev.hora_inicio)) && (!ev.hora_fim || hhmm(h.inicio) < hhmm(ev.hora_fim)));
+    if (doDia.length) { dias++; aulas += doDia.length; }
+  });
+  return { dias, aulas };
+}
+const textoDatasEvento = (e) => `${data(e.data_inicio)}${e.data_fim !== e.data_inicio ? ' a ' + data(e.data_fim) : ''}${e.hora_inicio ? ` · ${hhmm(e.hora_inicio)}${e.hora_fim ? '–' + hhmm(e.hora_fim) : ''}` : ' · dia inteiro'}`;
+
+async function paginaEventos() {
+  if (!permite('frequencia') && !permite('atestados')) return irPara(primeiraPagina());
+  const F = estado.filtroEv || (estado.filtroEv = { periodo: 'ano', de: '', ate: '', turma: '' });
+  $('#conteudo').innerHTML = '<div class="carregando">Carregando eventos…</div>';
+  const [de, ate] = periodoFaltas(F);
+  const [ev, ea, horarios] = await Promise.all([
+    db.from('eventos').select('*').lte('data_inicio', ate).gte('data_fim', de).order('data_inicio', { ascending: false }),
+    db.from('evento_alunos').select('evento_id, aluno_id, turma_id'),
+    horariosDoAno(),
+  ]);
+  if (ev.error || ea.error) return erroNaTela(ev.error || ea.error);
+  const ed = permite('frequencia', 'editar') || permite('atestados', 'editar');
+  const eventos = ev.data || [];
+  const turmaAtual = (id) => estado.matriculas.find(m => m.aluno_id === id && m.situacao === 'ativo')?.turma_id;
+  const participacoes = (ea.data || []).filter(p => eventos.some(e => e.id === p.evento_id))
+    .map(p => ({ ...p, turma_id: p.turma_id ?? turmaAtual(p.aluno_id) }))
+    .filter(p => !F.turma || String(p.turma_id) === F.turma)
+    .map(p => { const e = eventos.find(x => x.id === p.evento_id); return { ...p, e, ...aulasPerdidasEvento(e, p.turma_id, horarios, de, ate) }; });
+  const nomeAluno = (id) => estado.alunos.get(id)?.nome || 'Aluno ' + id;
+  const porEvento = eventos.map(e => { const ps = participacoes.filter(p => p.evento_id === e.id); return { e, ps, aulas: ps.reduce((s, p) => s + p.aulas, 0) }; })
+    .filter(x => !F.turma || x.ps.length);
+  const porAluno = [...participacoes.reduce((m, p) => {
+    if (!m.has(p.aluno_id)) m.set(p.aluno_id, { id: p.aluno_id, turma: p.turma_id, eventos: [], dias: 0, aulas: 0 });
+    const a = m.get(p.aluno_id); a.eventos.push(p.e.nome); a.dias += p.dias; a.aulas += p.aulas; return m;
+  }, new Map()).values()].sort((a, b) => b.aulas - a.aulas || nomeAluno(a.id).localeCompare(nomeAluno(b.id)));
+  const porTurma = estado.turmas.map(t => { const ps = participacoes.filter(p => p.turma_id === t.id); return { t, alunos: new Set(ps.map(p => p.aluno_id)).size, aulas: ps.reduce((s, p) => s + p.aulas, 0) }; }).filter(x => x.alunos);
+  const tot = { eventos: porEvento.length, alunos: porAluno.length, dias: participacoes.reduce((s, p) => s + p.dias, 0), aulas: participacoes.reduce((s, p) => s + p.aulas, 0) };
+  const rotulo = `${data(de)} a ${data(ate)}${F.turma ? ' · ' + nomeTurma(Number(F.turma)) : ''}`;
+  const tabEventos = (imp) => `<table class="${imp ? 'imp-tabela' : ''}"><thead><tr><th>Evento</th><th>Local</th><th>Datas</th><th class="n">Alunos</th><th class="n">Aulas perdidas</th>${imp || !ed ? '' : '<th></th>'}</tr></thead>
+    <tbody>${porEvento.map(({ e, ps, aulas }) => `<tr><td><strong>${esc(e.nome)}</strong>${imp ? `<div class="ev-imp-alunos">${ps.map(p => `${esc(nomeAluno(p.aluno_id))} (${esc(turmaCurta(p.turma_id))}, ${p.aulas})`).join('; ')}</div>`
+        : `<details class="ev-alunos"><summary>ver alunos</summary>${ps.map(p => `<div>${esc(nomeAluno(p.aluno_id))} <small class="vazio">${esc(turmaCurta(p.turma_id))} · ${p.aulas} aula${p.aulas === 1 ? '' : 's'}</small></div>`).join('') || '<div class="vazio">nenhum aluno</div>'}</details>`}</td>
+      <td>${esc(e.local || '—')}</td><td style="white-space:nowrap">${esc(textoDatasEvento(e))}</td><td class="n">${ps.length}</td><td class="n"><strong>${aulas}</strong></td>
+      ${imp || !ed ? '' : `<td><button class="botao leve pequeno" data-editar-evento="${e.id}">Editar</button></td>`}</tr>`).join('')}</tbody></table>`;
+  const tabAlunos = (imp) => `<table class="${imp ? 'imp-tabela' : ''}"><thead><tr><th>Aluno</th><th>Turma</th><th class="n">Eventos</th><th class="n">Dias fora</th><th class="n">Aulas perdidas</th><th>Quais eventos</th></tr></thead>
+    <tbody>${porAluno.map(a => `<tr><td>${imp ? esc(nomeAluno(a.id)) : `<button class="link" data-aluno="${a.id}">${esc(nomeAluno(a.id))}</button>`}</td><td>${esc(turmaCurta(a.turma))}</td>
+      <td class="n">${a.eventos.length}</td><td class="n">${a.dias}</td><td class="n"><strong>${a.aulas}</strong></td><td>${esc(a.eventos.join('; '))}</td></tr>`).join('')}</tbody></table>`;
+  const tabTurmas = (imp) => `<table class="${imp ? 'imp-tabela' : ''}"><thead><tr><th>Turma</th><th class="n">Alunos em eventos</th><th class="n">Aulas perdidas (soma)</th></tr></thead>
+    <tbody>${porTurma.map(x => `<tr><td>${esc(x.t.nome)}</td><td class="n">${x.alunos}</td><td class="n">${x.aulas}</td></tr>`).join('')}</tbody></table>`;
+  $('#conteudo').innerHTML = `
+    <div class="barra"><button class="botao leve pequeno" id="ev-voltar">← Frequência</button><h1 style="margin:0">Eventos dos alunos</h1><div class="espaco"></div>
+      <button class="botao leve" id="ev-imprimir">Imprimir relatório</button><button class="botao leve" id="ev-excel">Baixar Excel</button>
+      ${ed ? '<button class="botao" id="ev-novo">+ Novo evento</button>' : ''}</div>
+    <p class="subtitulo">Olimpíada, competição, visita, viagem… Nos dias do evento, o aluno aparece na chamada só como <span class="fr-tag-atestado">Justificado</span> e a falta não conta.
+      As aulas perdidas são contadas pelo horário da turma (só as aulas dentro do horário do evento, quando ele tem horário).</p>
+    <div class="barra">
+      <select id="ev-periodo"><option value="mes">Este mês</option><option value="mes_passado">Mês passado</option><option value="ano">Ano todo</option><option value="outro">Outro período…</option></select>
+      <span class="${F.periodo === 'outro' ? '' : 'escondido'}" style="display:inline-flex;gap:6px;align-items:center"><input type="date" id="ev-de" value="${esc(F.de || de)}"> a <input type="date" id="ev-ate" value="${esc(F.ate || ate)}"></span>
+      <select id="ev-turma"><option value="">Todas as turmas</option>${estado.turmas.map(t => `<option value="${t.id}">${esc(t.nome)}</option>`).join('')}</select>
+      <span class="subtitulo" style="margin:0">${esc(rotulo)}</span></div>
+    <div class="reg-resumo">
+      <div class="reg-num"><strong>${tot.eventos}</strong><span>eventos<small>no período</small></span></div>
+      <div class="reg-num"><strong>${tot.alunos}</strong><span>alunos<small>foram a pelo menos um</small></span></div>
+      <div class="reg-num"><strong>${tot.dias}</strong><span>dias de aula fora<small>somando todos os alunos</small></span></div>
+      <div class="reg-num amarelo"><strong>${tot.aulas}</strong><span>aulas perdidas<small>somando todos os alunos</small></span></div></div>
+    ${!porEvento.length ? '<p class="subtitulo">Nenhum evento no período.</p>' : `
+      <div class="fr-bloco"><h2>Eventos</h2><div class="rolavel">${tabEventos(false)}</div></div>
+      <div class="fr-bloco"><h2>Aulas perdidas por aluno</h2>${porAluno.length ? `<div class="rolavel">${tabAlunos(false)}</div>` : '<p class="subtitulo">Nenhum aluno nos eventos.</p>'}</div>
+      ${porTurma.length > 1 ? `<div class="fr-bloco"><h2>Por turma</h2><div class="rolavel">${tabTurmas(false)}</div></div>` : ''}`}`;
+  $('#ev-periodo').value = F.periodo; $('#ev-turma').value = F.turma;
+  $('#ev-voltar').onclick = () => irPara('frequencia');
+  $('#ev-periodo').onchange = (e) => { F.periodo = e.target.value; if (F.periodo === 'outro') { F.de = de; F.ate = ate; } paginaEventos(); };
+  $('#ev-de').onchange = (e) => { if (e.target.value) { F.de = e.target.value; paginaEventos(); } };
+  $('#ev-ate').onchange = (e) => { if (e.target.value) { F.ate = e.target.value; paginaEventos(); } };
+  $('#ev-turma').onchange = (e) => { F.turma = e.target.value; paginaEventos(); };
+  document.querySelectorAll('#conteudo [data-aluno]').forEach(b => b.onclick = () => abrirFicha(Number(b.dataset.aluno)));
+  $('#ev-imprimir').onclick = () => {
+    $('#impressao').innerHTML = `<div class="reg-imp"><div class="imp-topo"><h1>EVENTOS DOS ALUNOS · AULAS PERDIDAS</h1>
+      <span>${esc(rotulo)} · impresso em ${new Date().toLocaleDateString('pt-BR')}</span></div>
+      <p class="imp-sub">${tot.eventos} eventos · ${tot.alunos} alunos · ${tot.dias} dias de aula fora · <strong>${tot.aulas} aulas perdidas</strong> (contadas pelo horário da turma)</p>
+      ${porEvento.length ? `<h2 class="reg-imp-h2">Eventos</h2>${tabEventos(true)}<h2 class="reg-imp-h2">Aulas perdidas por aluno</h2>${tabAlunos(true)}${porTurma.length > 1 ? `<h2 class="reg-imp-h2">Por turma</h2>${tabTurmas(true)}` : ''}` : '<p>Nenhum evento no período.</p>'}</div>`;
+    setTimeout(() => window.print(), 100);
+  };
+  $('#ev-excel').onclick = async () => {
+    await carregarScript(XLSX_URL);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Evento', 'Local', 'Início', 'Fim', 'Horário', 'Aluno', 'Turma', 'Dias fora', 'Aulas perdidas'],
+      ...participacoes.map(p => [p.e.nome, p.e.local || '', data(p.e.data_inicio), data(p.e.data_fim), p.e.hora_inicio ? `${hhmm(p.e.hora_inicio)}-${hhmm(p.e.hora_fim || '')}` : 'dia inteiro',
+        nomeAluno(p.aluno_id), nomeTurma(p.turma_id), p.dias, p.aulas])]), 'Participações');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Aluno', 'Turma', 'Eventos', 'Dias fora', 'Aulas perdidas', 'Quais eventos'],
+      ...porAluno.map(a => [nomeAluno(a.id), nomeTurma(a.turma), a.eventos.length, a.dias, a.aulas, a.eventos.join('; ')])]), 'Por aluno');
+    XLSX.writeFile(wb, `eventos_alunos_${de}_a_${ate}.xlsx`);
+  };
+  if (!ed) return;
+  $('#ev-novo').onclick = () => formEvento(null, []);
+  document.querySelectorAll('[data-editar-evento]').forEach(b => b.onclick = () => {
+    const id = Number(b.dataset.editarEvento);
+    formEvento(eventos.find(e => e.id === id), (ea.data || []).filter(p => p.evento_id === id).map(p => p.aluno_id));
+  });
+}
+function formEvento(ev, alunosIni) {
+  const novo = !ev;
+  ev = ev || { nome: '', local: '', data_inicio: hojeLocal(), data_fim: hojeLocal(), hora_inicio: null, hora_fim: null, observacao: '' };
+  const marcados = new Set(alunosIni);
+  const ativos = estado.matriculas.filter(m => m.situacao === 'ativo');
+  const erro = modalForm(novo ? 'Novo evento' : 'Editar evento', 'nos dias do evento a falta vira "Justificado"', `
+    <div class="largo"><label for="ev-nome">Nome do evento</label><input type="text" id="ev-nome" value="${esc(ev.nome)}" placeholder="Ex.: OBF 2ª fase, Olimpíada de Química, visita ao ITA"></div>
+    <div class="largo"><label for="ev-local">Local <small>(opcional)</small></label><input type="text" id="ev-local" value="${esc(ev.local || '')}"></div>
+    <div><label for="ev-ini">Primeiro dia</label><input type="date" id="ev-ini" value="${esc(ev.data_inicio)}"></div>
+    <div><label for="ev-fim">Último dia</label><input type="date" id="ev-fim" value="${esc(ev.data_fim)}"></div>
+    <div class="largo"><label class="check"><input type="checkbox" id="ev-parcial" ${ev.hora_inicio ? 'checked' : ''}> Só parte do dia (informar horário)</label></div>
+    <div class="ev-horas ${ev.hora_inicio ? '' : 'escondido'}"><label for="ev-hi">Sai às</label><input type="time" id="ev-hi" value="${esc(hhmm(ev.hora_inicio || ''))}"></div>
+    <div class="ev-horas ${ev.hora_inicio ? '' : 'escondido'}"><label for="ev-hf">Volta às <small>(opcional)</small></label><input type="time" id="ev-hf" value="${esc(hhmm(ev.hora_fim || ''))}"></div>
+    <div class="largo"><label>Alunos <span id="ev-qtd" class="etiqueta"></span></label>
+      <div class="barra" style="margin:4px 0 6px"><select id="ev-sel-turma">${estado.turmas.map(t => `<option value="${t.id}">${esc(t.nome)}</option>`).join('')}</select>
+        <input type="search" id="ev-busca" placeholder="Procurar aluno…" style="max-width:200px">
+        <button type="button" class="botao leve pequeno" id="ev-todos">Marcar a turma toda</button></div>
+      <div id="ev-lista" class="ev-lista"></div><div id="ev-escolhidos" class="ev-escolhidos"></div></div>
+    <div class="largo"><label for="ev-obs">Observação <small>(opcional)</small></label><input type="text" id="ev-obs" value="${esc(ev.observacao || '')}"></div>`, novo);
+  const turmaDe = (id) => ativos.find(m => m.aluno_id === id)?.turma_id;
+  const primeiraTurma = [...marcados].map(turmaDe).find(Boolean) || ativos[0]?.turma_id;
+  if (primeiraTurma) $('#ev-sel-turma').value = primeiraTurma;
+  const desenhar = () => {
+    const b = semAcento($('#ev-busca').value.trim()), t = Number($('#ev-sel-turma').value);
+    const lista = ativos.filter(m => b ? semAcento(estado.alunos.get(m.aluno_id)?.nome || '').includes(b) : m.turma_id === t)
+      .map(m => ({ id: m.aluno_id, t: m.turma_id, nome: estado.alunos.get(m.aluno_id)?.nome || '' })).sort((x, y) => x.nome.localeCompare(y.nome));
+    $('#ev-lista').innerHTML = lista.map(a => `<label class="check"><input type="checkbox" value="${a.id}" ${marcados.has(a.id) ? 'checked' : ''}> ${esc(a.nome)}${b ? ` <small class="vazio">${esc(turmaCurta(a.t))}</small>` : ''}</label>`).join('') || '<span class="vazio">Nenhum aluno.</span>';
+    $('#ev-lista').querySelectorAll('input').forEach(c => c.onchange = () => { c.checked ? marcados.add(Number(c.value)) : marcados.delete(Number(c.value)); resumo(); });
+    resumo();
+  };
+  const resumo = () => {
+    $('#ev-qtd').textContent = `${marcados.size} marcado${marcados.size === 1 ? '' : 's'}`;
+    $('#ev-escolhidos').innerHTML = [...marcados].map(id => `<span class="ev-chip">${esc(estado.alunos.get(id)?.nome || id)} <button type="button" data-tirar="${id}" aria-label="Tirar">×</button></span>`).join('');
+    $('#ev-escolhidos').querySelectorAll('[data-tirar]').forEach(x => x.onclick = () => { marcados.delete(Number(x.dataset.tirar)); desenhar(); });
+  };
+  $('#ev-sel-turma').onchange = () => { $('#ev-busca').value = ''; desenhar(); };
+  $('#ev-busca').oninput = desenhar;
+  $('#ev-todos').onclick = () => { ativos.filter(m => m.turma_id === Number($('#ev-sel-turma').value)).forEach(m => marcados.add(m.aluno_id)); desenhar(); };
+  $('#ev-parcial').onchange = (e) => document.querySelectorAll('.ev-horas').forEach(x => x.classList.toggle('escondido', !e.target.checked));
+  desenhar();
+  ligarApagar('eventos', ev.id, () => { fecharFicha(); paginaEventos(); }, erro);
+  $('#form-salvar').onclick = async () => {
+    const parcial = $('#ev-parcial').checked;
+    const dados = { nome: $('#ev-nome').value.trim(), local: $('#ev-local').value.trim() || null, data_inicio: $('#ev-ini').value, data_fim: $('#ev-fim').value,
+      hora_inicio: parcial ? $('#ev-hi').value || null : null, hora_fim: parcial ? $('#ev-hf').value || null : null, observacao: $('#ev-obs').value.trim() || null };
+    if (!dados.nome) return erro('Informe o nome do evento.');
+    if (!dados.data_inicio || !dados.data_fim) return erro('Informe o primeiro e o último dia.');
+    if (dados.data_fim < dados.data_inicio) return erro('O último dia não pode ser antes do primeiro.');
+    if (parcial && !dados.hora_inicio) return erro('Informe a hora em que o aluno sai (ou desmarque "Só parte do dia").');
+    if (dados.hora_inicio && dados.hora_fim && dados.hora_fim <= dados.hora_inicio) return erro('A volta tem que ser depois da saída.');
+    if (!marcados.size) return erro('Marque pelo menos um aluno.');
+    $('#form-salvar').disabled = true;
+    let id = ev.id;
+    if (novo) {
+      const { data: criado, error } = await db.from('eventos').insert(dados).select('id').single();
+      if (error) return erro('Não foi possível salvar: ' + error.message);
+      id = criado.id;
+    } else {
+      const { error } = await db.from('eventos').update(dados).eq('id', id);
+      if (error) return erro('Não foi possível salvar: ' + error.message);
+    }
+    const sair = alunosIni.filter(a => !marcados.has(a)), entrar = [...marcados].filter(a => !alunosIni.includes(a));
+    if (sair.length) { const { error } = await db.from('evento_alunos').delete().eq('evento_id', id).in('aluno_id', sair); if (error) return erro(error.message); }
+    if (entrar.length) { const { error } = await db.from('evento_alunos').insert(entrar.map(aluno_id => ({ evento_id: id, aluno_id, turma_id: turmaDe(aluno_id) ?? null }))); if (error) return erro(error.message); }
+    fecharFicha(); paginaEventos();
   };
 }
 
