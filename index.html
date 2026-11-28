@@ -3579,16 +3579,28 @@ async function saidasDoDia(dia) {
   return m;
 }
 const hhmm = (t) => t ? String(t).slice(0, 5) : '';
-// verso de toda folha de frequência: "OCORRÊNCIAS DO DIA" com linhas de ponta a ponta
+// verso de toda folha de frequência: "OCORRÊNCIAS DO DIA" em quadros
+// (Professor, Disciplina, Ocorrência + 4 linhas), preenchendo a página; letra do mesmo tamanho da frente
 function svgVerso(turma, dia, rotulo) {
-  const linhas = [];
-  for (let y = 34; y <= 292; y += 8.6) linhas.push(`<line x1="0" y1="${y}" x2="210" y2="${y}" stroke="#777" stroke-width=".3"/>`);
+  const X0 = 12, X1 = 198, TOPO = 27, FIM = 290, QUADROS = 6, ESPACO = 3, PASSO = 5.3, TAM = 3;
+  const alt = (FIM - TOPO - ESPACO * (QUADROS - 1)) / QUADROS;
+  const linha = (x1, y) => `<line x1="${x1}" y1="${y}" x2="${X1 - 4}" y2="${y}" stroke="#000" stroke-width=".25"/>`;
+  const rot = (y, t) => `<text x="${X0 + 4}" y="${y - 0.8}" font-size="${TAM}">${t}</text>`;
+  const quadros = Array.from({ length: QUADROS }, (_, k) => {
+    const y = TOPO + k * (alt + ESPACO), base = y + 7;
+    const rows = Array.from({ length: 7 }, (_, r) => base + r * PASSO);
+    return `<rect x="${X0}" y="${y}" width="${X1 - X0}" height="${alt}" fill="none" stroke="#000" stroke-width=".35"/>
+      ${rot(rows[0], 'PROFESSOR:')}${linha(X0 + 28, rows[0])}
+      ${rot(rows[1], 'DISCIPLINA:')}${linha(X0 + 28, rows[1])}
+      ${rot(rows[2], 'OCORRÊNCIA:')}${linha(X0 + 28, rows[2])}
+      ${rows.slice(3).map(yy => linha(X0 + 4, yy)).join('')}`;
+  }).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" font-family="Arial, Helvetica, sans-serif">
     <rect width="210" height="297" fill="#fff"/>
-    <text x="105" y="15" font-size="7" font-weight="700" text-anchor="middle">OCORRÊNCIAS DO DIA</text>
-    <text x="105" y="22.5" font-size="3.3" text-anchor="middle">${esc(`Turma: ${turma} · Data: ${data(dia)}${rotulo ? ' · ' + rotulo : ''}`)}</text>
-    <text x="105" y="28" font-size="2.7" text-anchor="middle" fill="#555">Professor(a): anote aqui as ocorrências da sala durante o dia e devolva esta folha à coordenação no fim do expediente.</text>
-    ${linhas.join('')}
+    <text x="105" y="12.5" font-size="5.2" font-weight="700" text-anchor="middle">OCORRÊNCIAS DO DIA</text>
+    <text x="105" y="18.5" font-size="3" text-anchor="middle">${esc(`Turma: ${turma} · Data: ${data(dia)}${rotulo ? ' · ' + rotulo : ''}`)}</text>
+    <text x="105" y="23" font-size="2.6" text-anchor="middle" fill="#555">Professor(a): registre aqui as ocorrências da sala e devolva esta folha à coordenação no fim do expediente.</text>
+    ${quadros}
   </svg>`;
 }
 
