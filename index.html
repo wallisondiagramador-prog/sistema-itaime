@@ -40,14 +40,42 @@
   .aviso.erro { background: #fdecea; color: var(--erro); }
 
   /* ---------- Topo e navegação ---------- */
-  header { background: var(--branco); border-bottom: 1px solid var(--borda); position: sticky; top: 0; z-index: 5; }
-  .topo { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; gap: 18px; }
-  .topo > * { flex-shrink: 0; white-space: nowrap; } .topo > nav { flex-shrink: 1; min-width: 0; }
-  nav { display: flex; gap: 2px; flex: 1; overflow-x: auto; scrollbar-width: none; }
-  nav button { border: 0; background: transparent; padding: 8px 9px; border-radius: 8px; color: var(--suave); font-weight: 500; font-size: 14px; white-space: nowrap; flex-shrink: 0; }
+  header { background: var(--branco); border-bottom: 1px solid var(--borda); position: sticky; top: 0; z-index: 20; }
+  /* Menu do topo: computador = abas em linha (quebram para a 2ª linha se não couberem);
+     tablet e celular = botão "Menu" que abre a lista das abas */
+  .topo { margin: 0 auto; padding: 10px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+  .topo > .marca, .topo > .usuario, .topo > #sair, .topo > #menu-botao { flex-shrink: 0; white-space: nowrap; }
+  .topo > .usuario { margin-left: auto; }
+  nav { display: flex; flex-wrap: wrap; gap: 2px 2px; flex: 1 1 0; min-width: 0; }
+  nav button { border: 0; background: transparent; padding: 8px 10px; border-radius: 8px; color: var(--suave); font-weight: 500; font-size: 14px; white-space: nowrap; }
+  nav button:hover { background: var(--fundo); color: var(--texto); }
   nav button.ativa { background: var(--verde-claro); color: var(--verde-escuro); }
-  .usuario { font-size: 13px; color: var(--suave); text-align: right; }
+  .usuario { font-size: 13px; color: var(--suave); text-align: right; line-height: 1.25; }
   .usuario strong { color: var(--texto); display: block; font-size: 14px; }
+  #menu-botao { display: none; align-items: center; gap: 8px; }
+  #menu-botao .barras { font-size: 18px; line-height: 1; }
+  #menu-atual { max-width: 38vw; overflow: hidden; text-overflow: ellipsis; }
+  /* computador estreito (notebook): as abas descem para uma linha própria, inteira */
+  @media (max-width: 1600px) and (min-width: 901px) {
+    nav { order: 3; flex: 1 1 100%; border-top: 1px solid var(--borda); padding-top: 6px; }
+  }
+  /* tablet e celular: botão Menu + lista que abre por cima do conteúdo */
+  @media (max-width: 900px) {
+    .topo { padding: 8px 14px; gap: 8px 10px; }
+    #menu-botao { display: inline-flex; order: 2; }
+    .topo > .usuario { order: 3; }
+    .topo > #sair { order: 4; padding: 8px 12px; }
+    nav { display: none; order: 5; flex: 1 1 100%; flex-direction: column; flex-wrap: nowrap; gap: 2px;
+      max-height: calc(100vh - 70px); overflow-y: auto; padding: 6px 0 10px; border-top: 1px solid var(--borda); }
+    header.menu-aberto nav { display: flex; }
+    nav button { text-align: left; font-size: 16px; padding: 12px 14px; }
+  }
+  @media (max-width: 560px) {
+    .topo > .usuario span { display: none; }
+    .topo > .usuario strong { font-size: 13px; max-width: 28vw; overflow: hidden; text-overflow: ellipsis; }
+    .marca { font-size: 16px !important; }
+    #menu-atual { max-width: 30vw; }
+  }
   main { max-width: 1200px; margin: 0 auto; padding: 24px 20px 48px; }
   h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -.3px; }
   .subtitulo { color: var(--suave); margin: 0 0 20px; }
@@ -465,7 +493,8 @@
   <header>
     <div class="topo">
       <div class="marca" style="font-size:18px">ITA-IME</div>
-      <nav>
+      <button class="botao leve" id="menu-botao" aria-expanded="false" aria-controls="menu-principal"><span class="barras" aria-hidden="true">☰</span><span id="menu-atual">Menu</span></button>
+      <nav id="menu-principal" aria-label="Menu principal">
         <button data-pagina="turmas" class="ativa escondido">Turmas</button>
         <button data-pagina="notas" class="escondido">Notas</button>
         <button data-pagina="comparativos" class="escondido">Comparativos</button>
@@ -716,7 +745,16 @@ async function recarregarMatriculas() {
   if (estado.pagina) irPara(estado.pagina[0], estado.pagina[1], 'nada');
 }
 
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => irPara(b.dataset.pagina));
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => { fecharMenu(); irPara(b.dataset.pagina); });
+// menu do celular/tablet: abre e fecha a lista das abas
+function fecharMenu() { const h = document.querySelector('#tela-sistema header'); h?.classList.remove('menu-aberto'); $('#menu-botao')?.setAttribute('aria-expanded', 'false'); }
+$('#menu-botao').onclick = (e) => {
+  e.stopPropagation();
+  const h = document.querySelector('#tela-sistema header'), aberto = h.classList.toggle('menu-aberto');
+  $('#menu-botao').setAttribute('aria-expanded', String(aberto));
+};
+document.addEventListener('click', (e) => { if (!e.target.closest('#tela-sistema header')) fecharMenu(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharMenu(); });
 // cada tela fica guardada no histórico do navegador: o botão "Voltar" do navegador volta para a tela anterior do sistema
 function irPara(pagina, extra, modo) {
   const mesma = estado.pagina && estado.pagina[0] === pagina && estado.pagina[1] === extra;
@@ -729,6 +767,9 @@ function irPara(pagina, extra, modo) {
   estado.pagina = [pagina, extra];
   const menu = { turma: 'turmas', ciclo: 'notas', planilha: 'notas' }[pagina] || pagina;
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativa', b.dataset.pagina === menu));
+  const abaAtual = document.querySelector(`nav button[data-pagina="${menu}"]`);
+  if ($('#menu-atual')) $('#menu-atual').textContent = abaAtual ? abaAtual.textContent.trim() : 'Menu';
+  fecharMenu();
   ({ turmas: paginaTurmas, turma: paginaTurma, busca: paginaBusca, equipe: paginaEquipe,
      notas: paginaNotas, ciclo: paginaCiclo, planilha: paginaPlanilha, professores: paginaProfessores, ocorrencias: paginaOcorrencias, comparativos: paginaComparativos, desempenho: paginaDesempenho, horarios: paginaHorarios, frequencia: paginaFrequencia, bolsas: paginaBolsas, atestados: paginaAtestados })[pagina](extra);
 }
